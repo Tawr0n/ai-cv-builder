@@ -1,0 +1,124 @@
+{
+  "contact": {
+    "fullName": "Markus Weber",
+    "email": "markus.weber@example.de",
+    "phone": null,
+    "location": "Berlin",
+    "links": [],
+    "sourceFactIds": ["f1", "f3", "f4"]
+  },
+  "summary": {
+    "text": "Data Analyst at Zalando with a background in economics, comfortable with SQL and Python. Builds Looker dashboards, runs ad-hoc BigQuery analyses for category managers and helped with an A/B test analysis for the checkout page. Presents to stakeholders.",
+    "sourceFactIds": ["f2", "f5", "f6", "f7", "f9", "f10", "f11", "f12", "f8"]
+  },
+  "experience": [
+    {
+      "organization": "Zalando SE",
+      "title": "Junior Data Analyst",
+      "startDate": "2022-09",
+      "endDate": null,
+      "isCurrent": true,
+      "location": "Berlin",
+      "sourceFactIds": ["f9"],
+      "bullets": [
+        {
+          "text": "Helped with an A/B test analysis for the checkout page.",
+          "sourceFactIds": ["f12"]
+        },
+        {
+          "text": "Ran ad-hoc SQL analyses in BigQuery for category managers.",
+          "sourceFactIds": ["f11"]
+        },
+        {
+          "text": "Built weekly Looker dashboards for the returns team.",
+          "sourceFactIds": ["f10"]
+        }
+      ]
+    },
+    {
+      "organization": "Deutsche Bahn",
+      "title": "Working Student, Controlling",
+      "startDate": "2020",
+      "endDate": "2022",
+      "isCurrent": false,
+      "location": "Frankfurt",
+      "sourceFactIds": ["f13"],
+      "bullets": [
+        {
+          "text": "Cleaned data in Python (pandas).",
+          "sourceFactIds": ["f15"]
+        },
+        {
+          "text": "Wrote Excel reports.",
+          "sourceFactIds": ["f14"]
+        }
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Goethe University Frankfurt",
+      "degree": "M.Sc.",
+      "field": "Economics",
+      "startDate": null,
+      "endDate": "2022",
+      "sourceFactIds": ["f16"]
+    },
+    {
+      "institution": "Goethe University Frankfurt",
+      "degree": "B.Sc.",
+      "field": "Economics",
+      "startDate": null,
+      "endDate": "2020",
+      "sourceFactIds": ["f17"]
+    }
+  ],
+  "skills": [
+    { "name": "SQL", "sourceFactIds": ["f18", "f6"] },
+    { "name": "BigQuery", "sourceFactIds": ["f19"] },
+    { "name": "Python (pandas)", "sourceFactIds": ["f20", "f7"] },
+    { "name": "Looker", "sourceFactIds": ["f21"] },
+    { "name": "Excel", "sourceFactIds": ["f22"] },
+    { "name": "Stakeholder presentations", "sourceFactIds": ["f8"] },
+    { "name": "English (C1)", "sourceFactIds": ["f24"] },
+    { "name": "German (native)", "sourceFactIds": ["f23"] }
+  ],
+  "questions": [
+    {
+      "section": "experience",
+      "itemIndex": 0,
+      "field": "bullets",
+      "text": "What was your part in the checkout A/B test analysis, and what did the test show or change?"
+    },
+    {
+      "section": "experience",
+      "itemIndex": 0,
+      "field": "bullets",
+      "text": "Did any of your ad-hoc analyses for category managers lead to a decision or measurable result?"
+    },
+    {
+      "section": "experience",
+      "itemIndex": 0,
+      "field": "bullets",
+      "text": "What did the returns team use the weekly Looker dashboards for, and how many people relied on them?"
+    },
+    {
+      "section": "experience",
+      "itemIndex": 0,
+      "field": "bullets",
+      "text": "Which product metrics or features (e.g. conversion, retention, funnels) have you analysed at Zalando?"
+    },
+    {
+      "section": "contact",
+      "itemIndex": null,
+      "field": "links",
+      "text": "Do you have a LinkedIn or GitHub profile to add?"
+    },
+    {
+      "section": "experience",
+      "itemIndex": 1,
+      "field": "bullets",
+      "text": "What were the Excel reports at Deutsche Bahn about, and who used them?"
+    }
+  ]
+}

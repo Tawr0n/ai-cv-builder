@@ -1,0 +1,35 @@
+{"facts":[
+{"id":"f1","text":"The person's first name is Андрій","quote":"я Андрій"},
+{"id":"f2","text":"Email is andriy.dev@example.com","quote":"andriy.dev@example.com"},
+{"id":"f3","text":"Did frontend work for roughly 4 years","quote":"десь 4 роки робив фронтенд"},
+{"id":"f4","text":"Worked at several startups","quote":"у кількох стартапах"},
+{"id":"f5","text":"Mostly used React","quote":"в основному React"},
+{"id":"f6","text":"Used Vue a little","quote":"трохи вью"},
+{"id":"f7","text":"The last workplace was some edtech company","quote":"останнє місце - якийсь edtech"},
+{"id":"f8","text":"Built an admin panel at the edtech company","quote":"робив там адмінку"},
+{"id":"f9","text":"Did something related to payments at the edtech company","quote":"щось з платежами"},
+{"id":"f10","text":"Worked as a freelancer before the edtech company","quote":"до того був фриланс"},
+{"id":"f11","text":"Studied at KPI but did not finish","quote":"вчився в КПІ, але не закінчив"}
+],
+"cv":{
+"contact":{"fullName":"Андрій","email":"andriy.dev@example.com","phone":null,"location":null,"links":[],"sourceFactIds":["f1","f2"]},
+"summary":{"text":"Frontend developer with roughly 4 years of experience across several startups, working mainly with React and a little Vue. Most recently built an admin panel and worked on payment-related features at an edtech company.","sourceFactIds":["f3","f4","f5","f6","f7","f8","f9"]},
+"experience":[
+{"organization":"","title":"","startDate":null,"endDate":null,"isCurrent":false,"location":null,"sourceFactIds":["f7"],"bullets":[
+{"text":"Built an admin panel.","sourceFactIds":["f8"]},
+{"text":"Worked on payment-related functionality.","sourceFactIds":["f9"]}]},
+{"organization":"Freelance","title":"","startDate":null,"endDate":null,"isCurrent":false,"location":null,"sourceFactIds":["f10"],"bullets":[]}
+],
+"education":[{"institution":"KPI","degree":"","field":null,"startDate":null,"endDate":null,"sourceFactIds":["f11"]}],
+"skills":[
+{"name":"React","sourceFactIds":["f5"]},
+{"name":"Vue","sourceFactIds":["f6"]}
+],
+"questions":[
+{"section":"experience","itemIndex":0,"field":"organization","text":"Як називається останній edtech-проєкт чи компанія, яка ваша посада там і в які роки (місяць і рік початку та завершення) ви працювали?"},
+{"section":"experience","itemIndex":0,"field":"bullets","text":"Що саме ви робили з платежами (інтеграція з платіжним сервісом, форми оплати, історія транзакцій тощо) і з якими технологіями?"},
+{"section":"experience","itemIndex":0,"field":"bullets","text":"Для чого була адмінка і який результат: скільки користувачів нею користувалося, що вона спростила чи прискорила?"},
+{"section":"experience","itemIndex":1,"field":"startDate","text":"У які роки ви працювали на фрилансі, які типові проєкти чи замовники були і що саме ви робили?"},
+{"section":"education","itemIndex":0,"field":"field","text":"Який факультет чи спеціальність у КПІ та в які роки ви там вчилися? Чи хочете вказати, що навчання не завершено?"},
+{"section":"contact","itemIndex":null,"field":"fullName","text":"Яке ваше прізвище та як писати ім'я латиницею в CV (наприклад, Andriy чи Andrii)?"}
+]}}

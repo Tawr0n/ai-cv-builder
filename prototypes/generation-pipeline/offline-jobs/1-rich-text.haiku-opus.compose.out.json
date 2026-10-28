@@ -1,0 +1,139 @@
+{
+  "contact": {
+    "fullName": "Olena Kovalenko",
+    "email": "olena.kovalenko@example.com",
+    "phone": "+380 67 123 4567",
+    "location": "Lviv, Ukraine",
+    "links": ["github.com/okoval"],
+    "sourceFactIds": ["f1", "f2", "f3", "f4", "f5"]
+  },
+  "summary": {
+    "text": "Backend developer with 6 years in the industry, currently tech lead of a team of 5 at SoftServe. Built a Node.js/TypeScript and PostgreSQL payment reconciliation service processing about 2 million transactions a day, and moved the team to Kubernetes (EKS), cutting deploy time from ~40 to 8 minutes. Likes boring, reliable systems.",
+    "sourceFactIds": ["f6", "f7", "f9", "f11", "f12", "f14", "f15", "f16", "f8"]
+  },
+  "experience": [
+    {
+      "organization": "SoftServe",
+      "title": "Tech Lead (previously Backend Engineer)",
+      "startDate": "2021",
+      "endDate": null,
+      "isCurrent": true,
+      "location": "Lviv",
+      "sourceFactIds": ["f9", "f10", "f11"],
+      "bullets": [
+        {
+          "text": "Built a payment reconciliation service in Node.js/TypeScript and PostgreSQL processing ~2M transactions a day for a US fintech client.",
+          "sourceFactIds": ["f12", "f13", "f14"]
+        },
+        {
+          "text": "Moved the team from a monolith deploy to Kubernetes (EKS), cutting deploy time from ~40 to 8 minutes.",
+          "sourceFactIds": ["f15", "f16"]
+        },
+        {
+          "text": "Led a team of 5 as tech lead since March 2023.",
+          "sourceFactIds": ["f11"]
+        },
+        {
+          "text": "Mentored 3 juniors, interviewed candidates and wrote internal code review guidelines.",
+          "sourceFactIds": ["f18", "f17", "f19"]
+        }
+      ]
+    },
+    {
+      "organization": "Fudzi (food delivery startup)",
+      "title": "Middle PHP Developer (previously Junior PHP Developer)",
+      "startDate": "2018",
+      "endDate": "2021",
+      "isCurrent": false,
+      "location": "Lviv",
+      "sourceFactIds": ["f20", "f21", "f22"],
+      "bullets": [
+        {
+          "text": "Built the Laravel backend for the courier app.",
+          "sourceFactIds": ["f23"]
+        },
+        {
+          "text": "Integrated Google Maps API for route estimates.",
+          "sourceFactIds": ["f24"]
+        },
+        {
+          "text": "Was on call for production incidents once a week.",
+          "sourceFactIds": ["f25"]
+        }
+      ]
+    },
+    {
+      "organization": "Lviv Coffee Manufacture",
+      "title": "Barista (part-time)",
+      "startDate": "2016",
+      "endDate": "2018",
+      "isCurrent": false,
+      "location": null,
+      "sourceFactIds": ["f26", "f27"],
+      "bullets": [
+        {
+          "text": "Trained new baristas.",
+          "sourceFactIds": ["f28"]
+        }
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Ivan Franko National University of Lviv",
+      "degree": "BSc",
+      "field": "Applied Mathematics",
+      "startDate": "2014",
+      "endDate": "2018",
+      "sourceFactIds": ["f29", "f30", "f31"]
+    }
+  ],
+  "skills": [
+    { "name": "Node.js", "sourceFactIds": ["f33"] },
+    { "name": "TypeScript", "sourceFactIds": ["f32"] },
+    { "name": "PostgreSQL", "sourceFactIds": ["f35"] },
+    { "name": "NestJS", "sourceFactIds": ["f34"] },
+    { "name": "Kafka", "sourceFactIds": ["f37"] },
+    { "name": "Redis", "sourceFactIds": ["f36"] },
+    { "name": "AWS", "sourceFactIds": ["f40"] },
+    { "name": "Kubernetes", "sourceFactIds": ["f39"] },
+    { "name": "Docker", "sourceFactIds": ["f38"] },
+    { "name": "PHP", "sourceFactIds": ["f41"] },
+    { "name": "Laravel", "sourceFactIds": ["f42"] },
+    { "name": "English (B2)", "sourceFactIds": ["f43"] },
+    { "name": "Ukrainian (native)", "sourceFactIds": ["f44"] },
+    { "name": "Polish (basic)", "sourceFactIds": ["f45"] }
+  ],
+  "questions": [
+    {
+      "section": "experience",
+      "itemIndex": 0,
+      "field": "bullets",
+      "text": "What measurable outcome did the payment reconciliation service deliver (e.g. error rate, manual work saved, uptime)?"
+    },
+    {
+      "section": "experience",
+      "itemIndex": 0,
+      "field": "title",
+      "text": "Did your Backend Engineer role at SoftServe end when you became tech lead in March 2023, and is \"Tech Lead\" your official title?"
+    },
+    {
+      "section": "experience",
+      "itemIndex": 0,
+      "field": "bullets",
+      "text": "Did you use Kafka, Redis or NestJS at SoftServe, and if so, for what?"
+    },
+    {
+      "section": "experience",
+      "itemIndex": 1,
+      "field": "startDate",
+      "text": "When were you promoted from junior to middle PHP developer at Fudzi?"
+    },
+    {
+      "section": "experience",
+      "itemIndex": 1,
+      "field": "bullets",
+      "text": "Can you give a scale or result for the courier app backend (e.g. number of couriers, orders per day)?"
+    }
+  ]
+}
