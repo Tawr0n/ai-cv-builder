@@ -14,3 +14,11 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 - `/api/auth/signup` and `/api/auth/login` are rate-limited per IP, so bulk enumeration is slow.
 
 **What would remove it:** Adding email verification. Sign-up then always responds "check your inbox", and the inbox receives either a confirmation link or an "you already have an account" notice.
+
+## AI never touches an item the user edited by hand
+
+**What:** When an Answer-driven update reaches an item the user has already changed by hand (`edited: true`), the AI leaves it alone. The Answer is still saved as a Fact and the Question is marked answered, but the user has to fold the new information into that item themselves; the UI shows the Answer next to the item with a hint.
+
+**Why we accept it:** The alternative is a **Suggestion**: the AI proposes a replacement for the item, the UI shows "before → after", and the user accepts or rejects it. That needs its own state (pending / accepted / rejected / stale when the item changed again), a before/after view that works on mobile, and conflict handling on accept. It does not fit the time budget, and the simpler rule never overwrites the user's words.
+
+**What would remove it:** Suggestions for every Answer-driven update, not only edited items. The worker would then never write into the CV content at all, which also removes the race between background updates and manual edits.
