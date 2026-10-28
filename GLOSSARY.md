@@ -51,3 +51,7 @@ _Avoid_: Response, reply
 **Edited item**:
 An item of CV content the user changed by hand; generation never overwrites it.
 _Avoid_: Locked, manual, user-owned
+
+**Generation**:
+One run of the AI producing CV content for a CV, from the moment it is requested until it succeeds or fails. A CV may have several Generations when the user tries again after a failure.
+_Avoid_: Job, task, run (on its own)
