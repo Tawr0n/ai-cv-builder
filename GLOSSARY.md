@@ -4,6 +4,10 @@ Turns a person's existing CV or free-text background into a role-targeted CV dra
 
 ## Language
 
+**User**:
+A person who signs up with an email and password and owns CVs. Every CV belongs to exactly one User; CVs are never shared.
+_Avoid_: Account, customer, member
+
 **CV**:
 One user's document targeted at one Target role, created from exactly one Source. A user may have many.
 _Avoid_: Resume, profile
