@@ -5,8 +5,13 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import * as z from "zod/v4";
 
 export const MODEL = "claude-opus-5-5";
-const PRICE_IN = 4 / 1e6;
-const PRICE_OUT = 20 / 1e6;
+// $ per token (input, output), first-party API rates; Haiku's applies to prompts up to 100K tokens.
+const PRICES: Record<Model, [number, number]> = {
+  "claude-opus-5-5": [4 / 1e6, 20 / 1e6],
+  "claude-sonnet-5-5": [2 / 1e6, 10 / 1e6],
+  "claude-haiku-5-5": [0.1 / 1e6, 0.5 / 1e6],
+};
+export type Model = "claude-opus-5-5" | "claude-sonnet-5-5" | "claude-haiku-5-5";
 
 // ---------- schemas (LLM output shapes) ----------
 
@@ -97,29 +102,33 @@ function sourceBlock(src: SourceInput): Anthropic.ContentBlockParam {
 
 // ---------- calls ----------
 
-export type CallStats = { label: string; inputTokens: number; outputTokens: number; costUsd: number; ms: number; stopReason: string | null };
+export type CallStats = { label: string; model: Model; inputTokens: number; outputTokens: number; costUsd: number; ms: number; stopReason: string | null };
+export type Effort = "low" | "medium" | "high";
 
 async function call<T>(
   client: Anthropic,
   label: string,
+  model: Model,
   format: ReturnType<typeof zodOutputFormat<z.ZodType<T>>>,
   system: string,
   content: Anthropic.ContentBlockParam[],
-  effort: "low" | "medium" | "high",
+  effort: Effort,
 ): Promise<{ output: T; stats: CallStats }> {
   const t0 = Date.now();
   const res = await client.messages.parse({
-    model: MODEL,
+    model,
     max_tokens: 16000,
     system,
     output_config: { format, effort },
     messages: [{ role: "user", content }],
   });
+  const [priceIn, priceOut] = PRICES[model];
   const stats: CallStats = {
     label,
+    model,
     inputTokens: res.usage.input_tokens,
     outputTokens: res.usage.output_tokens,
-    costUsd: res.usage.input_tokens * PRICE_IN + res.usage.output_tokens * PRICE_OUT,
+    costUsd: res.usage.input_tokens * priceIn + res.usage.output_tokens * priceOut,
     ms: Date.now() - t0,
     stopReason: res.stop_reason,
   };
@@ -129,22 +138,22 @@ async function call<T>(
   return { output: res.parsed_output as T, stats };
 }
 
-export async function singleCall(client: Anthropic, src: SourceInput, role: string, effort: "low" | "medium" | "high") {
+export async function singleCall(client: Anthropic, src: SourceInput, role: string, effort: Effort, model: Model) {
   const system = `You turn a person's Source (an old CV or a free-text description) into a role-targeted CV draft.\n\nFirst list the Facts.\n${FACT_RULES}\n\nThen ${COMPOSE_RULES}`;
-  const { output, stats } = await call(client, "single", zodOutputFormat(SingleOutput), system, [
+  const { output, stats } = await call(client, "single", model, zodOutputFormat(SingleOutput), system, [
     sourceBlock(src),
     { type: "text", text: `Target role: ${role}` },
   ], effort);
   return { facts: output.facts, cv: output.cv, calls: [stats] };
 }
 
-export async function staged(client: Anthropic, src: SourceInput, role: string, effort: "low" | "medium" | "high") {
-  const ex = await call(client, "extract", zodOutputFormat(ExtractOutput),
+export async function staged(client: Anthropic, src: SourceInput, role: string, effort: Effort, extractModel: Model, composeModel: Model) {
+  const ex = await call(client, "extract", extractModel, zodOutputFormat(ExtractOutput),
     `You extract Facts from a person's Source (an old CV or a free-text description). Do not judge relevance; extract everything.\n${FACT_RULES}`,
     [sourceBlock(src)], effort);
   // The composer never sees the Source: anything not extracted cannot leak in.
   const factsJson = JSON.stringify(ex.output.facts.map(({ id, text }) => ({ id, text })), null, 1);
-  const co = await call(client, "compose", zodOutputFormat(CvDraft),
+  const co = await call(client, "compose", composeModel, zodOutputFormat(CvDraft),
     `You turn a list of Facts about a person into a role-targeted CV draft. The Facts are all you know about them.\n\n${COMPOSE_RULES}`,
     [{ type: "text", text: `<facts>\n${factsJson}\n</facts>\n\nTarget role: ${role}` }], effort);
   return { facts: ex.output.facts, cv: co.output, calls: [ex.stats, co.stats] };
@@ -163,8 +172,8 @@ export type JudgeFinding = z.infer<typeof JudgeOutput>["findings"][number];
 
 export const JUDGE_SYSTEM = `You audit a CV draft against the Facts it claims to rest on. For every summary, experience header, bullet, education entry and skill, check that every claim in it (numbers, names, technologies, scope, seniority, outcomes) is stated by its cited Facts. Report only problems; an empty list is a valid answer. Rephrasing is fine.`;
 
-export async function judge(client: Anthropic, facts: Fact[], cv: CvDraft) {
-  const { output, stats } = await call(client, "judge", zodOutputFormat(JudgeOutput), JUDGE_SYSTEM,
+export async function judge(client: Anthropic, facts: Fact[], cv: CvDraft, model: Model = MODEL) {
+  const { output, stats } = await call(client, "judge", model, zodOutputFormat(JudgeOutput), JUDGE_SYSTEM,
     [{ type: "text", text: `<facts>\n${JSON.stringify(facts.map(({ id, text }) => ({ id, text })), null, 1)}\n</facts>\n<cv>\n${JSON.stringify({ ...cv, questions: undefined }, null, 1)}\n</cv>` }],
     "medium");
   return { findings: output.findings, stats };

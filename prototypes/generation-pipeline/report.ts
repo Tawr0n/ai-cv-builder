@@ -1,7 +1,8 @@
-// PROTOTYPE, throwaway. Renders results/*.json into one self-contained results/report.html.
+// PROTOTYPE, throwaway. Renders <dir>/*.json into one self-contained <dir>/report.html.
+// Usage: tsx report.ts [results | results-api]   (default results)
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 
-const resDir = new URL("./results/", import.meta.url);
+const resDir = new URL(`./${process.argv[2] ?? "results"}/`, import.meta.url);
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 const ids = (a: string[]) => `<span class=ids>${esc(a.join(","))}</span>`;
 
@@ -54,4 +55,4 @@ pre{white-space:pre-wrap;background:#f4f4f4;padding:8px}
 <h1>Generation pipeline prototype: single call vs staged</h1>
 <p>PROTOTYPE, throwaway. Same Sources and Target roles through both pipelines. Validator = deterministic checks (red: reject, amber: flag). Judge = a separate Claude call looking for claims the cited Facts don't support.</p>
 ${body}`);
-console.log("wrote results/report.html");
+console.log(`wrote ${resDir.pathname}report.html`);
