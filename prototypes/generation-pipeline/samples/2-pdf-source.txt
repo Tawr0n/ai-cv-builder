@@ -1,0 +1,23 @@
+MARKUS WEBER
+Data Analyst
+markus.weber@example.de  -  Berlin
+
+PROFILE
+Analyst with a background in economics. Comfortable with SQL and Python, presenting to stakeholders.
+
+EXPERIENCE
+Zalando SE, Berlin  -  Junior Data Analyst  -  09/2022 - present
+* Weekly dashboards in Looker for the returns team
+* Ad-hoc SQL analyses (BigQuery) for category managers
+* Helped with an A/B test analysis for the checkout page
+
+Deutsche Bahn, Frankfurt  -  Working student, Controlling  -  2020 - 2022
+* Excel reports
+* Data cleaning in Python (pandas)
+
+EDUCATION
+Goethe University Frankfurt  -  M.Sc. Economics  -  2022
+Goethe University Frankfurt  -  B.Sc. Economics  -  2020
+
+SKILLS
+SQL, BigQuery, Python (pandas), Looker, Excel, German (native), English (C1)

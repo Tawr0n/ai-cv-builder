@@ -1,0 +1,19 @@
+{
+  "name": "prototype-generation-pipeline",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway: compares CV generation pipelines. Lives only on research/generation-pipeline-prototype.",
+  "scripts": {
+    "run": "tsx run.ts",
+    "report": "tsx report.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

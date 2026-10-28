@@ -1,0 +1,22 @@
+Olena Kovalenko
+olena.kovalenko@example.com | +380 67 123 4567 | Lviv, Ukraine | github.com/okoval
+
+About me: backend developer, 6 years in the industry. I like boring reliable systems.
+
+2021 - now: SoftServe, Lviv. Backend engineer, then tech lead of a team of 5 from March 2023.
+- Built payment reconciliation service in Node.js/TypeScript + PostgreSQL for a US fintech client, it processes about 2 million transactions a day.
+- Moved the team from a monolith deploy to Kubernetes (EKS), deploy time went from ~40 min to 8 min.
+- Interviewed candidates, mentored 3 juniors.
+- Wrote internal guidelines for code review.
+
+2018 - 2021: Lviv IT startup "Fudzi" (food delivery), junior then middle PHP developer.
+- Laravel backend for the courier app.
+- Integrated Google Maps API for route estimates.
+- Was on call for production incidents once a week.
+
+2016 - 2018: barista at Lviv Coffee Manufacture (part-time during university). Trained new baristas.
+
+Education: Ivan Franko National University of Lviv, BSc Applied Mathematics, 2014-2018.
+
+Skills: TypeScript, Node.js, NestJS, PostgreSQL, Redis, Kafka, Docker, Kubernetes, AWS, PHP, Laravel. English B2, Ukrainian native, Polish basic.
+Hobbies: bouldering, board games.
