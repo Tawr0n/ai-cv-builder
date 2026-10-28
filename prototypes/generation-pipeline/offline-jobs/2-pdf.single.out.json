@@ -1,0 +1,106 @@
+{
+  "facts": [
+    {"id": "f1", "text": "Full name is Markus Weber", "quote": "MARKUS WEBER"},
+    {"id": "f2", "text": "Headline: Data Analyst", "quote": "Data Analyst"},
+    {"id": "f3", "text": "Email is markus.weber@example.de", "quote": "markus.weber@example.de"},
+    {"id": "f4", "text": "Based in Berlin", "quote": "Berlin"},
+    {"id": "f5", "text": "Analyst with a background in economics", "quote": "Analyst with a background in economics."},
+    {"id": "f6", "text": "Comfortable with SQL", "quote": "Comfortable with SQL"},
+    {"id": "f7", "text": "Comfortable with Python", "quote": "Comfortable with SQL and Python"},
+    {"id": "f8", "text": "Comfortable presenting to stakeholders", "quote": "presenting to stakeholders"},
+    {"id": "f9", "text": "Junior Data Analyst at Zalando SE, Berlin, from 09/2022 to present", "quote": "Zalando SE, Berlin - Junior Data Analyst - 09/2022 - present"},
+    {"id": "f10", "text": "Weekly dashboards in Looker for the returns team (at Zalando SE)", "quote": "Weekly dashboards in Looker for the returns team"},
+    {"id": "f11", "text": "Ad-hoc SQL analyses (BigQuery) for category managers (at Zalando SE)", "quote": "Ad-hoc SQL analyses (BigQuery) for category managers"},
+    {"id": "f12", "text": "Helped with an A/B test analysis for the checkout page (at Zalando SE)", "quote": "Helped with an A/B test analysis for the checkout page"},
+    {"id": "f13", "text": "Working student, Controlling at Deutsche Bahn, Frankfurt, 2020 - 2022", "quote": "Deutsche Bahn, Frankfurt - Working student, Controlling - 2020 - 2022"},
+    {"id": "f14", "text": "Excel reports (at Deutsche Bahn)", "quote": "Excel reports"},
+    {"id": "f15", "text": "Data cleaning in Python (pandas) (at Deutsche Bahn)", "quote": "Data cleaning in Python (pandas)"},
+    {"id": "f16", "text": "M.Sc. Economics, Goethe University Frankfurt, 2022", "quote": "Goethe University Frankfurt - M.Sc. Economics - 2022"},
+    {"id": "f17", "text": "B.Sc. Economics, Goethe University Frankfurt, 2020", "quote": "Goethe University Frankfurt - B.Sc. Economics - 2020"},
+    {"id": "f18", "text": "Skill: SQL", "quote": "SQL"},
+    {"id": "f19", "text": "Skill: BigQuery", "quote": "BigQuery"},
+    {"id": "f20", "text": "Skill: Python (pandas)", "quote": "Python (pandas)"},
+    {"id": "f21", "text": "Skill: Looker", "quote": "Looker"},
+    {"id": "f22", "text": "Skill: Excel", "quote": "Excel"},
+    {"id": "f23", "text": "Language: German (native)", "quote": "German (native)"},
+    {"id": "f24", "text": "Language: English (C1)", "quote": "English (C1)"}
+  ],
+  "cv": {
+    "contact": {
+      "fullName": "Markus Weber",
+      "email": "markus.weber@example.de",
+      "phone": null,
+      "location": "Berlin",
+      "links": [],
+      "sourceFactIds": ["f1", "f3", "f4"]
+    },
+    "summary": {
+      "text": "Junior Data Analyst at Zalando SE with an M.Sc. in Economics, comfortable with SQL and Python and with presenting to stakeholders. Runs ad-hoc BigQuery analyses for category managers, builds weekly Looker dashboards and helped with an A/B test analysis for the checkout page.",
+      "sourceFactIds": ["f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f16"]
+    },
+    "experience": [
+      {
+        "organization": "Zalando SE",
+        "title": "Junior Data Analyst",
+        "startDate": "2022-09",
+        "endDate": null,
+        "isCurrent": true,
+        "location": "Berlin",
+        "sourceFactIds": ["f9"],
+        "bullets": [
+          {"text": "Helped with an A/B test analysis for the checkout page.", "sourceFactIds": ["f12"]},
+          {"text": "Ran ad-hoc SQL analyses in BigQuery for category managers.", "sourceFactIds": ["f11"]},
+          {"text": "Produced weekly Looker dashboards for the returns team.", "sourceFactIds": ["f10"]}
+        ]
+      },
+      {
+        "organization": "Deutsche Bahn",
+        "title": "Working Student, Controlling",
+        "startDate": "2020",
+        "endDate": "2022",
+        "isCurrent": false,
+        "location": "Frankfurt",
+        "sourceFactIds": ["f13"],
+        "bullets": [
+          {"text": "Cleaned data in Python (pandas).", "sourceFactIds": ["f15"]},
+          {"text": "Prepared Excel reports.", "sourceFactIds": ["f14"]}
+        ]
+      }
+    ],
+    "education": [
+      {
+        "institution": "Goethe University Frankfurt",
+        "degree": "M.Sc.",
+        "field": "Economics",
+        "startDate": null,
+        "endDate": "2022",
+        "sourceFactIds": ["f16"]
+      },
+      {
+        "institution": "Goethe University Frankfurt",
+        "degree": "B.Sc.",
+        "field": "Economics",
+        "startDate": null,
+        "endDate": "2020",
+        "sourceFactIds": ["f17"]
+      }
+    ],
+    "skills": [
+      {"name": "SQL", "sourceFactIds": ["f18", "f6"]},
+      {"name": "BigQuery", "sourceFactIds": ["f19"]},
+      {"name": "Python (pandas)", "sourceFactIds": ["f20", "f7"]},
+      {"name": "Looker", "sourceFactIds": ["f21"]},
+      {"name": "Excel", "sourceFactIds": ["f22"]},
+      {"name": "German (native)", "sourceFactIds": ["f23"]},
+      {"name": "English (C1)", "sourceFactIds": ["f24"]}
+    ],
+    "questions": [
+      {"section": "experience", "itemIndex": 0, "field": "bullets", "text": "What exactly was your part in the checkout-page A/B test analysis, and what was the result or decision?"},
+      {"section": "experience", "itemIndex": 0, "field": "bullets", "text": "Can you name one ad-hoc analysis for category managers that led to a decision or measurable change?"},
+      {"section": "experience", "itemIndex": 0, "field": "bullets", "text": "Which metrics did the returns-team Looker dashboards track, and did you build them yourself or maintain existing ones?"},
+      {"section": "skills", "itemIndex": null, "field": null, "text": "Have you used any product analytics or experimentation tools or statistical methods (e.g. Amplitude, hypothesis testing) not listed?"},
+      {"section": "experience", "itemIndex": 1, "field": "bullets", "text": "What did your Excel reports at Deutsche Bahn cover, and who used them?"},
+      {"section": "contact", "itemIndex": null, "field": "links", "text": "Would you like to add a phone number or a LinkedIn/GitHub link?"}
+    ]
+  }
+}

@@ -1,0 +1,479 @@
+{
+  "sample": "3-sparse-uk",
+  "role": "Middle Frontend Developer",
+  "model": "claude-opus-5-5 via Claude Code subagents (offline)",
+  "effort": "n/a",
+  "source": "привіт, я Андрій. десь 4 роки робив фронтенд у кількох стартапах, в основному React, трохи вью. останнє місце - якийсь edtech, робив там адмінку і щось з платежами. до того був фриланс. вчився в КПІ, але не закінчив. пошта andriy.dev@example.com\n",
+  "runs": [
+    {
+      "pipeline": "single",
+      "ok": true,
+      "facts": [
+        {
+          "id": "f1",
+          "text": "Name is Андрій",
+          "quote": "я Андрій"
+        },
+        {
+          "id": "f2",
+          "text": "Did frontend for about 4 years",
+          "quote": "десь 4 роки робив фронтенд"
+        },
+        {
+          "id": "f3",
+          "text": "Worked in several startups",
+          "quote": "у кількох стартапах"
+        },
+        {
+          "id": "f4",
+          "text": "Mainly used React",
+          "quote": "в основному React"
+        },
+        {
+          "id": "f5",
+          "text": "Used a little Vue",
+          "quote": "трохи вью"
+        },
+        {
+          "id": "f6",
+          "text": "Last workplace was some edtech company",
+          "quote": "останнє місце - якийсь edtech"
+        },
+        {
+          "id": "f7",
+          "text": "Built an admin panel at the edtech company",
+          "quote": "робив там адмінку"
+        },
+        {
+          "id": "f8",
+          "text": "Did something related to payments at the edtech company",
+          "quote": "щось з платежами"
+        },
+        {
+          "id": "f9",
+          "text": "Before the edtech company, worked as a freelancer",
+          "quote": "до того був фриланс"
+        },
+        {
+          "id": "f10",
+          "text": "Studied at KPI",
+          "quote": "вчився в КПІ"
+        },
+        {
+          "id": "f11",
+          "text": "Did not finish studies at KPI",
+          "quote": "але не закінчив"
+        },
+        {
+          "id": "f12",
+          "text": "Email is andriy.dev@example.com",
+          "quote": "пошта andriy.dev@example.com"
+        }
+      ],
+      "cv": {
+        "contact": {
+          "fullName": "Andriy",
+          "email": "andriy.dev@example.com",
+          "phone": null,
+          "location": null,
+          "links": [],
+          "sourceFactIds": [
+            "f1",
+            "f12"
+          ]
+        },
+        "summary": {
+          "text": "Frontend developer with about 4 years of experience in several startups, working mainly with React and a little Vue. Most recently built an admin panel and worked on payments-related features at an edtech company.",
+          "sourceFactIds": [
+            "f2",
+            "f3",
+            "f4",
+            "f5",
+            "f6",
+            "f7",
+            "f8"
+          ]
+        },
+        "experience": [
+          {
+            "organization": "EdTech company",
+            "title": "",
+            "startDate": null,
+            "endDate": null,
+            "isCurrent": false,
+            "location": null,
+            "sourceFactIds": [
+              "f6"
+            ],
+            "bullets": [
+              {
+                "text": "Built an admin panel for the product.",
+                "sourceFactIds": [
+                  "f7"
+                ]
+              },
+              {
+                "text": "Worked on payments-related functionality.",
+                "sourceFactIds": [
+                  "f8"
+                ]
+              }
+            ]
+          },
+          {
+            "organization": "Freelance",
+            "title": "",
+            "startDate": null,
+            "endDate": null,
+            "isCurrent": false,
+            "location": null,
+            "sourceFactIds": [
+              "f9"
+            ],
+            "bullets": []
+          }
+        ],
+        "education": [
+          {
+            "institution": "KPI",
+            "degree": "",
+            "field": null,
+            "startDate": null,
+            "endDate": null,
+            "sourceFactIds": [
+              "f10",
+              "f11"
+            ]
+          }
+        ],
+        "skills": [
+          {
+            "name": "React",
+            "sourceFactIds": [
+              "f4"
+            ]
+          },
+          {
+            "name": "Vue",
+            "sourceFactIds": [
+              "f5"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "organization",
+            "text": "Як називалася edtech-компанія, де ти працював останнім?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "title",
+            "text": "Яка була твоя посада в edtech-компанії?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "startDate",
+            "text": "З якого й до якого місяця/року ти працював в edtech-компанії, і чи працюєш там досі?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "bullets",
+            "text": "Що саме ти робив з платежами і чи є вимірювані результати (цифри, користувачі, швидкість)?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 1,
+            "field": "startDate",
+            "text": "У які роки ти працював на фрилансі і що це були за проєкти?"
+          },
+          {
+            "section": "skills",
+            "itemIndex": null,
+            "field": null,
+            "text": "Які ще технології ти використовував (наприклад, TypeScript, Redux, Next.js, тестування)?"
+          }
+        ]
+      },
+      "issues": [],
+      "judge": [
+        {
+          "path": "summary",
+          "claim": "about 4 years of experience in several startups (f2 and f3 are separate facts; nothing says all 4 years were spent at startups, and f9 says part of the time was freelance)",
+          "severity": "exaggerated"
+        }
+      ],
+      "calls": [
+        {
+          "label": "single",
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "costUsd": 0,
+          "ms": 0,
+          "stopReason": "offline"
+        },
+        {
+          "label": "judge",
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "costUsd": 0,
+          "ms": 0,
+          "stopReason": "offline"
+        }
+      ]
+    },
+    {
+      "pipeline": "staged",
+      "ok": true,
+      "facts": [
+        {
+          "id": "f1",
+          "text": "Ім'я — Андрій",
+          "quote": "я Андрій"
+        },
+        {
+          "id": "f2",
+          "text": "Десь 4 роки займався фронтендом",
+          "quote": "десь 4 роки робив фронтенд"
+        },
+        {
+          "id": "f3",
+          "text": "Робив фронтенд у кількох стартапах",
+          "quote": "у кількох стартапах"
+        },
+        {
+          "id": "f4",
+          "text": "Працював в основному з React",
+          "quote": "в основному React"
+        },
+        {
+          "id": "f5",
+          "text": "Трохи працював з Vue",
+          "quote": "трохи вью"
+        },
+        {
+          "id": "f6",
+          "text": "Останнє місце роботи — якийсь edtech",
+          "quote": "останнє місце - якийсь edtech"
+        },
+        {
+          "id": "f7",
+          "text": "В edtech робив адмінку",
+          "quote": "робив там адмінку"
+        },
+        {
+          "id": "f8",
+          "text": "В edtech робив щось з платежами",
+          "quote": "щось з платежами"
+        },
+        {
+          "id": "f9",
+          "text": "До останнього місця працював на фрилансі",
+          "quote": "до того був фриланс"
+        },
+        {
+          "id": "f10",
+          "text": "Навчався в КПІ",
+          "quote": "вчився в КПІ"
+        },
+        {
+          "id": "f11",
+          "text": "Не закінчив навчання в КПІ",
+          "quote": "але не закінчив"
+        },
+        {
+          "id": "f12",
+          "text": "Email: andriy.dev@example.com",
+          "quote": "пошта andriy.dev@example.com"
+        }
+      ],
+      "cv": {
+        "contact": {
+          "fullName": "Андрій",
+          "email": "andriy.dev@example.com",
+          "phone": null,
+          "location": null,
+          "links": [],
+          "sourceFactIds": [
+            "f1",
+            "f12"
+          ]
+        },
+        "summary": {
+          "text": "Frontend developer with about 4 years of experience building frontends for several startups. Works mainly with React, with some Vue experience. Most recently built an admin panel and payments-related features at an edtech company.",
+          "sourceFactIds": [
+            "f2",
+            "f3",
+            "f4",
+            "f5",
+            "f6",
+            "f7",
+            "f8"
+          ]
+        },
+        "experience": [
+          {
+            "organization": "EdTech company",
+            "title": "",
+            "startDate": null,
+            "endDate": null,
+            "isCurrent": false,
+            "location": null,
+            "sourceFactIds": [
+              "f6"
+            ],
+            "bullets": [
+              {
+                "text": "Built the admin panel for an edtech product.",
+                "sourceFactIds": [
+                  "f6",
+                  "f7"
+                ]
+              },
+              {
+                "text": "Worked on payments-related functionality.",
+                "sourceFactIds": [
+                  "f8"
+                ]
+              }
+            ]
+          },
+          {
+            "organization": "Freelance",
+            "title": "",
+            "startDate": null,
+            "endDate": null,
+            "isCurrent": false,
+            "location": null,
+            "sourceFactIds": [
+              "f9"
+            ],
+            "bullets": []
+          }
+        ],
+        "education": [
+          {
+            "institution": "KPI",
+            "degree": "",
+            "field": null,
+            "startDate": null,
+            "endDate": null,
+            "sourceFactIds": [
+              "f10",
+              "f11"
+            ]
+          }
+        ],
+        "skills": [
+          {
+            "name": "React",
+            "sourceFactIds": [
+              "f4"
+            ]
+          },
+          {
+            "name": "Vue",
+            "sourceFactIds": [
+              "f5"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "organization",
+            "text": "Як називається edtech-компанія, де ви працювали останнім часом?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "title",
+            "text": "Яка була ваша посада в edtech-компанії (наприклад, Frontend Developer)?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "startDate",
+            "text": "Коли ви почали працювати в edtech-компанії, і чи працюєте там досі (якщо ні — коли завершили)?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "bullets",
+            "text": "Що саме ви робили з платежами в edtech і який був результат (наприклад, інтеграція платіжної системи, вплив на конверсію)?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 1,
+            "field": "bullets",
+            "text": "Над якими проєктами ви працювали на фрилансі, з якими технологіями і в які роки?"
+          },
+          {
+            "section": "skills",
+            "itemIndex": null,
+            "field": null,
+            "text": "Які ще інструменти фронтенду ви використовуєте окрім React і Vue (наприклад, TypeScript, Redux, тестування)?"
+          }
+        ]
+      },
+      "issues": [
+        {
+          "path": "experience[0]",
+          "rule": "name-not-in-facts",
+          "detail": "EdTech company",
+          "severity": "flag"
+        },
+        {
+          "path": "experience[1]",
+          "rule": "name-not-in-facts",
+          "detail": "Freelance",
+          "severity": "flag"
+        },
+        {
+          "path": "education[0]",
+          "rule": "name-not-in-facts",
+          "detail": "KPI",
+          "severity": "flag"
+        }
+      ],
+      "judge": [
+        {
+          "path": "summary",
+          "claim": "built ... payments-related features (f8 only says he did something with payments, not that he built features)",
+          "severity": "exaggerated"
+        }
+      ],
+      "calls": [
+        {
+          "label": "extract",
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "costUsd": 0,
+          "ms": 0,
+          "stopReason": "offline"
+        },
+        {
+          "label": "compose",
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "costUsd": 0,
+          "ms": 0,
+          "stopReason": "offline"
+        },
+        {
+          "label": "judge",
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "costUsd": 0,
+          "ms": 0,
+          "stopReason": "offline"
+        }
+      ]
+    }
+  ]
+}

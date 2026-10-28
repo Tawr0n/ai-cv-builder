@@ -1,0 +1,174 @@
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>Generation pipeline prototype</title>
+<style>
+body{font:14px/1.45 system-ui,sans-serif;margin:0 auto;max-width:1400px;padding:16px;color:#1d1d1f;background:#fff}
+h2{border-top:2px solid #333;padding-top:12px}.meta{color:#666}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.run{border:1px solid #ddd;border-radius:8px;padding:12px}.cv{background:#fafafa;padding:8px;border-radius:6px}
+.ids{color:#7a5af5;font-size:11px;font-family:ui-monospace,monospace}
+.reject{color:#b00020}.flag{color:#a15c00}.good{color:#1a7f37}.bad{color:#b00020;white-space:pre-wrap}
+pre{white-space:pre-wrap;background:#f4f4f4;padding:8px}
+</style>
+<h1>Generation pipeline prototype: single call vs staged</h1>
+<p>PROTOTYPE, throwaway. Same Sources and Target roles through both pipelines. Validator = deterministic checks (red: reject, amber: flag). Judge = a separate Claude call looking for claims the cited Facts don't support.</p>
+<section><h2>1-rich-text → Senior Backend Engineer</h2><p class=meta>claude-opus-5-5 via Claude Code subagents (offline), effort n/a</p>
+  <details><summary>Source</summary><pre>Olena Kovalenko
+olena.kovalenko@example.com | +380 67 123 4567 | Lviv, Ukraine | github.com/okoval
+
+About me: backend developer, 6 years in the industry. I like boring reliable systems.
+
+2021 - now: SoftServe, Lviv. Backend engineer, then tech lead of a team of 5 from March 2023.
+- Built payment reconciliation service in Node.js/TypeScript + PostgreSQL for a US fintech client, it processes about 2 million transactions a day.
+- Moved the team from a monolith deploy to Kubernetes (EKS), deploy time went from ~40 min to 8 min.
+- Interviewed candidates, mentored 3 juniors.
+- Wrote internal guidelines for code review.
+
+2018 - 2021: Lviv IT startup &quot;Fudzi&quot; (food delivery), junior then middle PHP developer.
+- Laravel backend for the courier app.
+- Integrated Google Maps API for route estimates.
+- Was on call for production incidents once a week.
+
+2016 - 2018: barista at Lviv Coffee Manufacture (part-time during university). Trained new baristas.
+
+Education: Ivan Franko National University of Lviv, BSc Applied Mathematics, 2014-2018.
+
+Skills: TypeScript, Node.js, NestJS, PostgreSQL, Redis, Kafka, Docker, Kubernetes, AWS, PHP, Laravel. English B2, Ukrainian native, Polish basic.
+Hobbies: bouldering, board games.
+</pre></details>
+  <div class=cols><div class=run>
+  <h3>single</h3>
+  <p class=meta>generation $0.000 · 0s · with judge $0.000 · 47 facts</p>
+  <h4>Validator (4)</h4>
+  <ul><li class=flag><b>name-not-in-facts</b> experience[1] <code>Fudzi (food delivery startup)</code></li><li class=flag><b>skill-not-in-facts</b> skills[11] <code>English (B2)</code></li><li class=flag><b>skill-not-in-facts</b> skills[12] <code>Ukrainian (native)</code></li><li class=flag><b>skill-not-in-facts</b> skills[13] <code>Polish (basic)</code></li></ul>
+  <h4>Judge (0)</h4>
+  <p class=good>clean</p>
+  <h4>Questions (5)</h4>
+  <ol><li>Did the payment reconciliation service have a measurable outcome beyond volume (e.g. uptime, error rate, time saved for the client)? <span class=ids>experience0.bullets</span></li><li>As tech lead, which technical decisions or architecture did you own, and with what result? <span class=ids>experience0.bullets</span></li><li>In which projects did you use NestJS, Kafka and Redis, and for what? <span class=ids>skills</span></li><li>What was your scope on the courier app's Laravel backend: did you build it, own parts of it, and is there a measurable result? <span class=ids>experience1.bullets</span></li><li>In which month of 2021 did you join SoftServe? <span class=ids>experience0.startDate</span></li></ol>
+  <h4>CV</h4>
+  <div class=cv>
+    <p><b>Olena Kovalenko</b> · olena.kovalenko@example.com · +380 67 123 4567 · Lviv, Ukraine github.com/okoval</p>
+    <p>Backend developer with 6 years in the industry, tech lead of a team of 5 at SoftServe since March 2023. Built a Node.js/TypeScript and PostgreSQL payment reconciliation service processing about 2 million transactions a day, and moved the team's deploys to Kubernetes (EKS). Likes boring, reliable systems. <span class=ids>f6,f7,f9,f12,f13,f15,f16,f8</span></p>
+    <p><b>Tech Lead (previously Backend Engineer)</b>, SoftServe · 2021–now <span class=ids>f9,f10,f11,f12</span></p><ul><li>Built a Node.js/TypeScript and PostgreSQL payment reconciliation service processing about 2 million transactions a day for a US fintech client <span class=ids>f13,f14,f15</span></li><li>Moved the team from monolith deploys to Kubernetes (EKS), cutting deploy time from ~40 min to 8 min <span class=ids>f16,f17</span></li><li>Lead a team of 5 since March 2023; mentored 3 juniors and interviewed candidates <span class=ids>f12,f19,f18</span></li><li>Wrote internal code review guidelines <span class=ids>f20</span></li></ul><p><b>Middle PHP Developer (previously Junior)</b>, Fudzi (food delivery startup) · 2018–2021 <span class=ids>f21,f22,f23</span></p><ul><li>Worked on the Laravel backend for the courier app <span class=ids>f24</span></li><li>Integrated Google Maps API for route estimates <span class=ids>f25</span></li><li>Was on call for production incidents once a week <span class=ids>f26</span></li></ul><p><b>Barista (part-time)</b>, Lviv Coffee Manufacture · 2016–2018 <span class=ids>f27,f28</span></p><ul><li>Trained new baristas <span class=ids>f29</span></li></ul>
+    <p>🎓 BSc Applied Mathematics, Ivan Franko National University of Lviv · 2014–2018 <span class=ids>f30,f31</span></p>
+    <p>Node.js · TypeScript · PostgreSQL · NestJS · Kafka · Redis · Kubernetes · AWS · Docker · PHP · Laravel · English (B2) · Ukrainian (native) · Polish (basic)</p>
+  </div>
+  <details><summary>Facts</summary><ul><li><span class=ids>f1</span> Full name is Olena Kovalenko</li><li><span class=ids>f2</span> Email is olena.kovalenko@example.com</li><li><span class=ids>f3</span> Phone is +380 67 123 4567</li><li><span class=ids>f4</span> Located in Lviv, Ukraine</li><li><span class=ids>f5</span> GitHub profile is github.com/okoval</li><li><span class=ids>f6</span> Is a backend developer</li><li><span class=ids>f7</span> Has 6 years in the industry</li><li><span class=ids>f8</span> Likes boring reliable systems</li><li><span class=ids>f9</span> Has worked at SoftServe from 2021 to now</li><li><span class=ids>f10</span> SoftServe role is in Lviv</li><li><span class=ids>f11</span> Was a backend engineer at SoftServe</li><li><span class=ids>f12</span> Has been tech lead of a team of 5 at SoftServe from March 2023</li><li><span class=ids>f13</span> Built a payment reconciliation service in Node.js/TypeScript + PostgreSQL</li><li><span class=ids>f14</span> The payment reconciliation service was for a US fintech client</li><li><span class=ids>f15</span> The payment reconciliation service processes about 2 million transactions a day</li><li><span class=ids>f16</span> Moved the team from a monolith deploy to Kubernetes (EKS)</li><li><span class=ids>f17</span> Deploy time went from ~40 min to 8 min</li><li><span class=ids>f18</span> Interviewed candidates</li><li><span class=ids>f19</span> Mentored 3 juniors</li><li><span class=ids>f20</span> Wrote internal guidelines for code review</li><li><span class=ids>f21</span> Worked at Lviv IT startup &quot;Fudzi&quot; from 2018 to 2021</li><li><span class=ids>f22</span> Fudzi is a food delivery startup</li><li><span class=ids>f23</span> Was a junior then middle PHP developer at Fudzi</li><li><span class=ids>f24</span> Worked on the Laravel backend for the courier app</li><li><span class=ids>f25</span> Integrated Google Maps API for route estimates</li><li><span class=ids>f26</span> Was on call for production incidents once a week</li><li><span class=ids>f27</span> Was a barista at Lviv Coffee Manufacture from 2016 to 2018</li><li><span class=ids>f28</span> The barista job was part-time during university</li><li><span class=ids>f29</span> Trained new baristas</li><li><span class=ids>f30</span> Studied BSc Applied Mathematics at Ivan Franko National University of Lviv</li><li><span class=ids>f31</span> University studies were 2014-2018</li><li><span class=ids>f32</span> Skill: TypeScript</li><li><span class=ids>f33</span> Skill: Node.js</li><li><span class=ids>f34</span> Skill: NestJS</li><li><span class=ids>f35</span> Skill: PostgreSQL</li><li><span class=ids>f36</span> Skill: Redis</li><li><span class=ids>f37</span> Skill: Kafka</li><li><span class=ids>f38</span> Skill: Docker</li><li><span class=ids>f39</span> Skill: Kubernetes</li><li><span class=ids>f40</span> Skill: AWS</li><li><span class=ids>f41</span> Skill: PHP</li><li><span class=ids>f42</span> Skill: Laravel</li><li><span class=ids>f43</span> Speaks English at B2 level</li><li><span class=ids>f44</span> Ukrainian is native language</li><li><span class=ids>f45</span> Speaks basic Polish</li><li><span class=ids>f46</span> Hobby: bouldering</li><li><span class=ids>f47</span> Hobby: board games</li></ul></details>
+</div><div class=run>
+  <h3>staged</h3>
+  <p class=meta>generation $0.000 · 0s · with judge $0.000 · 45 facts</p>
+  <h4>Validator (3)</h4>
+  <ul><li class=flag><b>skill-not-in-facts</b> skills[11] <code>English (B2)</code></li><li class=flag><b>skill-not-in-facts</b> skills[12] <code>Ukrainian (native)</code></li><li class=flag><b>skill-not-in-facts</b> skills[13] <code>Polish (basic)</code></li></ul>
+  <h4>Judge (0)</h4>
+  <p class=good>clean</p>
+  <h4>Questions (6)</h4>
+  <ol><li>Is there a measurable outcome of the payment reconciliation service (e.g. accuracy, uptime, latency, money or time saved)? <span class=ids>experience0.bullets</span></li><li>What is your official job title at SoftServe since March 2023: Tech Lead, Senior Backend Engineer, or something else? <span class=ids>experience0.title</span></li><li>Your developer roles start in 2018, which is about 8 years; is &quot;6 years in the industry&quot; still the number you want to use? <span class=ids>summary.text</span></li><li>On which projects did you use Kafka and Redis, and for what? <span class=ids>experience0.bullets</span></li><li>In which month of 2021 did you join SoftServe? <span class=ids>experience0.startDate</span></li><li>Is there a measurable result from your work on Fudzi's courier app backend (e.g. scale, performance, incidents reduced)? <span class=ids>experience1.bullets</span></li></ol>
+  <h4>CV</h4>
+  <div class=cv>
+    <p><b>Olena Kovalenko</b> · olena.kovalenko@example.com · +380 67 123 4567 · Lviv, Ukraine github.com/okoval</p>
+    <p>Backend developer with 6 years in the industry, currently tech lead of a team of 5 at SoftServe. Built a Node.js/TypeScript and PostgreSQL payment reconciliation service for a US fintech client that processes about 2 million transactions a day. Likes boring, reliable systems. <span class=ids>f6,f7,f9,f11,f12,f13,f14,f8</span></p>
+    <p><b>Backend Engineer / Tech Lead</b>, SoftServe · 2021–now <span class=ids>f9,f10,f11</span></p><ul><li>Built a payment reconciliation service in Node.js/TypeScript and PostgreSQL for a US fintech client, processing ~2M transactions/day <span class=ids>f12,f13,f14</span></li><li>Moved the team from monolith deploys to Kubernetes (EKS); deploy time went from ~40 to 8 minutes <span class=ids>f15,f16</span></li><li>Led a team of 5 as tech lead since March 2023 <span class=ids>f11</span></li><li>Mentored 3 juniors, interviewed candidates and wrote internal code review guidelines <span class=ids>f17,f18,f19</span></li></ul><p><b>Junior then Middle PHP Developer</b>, Fudzi · 2018–2021 <span class=ids>f20,f21,f22</span></p><ul><li>Worked on the Laravel backend for the courier app of a food delivery startup <span class=ids>f21,f23</span></li><li>Integrated Google Maps API for route estimates <span class=ids>f24</span></li><li>Served on call for production incidents once a week <span class=ids>f25</span></li></ul><p><b>Barista (part-time, during university)</b>, Lviv Coffee Manufacture · 2016–2018 <span class=ids>f26,f27</span></p><ul><li>Trained new baristas <span class=ids>f28</span></li></ul>
+    <p>🎓 BSc Applied Mathematics, Ivan Franko National University of Lviv · 2014–2018 <span class=ids>f29</span></p>
+    <p>TypeScript · Node.js · NestJS · PostgreSQL · Kafka · Redis · AWS · Kubernetes · Docker · PHP · Laravel · English (B2) · Ukrainian (native) · Polish (basic)</p>
+  </div>
+  <details><summary>Facts</summary><ul><li><span class=ids>f1</span> Name is Olena Kovalenko</li><li><span class=ids>f2</span> Email is olena.kovalenko@example.com</li><li><span class=ids>f3</span> Phone is +380 67 123 4567</li><li><span class=ids>f4</span> Located in Lviv, Ukraine</li><li><span class=ids>f5</span> GitHub profile is github.com/okoval</li><li><span class=ids>f6</span> Is a backend developer</li><li><span class=ids>f7</span> Has 6 years in the industry</li><li><span class=ids>f8</span> Likes boring reliable systems</li><li><span class=ids>f9</span> Worked at SoftServe, Lviv, from 2021 to now</li><li><span class=ids>f10</span> Backend engineer at SoftServe</li><li><span class=ids>f11</span> Tech lead of a team of 5 at SoftServe from March 2023</li><li><span class=ids>f12</span> Built a payment reconciliation service in Node.js/TypeScript + PostgreSQL</li><li><span class=ids>f13</span> The payment reconciliation service was built for a US fintech client</li><li><span class=ids>f14</span> The payment reconciliation service processes about 2 million transactions a day</li><li><span class=ids>f15</span> Moved the team from a monolith deploy to Kubernetes (EKS)</li><li><span class=ids>f16</span> Deploy time went from ~40 min to 8 min</li><li><span class=ids>f17</span> Interviewed candidates</li><li><span class=ids>f18</span> Mentored 3 juniors</li><li><span class=ids>f19</span> Wrote internal guidelines for code review</li><li><span class=ids>f20</span> Worked at Lviv IT startup &quot;Fudzi&quot; from 2018 to 2021</li><li><span class=ids>f21</span> Fudzi is a food delivery startup</li><li><span class=ids>f22</span> Junior then middle PHP developer at Fudzi</li><li><span class=ids>f23</span> Worked on the Laravel backend for the courier app</li><li><span class=ids>f24</span> Integrated Google Maps API for route estimates</li><li><span class=ids>f25</span> Was on call for production incidents once a week</li><li><span class=ids>f26</span> Barista at Lviv Coffee Manufacture from 2016 to 2018</li><li><span class=ids>f27</span> The barista job was part-time during university</li><li><span class=ids>f28</span> Trained new baristas</li><li><span class=ids>f29</span> BSc Applied Mathematics, Ivan Franko National University of Lviv, 2014-2018</li><li><span class=ids>f30</span> Skill: TypeScript</li><li><span class=ids>f31</span> Skill: Node.js</li><li><span class=ids>f32</span> Skill: NestJS</li><li><span class=ids>f33</span> Skill: PostgreSQL</li><li><span class=ids>f34</span> Skill: Redis</li><li><span class=ids>f35</span> Skill: Kafka</li><li><span class=ids>f36</span> Skill: Docker</li><li><span class=ids>f37</span> Skill: Kubernetes</li><li><span class=ids>f38</span> Skill: AWS</li><li><span class=ids>f39</span> Skill: PHP</li><li><span class=ids>f40</span> Skill: Laravel</li><li><span class=ids>f41</span> English B2</li><li><span class=ids>f42</span> Ukrainian native</li><li><span class=ids>f43</span> Polish basic</li><li><span class=ids>f44</span> Hobby: bouldering</li><li><span class=ids>f45</span> Hobby: board games</li></ul></details>
+</div></div></section><section><h2>2-pdf → Product Analyst</h2><p class=meta>claude-opus-5-5 via Claude Code subagents (offline), effort n/a</p>
+  <details><summary>Source</summary><pre>MARKUS WEBER
+Data Analyst
+markus.weber@example.de  -  Berlin
+
+PROFILE
+Analyst with a background in economics. Comfortable with SQL and Python, presenting to stakeholders.
+
+EXPERIENCE
+Zalando SE, Berlin  -  Junior Data Analyst  -  09/2022 - present
+* Weekly dashboards in Looker for the returns team
+* Ad-hoc SQL analyses (BigQuery) for category managers
+* Helped with an A/B test analysis for the checkout page
+
+Deutsche Bahn, Frankfurt  -  Working student, Controlling  -  2020 - 2022
+* Excel reports
+* Data cleaning in Python (pandas)
+
+EDUCATION
+Goethe University Frankfurt  -  M.Sc. Economics  -  2022
+Goethe University Frankfurt  -  B.Sc. Economics  -  2020
+
+SKILLS
+SQL, BigQuery, Python (pandas), Looker, Excel, German (native), English (C1)
+</pre></details>
+  <div class=cols><div class=run>
+  <h3>single</h3>
+  <p class=meta>generation $0.000 · 0s · with judge $0.000 · 24 facts</p>
+  <h4>Validator (0)</h4>
+  <p class=good>clean</p>
+  <h4>Judge (0)</h4>
+  <p class=good>clean</p>
+  <h4>Questions (6)</h4>
+  <ol><li>What exactly was your part in the checkout-page A/B test analysis, and what was the result or decision? <span class=ids>experience0.bullets</span></li><li>Can you name one ad-hoc analysis for category managers that led to a decision or measurable change? <span class=ids>experience0.bullets</span></li><li>Which metrics did the returns-team Looker dashboards track, and did you build them yourself or maintain existing ones? <span class=ids>experience0.bullets</span></li><li>Have you used any product analytics or experimentation tools or statistical methods (e.g. Amplitude, hypothesis testing) not listed? <span class=ids>skills</span></li><li>What did your Excel reports at Deutsche Bahn cover, and who used them? <span class=ids>experience1.bullets</span></li><li>Would you like to add a phone number or a LinkedIn/GitHub link? <span class=ids>contact.links</span></li></ol>
+  <h4>CV</h4>
+  <div class=cv>
+    <p><b>Markus Weber</b> · markus.weber@example.de ·  · Berlin </p>
+    <p>Junior Data Analyst at Zalando SE with an M.Sc. in Economics, comfortable with SQL and Python and with presenting to stakeholders. Runs ad-hoc BigQuery analyses for category managers, builds weekly Looker dashboards and helped with an A/B test analysis for the checkout page. <span class=ids>f5,f6,f7,f8,f9,f10,f11,f12,f16</span></p>
+    <p><b>Junior Data Analyst</b>, Zalando SE · 2022-09–now <span class=ids>f9</span></p><ul><li>Helped with an A/B test analysis for the checkout page. <span class=ids>f12</span></li><li>Ran ad-hoc SQL analyses in BigQuery for category managers. <span class=ids>f11</span></li><li>Produced weekly Looker dashboards for the returns team. <span class=ids>f10</span></li></ul><p><b>Working Student, Controlling</b>, Deutsche Bahn · 2020–2022 <span class=ids>f13</span></p><ul><li>Cleaned data in Python (pandas). <span class=ids>f15</span></li><li>Prepared Excel reports. <span class=ids>f14</span></li></ul>
+    <p>🎓 M.Sc. Economics, Goethe University Frankfurt · –2022 <span class=ids>f16</span></p><p>🎓 B.Sc. Economics, Goethe University Frankfurt · –2020 <span class=ids>f17</span></p>
+    <p>SQL · BigQuery · Python (pandas) · Looker · Excel · German (native) · English (C1)</p>
+  </div>
+  <details><summary>Facts</summary><ul><li><span class=ids>f1</span> Full name is Markus Weber</li><li><span class=ids>f2</span> Headline: Data Analyst</li><li><span class=ids>f3</span> Email is markus.weber@example.de</li><li><span class=ids>f4</span> Based in Berlin</li><li><span class=ids>f5</span> Analyst with a background in economics</li><li><span class=ids>f6</span> Comfortable with SQL</li><li><span class=ids>f7</span> Comfortable with Python</li><li><span class=ids>f8</span> Comfortable presenting to stakeholders</li><li><span class=ids>f9</span> Junior Data Analyst at Zalando SE, Berlin, from 09/2022 to present</li><li><span class=ids>f10</span> Weekly dashboards in Looker for the returns team (at Zalando SE)</li><li><span class=ids>f11</span> Ad-hoc SQL analyses (BigQuery) for category managers (at Zalando SE)</li><li><span class=ids>f12</span> Helped with an A/B test analysis for the checkout page (at Zalando SE)</li><li><span class=ids>f13</span> Working student, Controlling at Deutsche Bahn, Frankfurt, 2020 - 2022</li><li><span class=ids>f14</span> Excel reports (at Deutsche Bahn)</li><li><span class=ids>f15</span> Data cleaning in Python (pandas) (at Deutsche Bahn)</li><li><span class=ids>f16</span> M.Sc. Economics, Goethe University Frankfurt, 2022</li><li><span class=ids>f17</span> B.Sc. Economics, Goethe University Frankfurt, 2020</li><li><span class=ids>f18</span> Skill: SQL</li><li><span class=ids>f19</span> Skill: BigQuery</li><li><span class=ids>f20</span> Skill: Python (pandas)</li><li><span class=ids>f21</span> Skill: Looker</li><li><span class=ids>f22</span> Skill: Excel</li><li><span class=ids>f23</span> Language: German (native)</li><li><span class=ids>f24</span> Language: English (C1)</li></ul></details>
+</div><div class=run>
+  <h3>staged</h3>
+  <p class=meta>generation $0.000 · 0s · with judge $0.000 · 24 facts</p>
+  <h4>Validator (0)</h4>
+  <p class=good>clean</p>
+  <h4>Judge (0)</h4>
+  <p class=good>clean</p>
+  <h4>Questions (6)</h4>
+  <ol><li>What exactly was your part in the checkout A/B test analysis, and what was the result or decision it led to? <span class=ids>experience0.bullets</span></li><li>Did your ad-hoc analyses or returns dashboards lead to a measurable outcome (e.g. a decision, time saved, or change in a metric)? <span class=ids>experience0.bullets</span></li><li>Have you done any other product-related work at Zalando, such as funnel, user behaviour or feature impact analysis? <span class=ids>experience0.bullets</span></li><li>Do you have a LinkedIn or GitHub/portfolio link you want to include? <span class=ids>contact.links</span></li><li>In which months did you start and finish the working student role at Deutsche Bahn? <span class=ids>experience1.startDate</span></li><li>Which phone number should appear on the CV, if any? <span class=ids>contact.phone</span></li></ol>
+  <h4>CV</h4>
+  <div class=cv>
+    <p><b>Markus Weber</b> · markus.weber@example.de ·  · Berlin </p>
+    <p>Data Analyst with a background in economics, currently a Junior Data Analyst at Zalando SE. Works with SQL (BigQuery), Python and Looker, and has helped with A/B test analysis for the checkout page. Comfortable presenting to stakeholders. <span class=ids>f2,f5,f9,f6,f7,f11,f10,f12,f8</span></p>
+    <p><b>Junior Data Analyst</b>, Zalando SE · 2022-09–now <span class=ids>f9</span></p><ul><li>Helped with the A/B test analysis for the checkout page <span class=ids>f12</span></li><li>Ran ad-hoc SQL analyses in BigQuery for category managers <span class=ids>f11</span></li><li>Built weekly Looker dashboards for the returns team <span class=ids>f10</span></li></ul><p><b>Working Student, Controlling</b>, Deutsche Bahn · 2020–2022 <span class=ids>f13</span></p><ul><li>Cleaned data in Python (pandas) <span class=ids>f15</span></li><li>Produced Excel reports <span class=ids>f14</span></li></ul>
+    <p>🎓 M.Sc. Economics, Goethe University Frankfurt · –2022 <span class=ids>f16</span></p><p>🎓 B.Sc. Economics, Goethe University Frankfurt · –2020 <span class=ids>f17</span></p>
+    <p>SQL · Python (pandas) · BigQuery · Looker · Presenting to stakeholders · Excel · German (native) · English (C1)</p>
+  </div>
+  <details><summary>Facts</summary><ul><li><span class=ids>f1</span> Name is Markus Weber</li><li><span class=ids>f2</span> Headline title is Data Analyst</li><li><span class=ids>f3</span> Email is markus.weber@example.de</li><li><span class=ids>f4</span> Located in Berlin</li><li><span class=ids>f5</span> Analyst with a background in economics</li><li><span class=ids>f6</span> Comfortable with SQL</li><li><span class=ids>f7</span> Comfortable with Python</li><li><span class=ids>f8</span> Comfortable presenting to stakeholders</li><li><span class=ids>f9</span> Works at Zalando SE, Berlin as Junior Data Analyst from 09/2022 to present</li><li><span class=ids>f10</span> At Zalando SE, built weekly dashboards in Looker for the returns team</li><li><span class=ids>f11</span> At Zalando SE, did ad-hoc SQL analyses (BigQuery) for category managers</li><li><span class=ids>f12</span> At Zalando SE, helped with an A/B test analysis for the checkout page</li><li><span class=ids>f13</span> Worked at Deutsche Bahn, Frankfurt as Working student, Controlling from 2020 to 2022</li><li><span class=ids>f14</span> At Deutsche Bahn, produced Excel reports</li><li><span class=ids>f15</span> At Deutsche Bahn, did data cleaning in Python (pandas)</li><li><span class=ids>f16</span> M.Sc. Economics from Goethe University Frankfurt, 2022</li><li><span class=ids>f17</span> B.Sc. Economics from Goethe University Frankfurt, 2020</li><li><span class=ids>f18</span> Skill: SQL</li><li><span class=ids>f19</span> Skill: BigQuery</li><li><span class=ids>f20</span> Skill: Python (pandas)</li><li><span class=ids>f21</span> Skill: Looker</li><li><span class=ids>f22</span> Skill: Excel</li><li><span class=ids>f23</span> Language: German (native)</li><li><span class=ids>f24</span> Language: English (C1)</li></ul></details>
+</div></div></section><section><h2>3-sparse-uk → Middle Frontend Developer</h2><p class=meta>claude-opus-5-5 via Claude Code subagents (offline), effort n/a</p>
+  <details><summary>Source</summary><pre>привіт, я Андрій. десь 4 роки робив фронтенд у кількох стартапах, в основному React, трохи вью. останнє місце - якийсь edtech, робив там адмінку і щось з платежами. до того був фриланс. вчився в КПІ, але не закінчив. пошта andriy.dev@example.com
+</pre></details>
+  <div class=cols><div class=run>
+  <h3>single</h3>
+  <p class=meta>generation $0.000 · 0s · with judge $0.000 · 12 facts</p>
+  <h4>Validator (0)</h4>
+  <p class=good>clean</p>
+  <h4>Judge (1)</h4>
+  <ul><li class=flag><b>exaggerated</b> summary: about 4 years of experience in several startups (f2 and f3 are separate facts; nothing says all 4 years were spent at startups, and f9 says part of the time was freelance)</li></ul>
+  <h4>Questions (6)</h4>
+  <ol><li>Як називалася edtech-компанія, де ти працював останнім? <span class=ids>experience0.organization</span></li><li>Яка була твоя посада в edtech-компанії? <span class=ids>experience0.title</span></li><li>З якого й до якого місяця/року ти працював в edtech-компанії, і чи працюєш там досі? <span class=ids>experience0.startDate</span></li><li>Що саме ти робив з платежами і чи є вимірювані результати (цифри, користувачі, швидкість)? <span class=ids>experience0.bullets</span></li><li>У які роки ти працював на фрилансі і що це були за проєкти? <span class=ids>experience1.startDate</span></li><li>Які ще технології ти використовував (наприклад, TypeScript, Redux, Next.js, тестування)? <span class=ids>skills</span></li></ol>
+  <h4>CV</h4>
+  <div class=cv>
+    <p><b>Andriy</b> · andriy.dev@example.com ·  ·  </p>
+    <p>Frontend developer with about 4 years of experience in several startups, working mainly with React and a little Vue. Most recently built an admin panel and worked on payments-related features at an edtech company. <span class=ids>f2,f3,f4,f5,f6,f7,f8</span></p>
+    <p><b></b>, EdTech company · – <span class=ids>f6</span></p><ul><li>Built an admin panel for the product. <span class=ids>f7</span></li><li>Worked on payments-related functionality. <span class=ids>f8</span></li></ul><p><b></b>, Freelance · – <span class=ids>f9</span></p><ul></ul>
+    <p>🎓  , KPI · – <span class=ids>f10,f11</span></p>
+    <p>React · Vue</p>
+  </div>
+  <details><summary>Facts</summary><ul><li><span class=ids>f1</span> Name is Андрій</li><li><span class=ids>f2</span> Did frontend for about 4 years</li><li><span class=ids>f3</span> Worked in several startups</li><li><span class=ids>f4</span> Mainly used React</li><li><span class=ids>f5</span> Used a little Vue</li><li><span class=ids>f6</span> Last workplace was some edtech company</li><li><span class=ids>f7</span> Built an admin panel at the edtech company</li><li><span class=ids>f8</span> Did something related to payments at the edtech company</li><li><span class=ids>f9</span> Before the edtech company, worked as a freelancer</li><li><span class=ids>f10</span> Studied at KPI</li><li><span class=ids>f11</span> Did not finish studies at KPI</li><li><span class=ids>f12</span> Email is andriy.dev@example.com</li></ul></details>
+</div><div class=run>
+  <h3>staged</h3>
+  <p class=meta>generation $0.000 · 0s · with judge $0.000 · 12 facts</p>
+  <h4>Validator (3)</h4>
+  <ul><li class=flag><b>name-not-in-facts</b> experience[0] <code>EdTech company</code></li><li class=flag><b>name-not-in-facts</b> experience[1] <code>Freelance</code></li><li class=flag><b>name-not-in-facts</b> education[0] <code>KPI</code></li></ul>
+  <h4>Judge (1)</h4>
+  <ul><li class=flag><b>exaggerated</b> summary: built ... payments-related features (f8 only says he did something with payments, not that he built features)</li></ul>
+  <h4>Questions (6)</h4>
+  <ol><li>Як називається edtech-компанія, де ви працювали останнім часом? <span class=ids>experience0.organization</span></li><li>Яка була ваша посада в edtech-компанії (наприклад, Frontend Developer)? <span class=ids>experience0.title</span></li><li>Коли ви почали працювати в edtech-компанії, і чи працюєте там досі (якщо ні — коли завершили)? <span class=ids>experience0.startDate</span></li><li>Що саме ви робили з платежами в edtech і який був результат (наприклад, інтеграція платіжної системи, вплив на конверсію)? <span class=ids>experience0.bullets</span></li><li>Над якими проєктами ви працювали на фрилансі, з якими технологіями і в які роки? <span class=ids>experience1.bullets</span></li><li>Які ще інструменти фронтенду ви використовуєте окрім React і Vue (наприклад, TypeScript, Redux, тестування)? <span class=ids>skills</span></li></ol>
+  <h4>CV</h4>
+  <div class=cv>
+    <p><b>Андрій</b> · andriy.dev@example.com ·  ·  </p>
+    <p>Frontend developer with about 4 years of experience building frontends for several startups. Works mainly with React, with some Vue experience. Most recently built an admin panel and payments-related features at an edtech company. <span class=ids>f2,f3,f4,f5,f6,f7,f8</span></p>
+    <p><b></b>, EdTech company · – <span class=ids>f6</span></p><ul><li>Built the admin panel for an edtech product. <span class=ids>f6,f7</span></li><li>Worked on payments-related functionality. <span class=ids>f8</span></li></ul><p><b></b>, Freelance · – <span class=ids>f9</span></p><ul></ul>
+    <p>🎓  , KPI · – <span class=ids>f10,f11</span></p>
+    <p>React · Vue</p>
+  </div>
+  <details><summary>Facts</summary><ul><li><span class=ids>f1</span> Ім'я — Андрій</li><li><span class=ids>f2</span> Десь 4 роки займався фронтендом</li><li><span class=ids>f3</span> Робив фронтенд у кількох стартапах</li><li><span class=ids>f4</span> Працював в основному з React</li><li><span class=ids>f5</span> Трохи працював з Vue</li><li><span class=ids>f6</span> Останнє місце роботи — якийсь edtech</li><li><span class=ids>f7</span> В edtech робив адмінку</li><li><span class=ids>f8</span> В edtech робив щось з платежами</li><li><span class=ids>f9</span> До останнього місця працював на фрилансі</li><li><span class=ids>f10</span> Навчався в КПІ</li><li><span class=ids>f11</span> Не закінчив навчання в КПІ</li><li><span class=ids>f12</span> Email: andriy.dev@example.com</li></ul></details>
+</div></div></section>

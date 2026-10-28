@@ -1,0 +1,1102 @@
+{
+  "sample": "1-rich-text",
+  "role": "Senior Backend Engineer",
+  "model": "claude-opus-5-5 via Claude Code subagents (offline)",
+  "effort": "n/a",
+  "source": "Olena Kovalenko\nolena.kovalenko@example.com | +380 67 123 4567 | Lviv, Ukraine | github.com/okoval\n\nAbout me: backend developer, 6 years in the industry. I like boring reliable systems.\n\n2021 - now: SoftServe, Lviv. Backend engineer, then tech lead of a team of 5 from March 2023.\n- Built payment reconciliation service in Node.js/TypeScript + PostgreSQL for a US fintech client, it processes about 2 million transactions a day.\n- Moved the team from a monolith deploy to Kubernetes (EKS), deploy time went from ~40 min to 8 min.\n- Interviewed candidates, mentored 3 juniors.\n- Wrote internal guidelines for code review.\n\n2018 - 2021: Lviv IT startup \"Fudzi\" (food delivery), junior then middle PHP developer.\n- Laravel backend for the courier app.\n- Integrated Google Maps API for route estimates.\n- Was on call for production incidents once a week.\n\n2016 - 2018: barista at Lviv Coffee Manufacture (part-time during university). Trained new baristas.\n\nEducation: Ivan Franko National University of Lviv, BSc Applied Mathematics, 2014-2018.\n\nSkills: TypeScript, Node.js, NestJS, PostgreSQL, Redis, Kafka, Docker, Kubernetes, AWS, PHP, Laravel. English B2, Ukrainian native, Polish basic.\nHobbies: bouldering, board games.\n",
+  "runs": [
+    {
+      "pipeline": "single",
+      "ok": true,
+      "facts": [
+        {
+          "id": "f1",
+          "text": "Full name is Olena Kovalenko",
+          "quote": "Olena Kovalenko"
+        },
+        {
+          "id": "f2",
+          "text": "Email is olena.kovalenko@example.com",
+          "quote": "olena.kovalenko@example.com"
+        },
+        {
+          "id": "f3",
+          "text": "Phone is +380 67 123 4567",
+          "quote": "+380 67 123 4567"
+        },
+        {
+          "id": "f4",
+          "text": "Located in Lviv, Ukraine",
+          "quote": "Lviv, Ukraine"
+        },
+        {
+          "id": "f5",
+          "text": "GitHub profile is github.com/okoval",
+          "quote": "github.com/okoval"
+        },
+        {
+          "id": "f6",
+          "text": "Is a backend developer",
+          "quote": "backend developer"
+        },
+        {
+          "id": "f7",
+          "text": "Has 6 years in the industry",
+          "quote": "6 years in the industry"
+        },
+        {
+          "id": "f8",
+          "text": "Likes boring reliable systems",
+          "quote": "I like boring reliable systems"
+        },
+        {
+          "id": "f9",
+          "text": "Has worked at SoftServe from 2021 to now",
+          "quote": "2021 - now: SoftServe"
+        },
+        {
+          "id": "f10",
+          "text": "SoftServe role is in Lviv",
+          "quote": "SoftServe, Lviv"
+        },
+        {
+          "id": "f11",
+          "text": "Was a backend engineer at SoftServe",
+          "quote": "Backend engineer"
+        },
+        {
+          "id": "f12",
+          "text": "Has been tech lead of a team of 5 at SoftServe from March 2023",
+          "quote": "then tech lead of a team of 5 from March 2023"
+        },
+        {
+          "id": "f13",
+          "text": "Built a payment reconciliation service in Node.js/TypeScript + PostgreSQL",
+          "quote": "Built payment reconciliation service in Node.js/TypeScript + PostgreSQL"
+        },
+        {
+          "id": "f14",
+          "text": "The payment reconciliation service was for a US fintech client",
+          "quote": "for a US fintech client"
+        },
+        {
+          "id": "f15",
+          "text": "The payment reconciliation service processes about 2 million transactions a day",
+          "quote": "it processes about 2 million transactions a day"
+        },
+        {
+          "id": "f16",
+          "text": "Moved the team from a monolith deploy to Kubernetes (EKS)",
+          "quote": "Moved the team from a monolith deploy to Kubernetes (EKS)"
+        },
+        {
+          "id": "f17",
+          "text": "Deploy time went from ~40 min to 8 min",
+          "quote": "deploy time went from ~40 min to 8 min"
+        },
+        {
+          "id": "f18",
+          "text": "Interviewed candidates",
+          "quote": "Interviewed candidates"
+        },
+        {
+          "id": "f19",
+          "text": "Mentored 3 juniors",
+          "quote": "mentored 3 juniors"
+        },
+        {
+          "id": "f20",
+          "text": "Wrote internal guidelines for code review",
+          "quote": "Wrote internal guidelines for code review"
+        },
+        {
+          "id": "f21",
+          "text": "Worked at Lviv IT startup \"Fudzi\" from 2018 to 2021",
+          "quote": "2018 - 2021: Lviv IT startup \"Fudzi\""
+        },
+        {
+          "id": "f22",
+          "text": "Fudzi is a food delivery startup",
+          "quote": "(food delivery)"
+        },
+        {
+          "id": "f23",
+          "text": "Was a junior then middle PHP developer at Fudzi",
+          "quote": "junior then middle PHP developer"
+        },
+        {
+          "id": "f24",
+          "text": "Worked on the Laravel backend for the courier app",
+          "quote": "Laravel backend for the courier app"
+        },
+        {
+          "id": "f25",
+          "text": "Integrated Google Maps API for route estimates",
+          "quote": "Integrated Google Maps API for route estimates"
+        },
+        {
+          "id": "f26",
+          "text": "Was on call for production incidents once a week",
+          "quote": "Was on call for production incidents once a week"
+        },
+        {
+          "id": "f27",
+          "text": "Was a barista at Lviv Coffee Manufacture from 2016 to 2018",
+          "quote": "2016 - 2018: barista at Lviv Coffee Manufacture"
+        },
+        {
+          "id": "f28",
+          "text": "The barista job was part-time during university",
+          "quote": "part-time during university"
+        },
+        {
+          "id": "f29",
+          "text": "Trained new baristas",
+          "quote": "Trained new baristas"
+        },
+        {
+          "id": "f30",
+          "text": "Studied BSc Applied Mathematics at Ivan Franko National University of Lviv",
+          "quote": "Ivan Franko National University of Lviv, BSc Applied Mathematics"
+        },
+        {
+          "id": "f31",
+          "text": "University studies were 2014-2018",
+          "quote": "2014-2018"
+        },
+        {
+          "id": "f32",
+          "text": "Skill: TypeScript",
+          "quote": "TypeScript"
+        },
+        {
+          "id": "f33",
+          "text": "Skill: Node.js",
+          "quote": "Node.js"
+        },
+        {
+          "id": "f34",
+          "text": "Skill: NestJS",
+          "quote": "NestJS"
+        },
+        {
+          "id": "f35",
+          "text": "Skill: PostgreSQL",
+          "quote": "PostgreSQL"
+        },
+        {
+          "id": "f36",
+          "text": "Skill: Redis",
+          "quote": "Redis"
+        },
+        {
+          "id": "f37",
+          "text": "Skill: Kafka",
+          "quote": "Kafka"
+        },
+        {
+          "id": "f38",
+          "text": "Skill: Docker",
+          "quote": "Docker"
+        },
+        {
+          "id": "f39",
+          "text": "Skill: Kubernetes",
+          "quote": "Kubernetes"
+        },
+        {
+          "id": "f40",
+          "text": "Skill: AWS",
+          "quote": "AWS"
+        },
+        {
+          "id": "f41",
+          "text": "Skill: PHP",
+          "quote": "PHP"
+        },
+        {
+          "id": "f42",
+          "text": "Skill: Laravel",
+          "quote": "Laravel"
+        },
+        {
+          "id": "f43",
+          "text": "Speaks English at B2 level",
+          "quote": "English B2"
+        },
+        {
+          "id": "f44",
+          "text": "Ukrainian is native language",
+          "quote": "Ukrainian native"
+        },
+        {
+          "id": "f45",
+          "text": "Speaks basic Polish",
+          "quote": "Polish basic"
+        },
+        {
+          "id": "f46",
+          "text": "Hobby: bouldering",
+          "quote": "bouldering"
+        },
+        {
+          "id": "f47",
+          "text": "Hobby: board games",
+          "quote": "board games"
+        }
+      ],
+      "cv": {
+        "contact": {
+          "fullName": "Olena Kovalenko",
+          "email": "olena.kovalenko@example.com",
+          "phone": "+380 67 123 4567",
+          "location": "Lviv, Ukraine",
+          "links": [
+            "github.com/okoval"
+          ],
+          "sourceFactIds": [
+            "f1",
+            "f2",
+            "f3",
+            "f4",
+            "f5"
+          ]
+        },
+        "summary": {
+          "text": "Backend developer with 6 years in the industry, tech lead of a team of 5 at SoftServe since March 2023. Built a Node.js/TypeScript and PostgreSQL payment reconciliation service processing about 2 million transactions a day, and moved the team's deploys to Kubernetes (EKS). Likes boring, reliable systems.",
+          "sourceFactIds": [
+            "f6",
+            "f7",
+            "f9",
+            "f12",
+            "f13",
+            "f15",
+            "f16",
+            "f8"
+          ]
+        },
+        "experience": [
+          {
+            "organization": "SoftServe",
+            "title": "Tech Lead (previously Backend Engineer)",
+            "startDate": "2021",
+            "endDate": null,
+            "isCurrent": true,
+            "location": "Lviv",
+            "sourceFactIds": [
+              "f9",
+              "f10",
+              "f11",
+              "f12"
+            ],
+            "bullets": [
+              {
+                "text": "Built a Node.js/TypeScript and PostgreSQL payment reconciliation service processing about 2 million transactions a day for a US fintech client",
+                "sourceFactIds": [
+                  "f13",
+                  "f14",
+                  "f15"
+                ]
+              },
+              {
+                "text": "Moved the team from monolith deploys to Kubernetes (EKS), cutting deploy time from ~40 min to 8 min",
+                "sourceFactIds": [
+                  "f16",
+                  "f17"
+                ]
+              },
+              {
+                "text": "Lead a team of 5 since March 2023; mentored 3 juniors and interviewed candidates",
+                "sourceFactIds": [
+                  "f12",
+                  "f19",
+                  "f18"
+                ]
+              },
+              {
+                "text": "Wrote internal code review guidelines",
+                "sourceFactIds": [
+                  "f20"
+                ]
+              }
+            ]
+          },
+          {
+            "organization": "Fudzi (food delivery startup)",
+            "title": "Middle PHP Developer (previously Junior)",
+            "startDate": "2018",
+            "endDate": "2021",
+            "isCurrent": false,
+            "location": "Lviv",
+            "sourceFactIds": [
+              "f21",
+              "f22",
+              "f23"
+            ],
+            "bullets": [
+              {
+                "text": "Worked on the Laravel backend for the courier app",
+                "sourceFactIds": [
+                  "f24"
+                ]
+              },
+              {
+                "text": "Integrated Google Maps API for route estimates",
+                "sourceFactIds": [
+                  "f25"
+                ]
+              },
+              {
+                "text": "Was on call for production incidents once a week",
+                "sourceFactIds": [
+                  "f26"
+                ]
+              }
+            ]
+          },
+          {
+            "organization": "Lviv Coffee Manufacture",
+            "title": "Barista (part-time)",
+            "startDate": "2016",
+            "endDate": "2018",
+            "isCurrent": false,
+            "location": null,
+            "sourceFactIds": [
+              "f27",
+              "f28"
+            ],
+            "bullets": [
+              {
+                "text": "Trained new baristas",
+                "sourceFactIds": [
+                  "f29"
+                ]
+              }
+            ]
+          }
+        ],
+        "education": [
+          {
+            "institution": "Ivan Franko National University of Lviv",
+            "degree": "BSc",
+            "field": "Applied Mathematics",
+            "startDate": "2014",
+            "endDate": "2018",
+            "sourceFactIds": [
+              "f30",
+              "f31"
+            ]
+          }
+        ],
+        "skills": [
+          {
+            "name": "Node.js",
+            "sourceFactIds": [
+              "f33"
+            ]
+          },
+          {
+            "name": "TypeScript",
+            "sourceFactIds": [
+              "f32"
+            ]
+          },
+          {
+            "name": "PostgreSQL",
+            "sourceFactIds": [
+              "f35"
+            ]
+          },
+          {
+            "name": "NestJS",
+            "sourceFactIds": [
+              "f34"
+            ]
+          },
+          {
+            "name": "Kafka",
+            "sourceFactIds": [
+              "f37"
+            ]
+          },
+          {
+            "name": "Redis",
+            "sourceFactIds": [
+              "f36"
+            ]
+          },
+          {
+            "name": "Kubernetes",
+            "sourceFactIds": [
+              "f39"
+            ]
+          },
+          {
+            "name": "AWS",
+            "sourceFactIds": [
+              "f40"
+            ]
+          },
+          {
+            "name": "Docker",
+            "sourceFactIds": [
+              "f38"
+            ]
+          },
+          {
+            "name": "PHP",
+            "sourceFactIds": [
+              "f41"
+            ]
+          },
+          {
+            "name": "Laravel",
+            "sourceFactIds": [
+              "f42"
+            ]
+          },
+          {
+            "name": "English (B2)",
+            "sourceFactIds": [
+              "f43"
+            ]
+          },
+          {
+            "name": "Ukrainian (native)",
+            "sourceFactIds": [
+              "f44"
+            ]
+          },
+          {
+            "name": "Polish (basic)",
+            "sourceFactIds": [
+              "f45"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "bullets",
+            "text": "Did the payment reconciliation service have a measurable outcome beyond volume (e.g. uptime, error rate, time saved for the client)?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "bullets",
+            "text": "As tech lead, which technical decisions or architecture did you own, and with what result?"
+          },
+          {
+            "section": "skills",
+            "itemIndex": null,
+            "field": null,
+            "text": "In which projects did you use NestJS, Kafka and Redis, and for what?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 1,
+            "field": "bullets",
+            "text": "What was your scope on the courier app's Laravel backend: did you build it, own parts of it, and is there a measurable result?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "startDate",
+            "text": "In which month of 2021 did you join SoftServe?"
+          }
+        ]
+      },
+      "issues": [
+        {
+          "path": "experience[1]",
+          "rule": "name-not-in-facts",
+          "detail": "Fudzi (food delivery startup)",
+          "severity": "flag"
+        },
+        {
+          "path": "skills[11]",
+          "rule": "skill-not-in-facts",
+          "detail": "English (B2)",
+          "severity": "flag"
+        },
+        {
+          "path": "skills[12]",
+          "rule": "skill-not-in-facts",
+          "detail": "Ukrainian (native)",
+          "severity": "flag"
+        },
+        {
+          "path": "skills[13]",
+          "rule": "skill-not-in-facts",
+          "detail": "Polish (basic)",
+          "severity": "flag"
+        }
+      ],
+      "judge": [],
+      "calls": [
+        {
+          "label": "single",
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "costUsd": 0,
+          "ms": 0,
+          "stopReason": "offline"
+        },
+        {
+          "label": "judge",
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "costUsd": 0,
+          "ms": 0,
+          "stopReason": "offline"
+        }
+      ]
+    },
+    {
+      "pipeline": "staged",
+      "ok": true,
+      "facts": [
+        {
+          "id": "f1",
+          "text": "Name is Olena Kovalenko",
+          "quote": "Olena Kovalenko"
+        },
+        {
+          "id": "f2",
+          "text": "Email is olena.kovalenko@example.com",
+          "quote": "olena.kovalenko@example.com"
+        },
+        {
+          "id": "f3",
+          "text": "Phone is +380 67 123 4567",
+          "quote": "+380 67 123 4567"
+        },
+        {
+          "id": "f4",
+          "text": "Located in Lviv, Ukraine",
+          "quote": "Lviv, Ukraine"
+        },
+        {
+          "id": "f5",
+          "text": "GitHub profile is github.com/okoval",
+          "quote": "github.com/okoval"
+        },
+        {
+          "id": "f6",
+          "text": "Is a backend developer",
+          "quote": "backend developer"
+        },
+        {
+          "id": "f7",
+          "text": "Has 6 years in the industry",
+          "quote": "6 years in the industry"
+        },
+        {
+          "id": "f8",
+          "text": "Likes boring reliable systems",
+          "quote": "I like boring reliable systems"
+        },
+        {
+          "id": "f9",
+          "text": "Worked at SoftServe, Lviv, from 2021 to now",
+          "quote": "2021 - now: SoftServe, Lviv"
+        },
+        {
+          "id": "f10",
+          "text": "Backend engineer at SoftServe",
+          "quote": "Backend engineer"
+        },
+        {
+          "id": "f11",
+          "text": "Tech lead of a team of 5 at SoftServe from March 2023",
+          "quote": "then tech lead of a team of 5 from March 2023"
+        },
+        {
+          "id": "f12",
+          "text": "Built a payment reconciliation service in Node.js/TypeScript + PostgreSQL",
+          "quote": "Built payment reconciliation service in Node.js/TypeScript + PostgreSQL"
+        },
+        {
+          "id": "f13",
+          "text": "The payment reconciliation service was built for a US fintech client",
+          "quote": "for a US fintech client"
+        },
+        {
+          "id": "f14",
+          "text": "The payment reconciliation service processes about 2 million transactions a day",
+          "quote": "it processes about 2 million transactions a day"
+        },
+        {
+          "id": "f15",
+          "text": "Moved the team from a monolith deploy to Kubernetes (EKS)",
+          "quote": "Moved the team from a monolith deploy to Kubernetes (EKS)"
+        },
+        {
+          "id": "f16",
+          "text": "Deploy time went from ~40 min to 8 min",
+          "quote": "deploy time went from ~40 min to 8 min"
+        },
+        {
+          "id": "f17",
+          "text": "Interviewed candidates",
+          "quote": "Interviewed candidates"
+        },
+        {
+          "id": "f18",
+          "text": "Mentored 3 juniors",
+          "quote": "mentored 3 juniors"
+        },
+        {
+          "id": "f19",
+          "text": "Wrote internal guidelines for code review",
+          "quote": "Wrote internal guidelines for code review"
+        },
+        {
+          "id": "f20",
+          "text": "Worked at Lviv IT startup \"Fudzi\" from 2018 to 2021",
+          "quote": "2018 - 2021: Lviv IT startup \"Fudzi\""
+        },
+        {
+          "id": "f21",
+          "text": "Fudzi is a food delivery startup",
+          "quote": "(food delivery)"
+        },
+        {
+          "id": "f22",
+          "text": "Junior then middle PHP developer at Fudzi",
+          "quote": "junior then middle PHP developer"
+        },
+        {
+          "id": "f23",
+          "text": "Worked on the Laravel backend for the courier app",
+          "quote": "Laravel backend for the courier app"
+        },
+        {
+          "id": "f24",
+          "text": "Integrated Google Maps API for route estimates",
+          "quote": "Integrated Google Maps API for route estimates"
+        },
+        {
+          "id": "f25",
+          "text": "Was on call for production incidents once a week",
+          "quote": "Was on call for production incidents once a week"
+        },
+        {
+          "id": "f26",
+          "text": "Barista at Lviv Coffee Manufacture from 2016 to 2018",
+          "quote": "2016 - 2018: barista at Lviv Coffee Manufacture"
+        },
+        {
+          "id": "f27",
+          "text": "The barista job was part-time during university",
+          "quote": "part-time during university"
+        },
+        {
+          "id": "f28",
+          "text": "Trained new baristas",
+          "quote": "Trained new baristas"
+        },
+        {
+          "id": "f29",
+          "text": "BSc Applied Mathematics, Ivan Franko National University of Lviv, 2014-2018",
+          "quote": "Ivan Franko National University of Lviv, BSc Applied Mathematics, 2014-2018"
+        },
+        {
+          "id": "f30",
+          "text": "Skill: TypeScript",
+          "quote": "TypeScript"
+        },
+        {
+          "id": "f31",
+          "text": "Skill: Node.js",
+          "quote": "Node.js"
+        },
+        {
+          "id": "f32",
+          "text": "Skill: NestJS",
+          "quote": "NestJS"
+        },
+        {
+          "id": "f33",
+          "text": "Skill: PostgreSQL",
+          "quote": "PostgreSQL"
+        },
+        {
+          "id": "f34",
+          "text": "Skill: Redis",
+          "quote": "Redis"
+        },
+        {
+          "id": "f35",
+          "text": "Skill: Kafka",
+          "quote": "Kafka"
+        },
+        {
+          "id": "f36",
+          "text": "Skill: Docker",
+          "quote": "Docker"
+        },
+        {
+          "id": "f37",
+          "text": "Skill: Kubernetes",
+          "quote": "Kubernetes"
+        },
+        {
+          "id": "f38",
+          "text": "Skill: AWS",
+          "quote": "AWS"
+        },
+        {
+          "id": "f39",
+          "text": "Skill: PHP",
+          "quote": "PHP"
+        },
+        {
+          "id": "f40",
+          "text": "Skill: Laravel",
+          "quote": "Laravel"
+        },
+        {
+          "id": "f41",
+          "text": "English B2",
+          "quote": "English B2"
+        },
+        {
+          "id": "f42",
+          "text": "Ukrainian native",
+          "quote": "Ukrainian native"
+        },
+        {
+          "id": "f43",
+          "text": "Polish basic",
+          "quote": "Polish basic"
+        },
+        {
+          "id": "f44",
+          "text": "Hobby: bouldering",
+          "quote": "bouldering"
+        },
+        {
+          "id": "f45",
+          "text": "Hobby: board games",
+          "quote": "board games"
+        }
+      ],
+      "cv": {
+        "contact": {
+          "fullName": "Olena Kovalenko",
+          "email": "olena.kovalenko@example.com",
+          "phone": "+380 67 123 4567",
+          "location": "Lviv, Ukraine",
+          "links": [
+            "github.com/okoval"
+          ],
+          "sourceFactIds": [
+            "f1",
+            "f2",
+            "f3",
+            "f4",
+            "f5"
+          ]
+        },
+        "summary": {
+          "text": "Backend developer with 6 years in the industry, currently tech lead of a team of 5 at SoftServe. Built a Node.js/TypeScript and PostgreSQL payment reconciliation service for a US fintech client that processes about 2 million transactions a day. Likes boring, reliable systems.",
+          "sourceFactIds": [
+            "f6",
+            "f7",
+            "f9",
+            "f11",
+            "f12",
+            "f13",
+            "f14",
+            "f8"
+          ]
+        },
+        "experience": [
+          {
+            "organization": "SoftServe",
+            "title": "Backend Engineer / Tech Lead",
+            "startDate": "2021",
+            "endDate": null,
+            "isCurrent": true,
+            "location": "Lviv",
+            "sourceFactIds": [
+              "f9",
+              "f10",
+              "f11"
+            ],
+            "bullets": [
+              {
+                "text": "Built a payment reconciliation service in Node.js/TypeScript and PostgreSQL for a US fintech client, processing ~2M transactions/day",
+                "sourceFactIds": [
+                  "f12",
+                  "f13",
+                  "f14"
+                ]
+              },
+              {
+                "text": "Moved the team from monolith deploys to Kubernetes (EKS); deploy time went from ~40 to 8 minutes",
+                "sourceFactIds": [
+                  "f15",
+                  "f16"
+                ]
+              },
+              {
+                "text": "Led a team of 5 as tech lead since March 2023",
+                "sourceFactIds": [
+                  "f11"
+                ]
+              },
+              {
+                "text": "Mentored 3 juniors, interviewed candidates and wrote internal code review guidelines",
+                "sourceFactIds": [
+                  "f17",
+                  "f18",
+                  "f19"
+                ]
+              }
+            ]
+          },
+          {
+            "organization": "Fudzi",
+            "title": "Junior then Middle PHP Developer",
+            "startDate": "2018",
+            "endDate": "2021",
+            "isCurrent": false,
+            "location": "Lviv",
+            "sourceFactIds": [
+              "f20",
+              "f21",
+              "f22"
+            ],
+            "bullets": [
+              {
+                "text": "Worked on the Laravel backend for the courier app of a food delivery startup",
+                "sourceFactIds": [
+                  "f21",
+                  "f23"
+                ]
+              },
+              {
+                "text": "Integrated Google Maps API for route estimates",
+                "sourceFactIds": [
+                  "f24"
+                ]
+              },
+              {
+                "text": "Served on call for production incidents once a week",
+                "sourceFactIds": [
+                  "f25"
+                ]
+              }
+            ]
+          },
+          {
+            "organization": "Lviv Coffee Manufacture",
+            "title": "Barista (part-time, during university)",
+            "startDate": "2016",
+            "endDate": "2018",
+            "isCurrent": false,
+            "location": null,
+            "sourceFactIds": [
+              "f26",
+              "f27"
+            ],
+            "bullets": [
+              {
+                "text": "Trained new baristas",
+                "sourceFactIds": [
+                  "f28"
+                ]
+              }
+            ]
+          }
+        ],
+        "education": [
+          {
+            "institution": "Ivan Franko National University of Lviv",
+            "degree": "BSc",
+            "field": "Applied Mathematics",
+            "startDate": "2014",
+            "endDate": "2018",
+            "sourceFactIds": [
+              "f29"
+            ]
+          }
+        ],
+        "skills": [
+          {
+            "name": "TypeScript",
+            "sourceFactIds": [
+              "f30"
+            ]
+          },
+          {
+            "name": "Node.js",
+            "sourceFactIds": [
+              "f31"
+            ]
+          },
+          {
+            "name": "NestJS",
+            "sourceFactIds": [
+              "f32"
+            ]
+          },
+          {
+            "name": "PostgreSQL",
+            "sourceFactIds": [
+              "f33"
+            ]
+          },
+          {
+            "name": "Kafka",
+            "sourceFactIds": [
+              "f35"
+            ]
+          },
+          {
+            "name": "Redis",
+            "sourceFactIds": [
+              "f34"
+            ]
+          },
+          {
+            "name": "AWS",
+            "sourceFactIds": [
+              "f38"
+            ]
+          },
+          {
+            "name": "Kubernetes",
+            "sourceFactIds": [
+              "f37"
+            ]
+          },
+          {
+            "name": "Docker",
+            "sourceFactIds": [
+              "f36"
+            ]
+          },
+          {
+            "name": "PHP",
+            "sourceFactIds": [
+              "f39"
+            ]
+          },
+          {
+            "name": "Laravel",
+            "sourceFactIds": [
+              "f40"
+            ]
+          },
+          {
+            "name": "English (B2)",
+            "sourceFactIds": [
+              "f41"
+            ]
+          },
+          {
+            "name": "Ukrainian (native)",
+            "sourceFactIds": [
+              "f42"
+            ]
+          },
+          {
+            "name": "Polish (basic)",
+            "sourceFactIds": [
+              "f43"
+            ]
+          }
+        ],
+        "questions": [
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "bullets",
+            "text": "Is there a measurable outcome of the payment reconciliation service (e.g. accuracy, uptime, latency, money or time saved)?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "title",
+            "text": "What is your official job title at SoftServe since March 2023: Tech Lead, Senior Backend Engineer, or something else?"
+          },
+          {
+            "section": "summary",
+            "itemIndex": null,
+            "field": "text",
+            "text": "Your developer roles start in 2018, which is about 8 years; is \"6 years in the industry\" still the number you want to use?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "bullets",
+            "text": "On which projects did you use Kafka and Redis, and for what?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 0,
+            "field": "startDate",
+            "text": "In which month of 2021 did you join SoftServe?"
+          },
+          {
+            "section": "experience",
+            "itemIndex": 1,
+            "field": "bullets",
+            "text": "Is there a measurable result from your work on Fudzi's courier app backend (e.g. scale, performance, incidents reduced)?"
+          }
+        ]
+      },
+      "issues": [
+        {
+          "path": "skills[11]",
+          "rule": "skill-not-in-facts",
+          "detail": "English (B2)",
+          "severity": "flag"
+        },
+        {
+          "path": "skills[12]",
+          "rule": "skill-not-in-facts",
+          "detail": "Ukrainian (native)",
+          "severity": "flag"
+        },
+        {
+          "path": "skills[13]",
+          "rule": "skill-not-in-facts",
+          "detail": "Polish (basic)",
+          "severity": "flag"
+        }
+      ],
+      "judge": [],
+      "calls": [
+        {
+          "label": "extract",
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "costUsd": 0,
+          "ms": 0,
+          "stopReason": "offline"
+        },
+        {
+          "label": "compose",
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "costUsd": 0,
+          "ms": 0,
+          "stopReason": "offline"
+        },
+        {
+          "label": "judge",
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "costUsd": 0,
+          "ms": 0,
+          "stopReason": "offline"
+        }
+      ]
+    }
+  ]
+}

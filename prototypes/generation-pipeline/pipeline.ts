@@ -10,7 +10,7 @@ const PRICE_OUT = 20 / 1e6;
 
 // ---------- schemas (LLM output shapes) ----------
 
-const FactIds = z.array(z.string()).describe("ids of the Facts this item rests on");
+export const FactIds = z.array(z.string()).describe("ids of the Facts this item rests on");
 const YearMonth = z.string().nullable().describe("YYYY-MM, or YYYY if only the year is known, or null if unknown");
 
 export const Fact = z.object({
@@ -64,14 +64,14 @@ export const CvDraft = z.object({
 });
 export type CvDraft = z.infer<typeof CvDraft>;
 
-const ExtractOutput = z.object({ facts: z.array(Fact) });
-const SingleOutput = z.object({ facts: z.array(Fact), cv: CvDraft });
+export const ExtractOutput = z.object({ facts: z.array(Fact) });
+export const SingleOutput = z.object({ facts: z.array(Fact), cv: CvDraft });
 
 // ---------- prompts ----------
 
-const FACT_RULES = `A Fact is one atomic statement about the person that the Source states. Split compound sentences: "Built X in Node.js, processes 2M tx/day" is two Facts. Keep numbers, names, dates and scope exactly as written; never round, upgrade or generalise them. Include contact details, each role (organization, title, dates), each responsibility/achievement, each education entry, each skill and language. Vague statements stay vague ("some startups" stays "some startups").`;
+export const FACT_RULES = `A Fact is one atomic statement about the person that the Source states. Split compound sentences: "Built X in Node.js, processes 2M tx/day" is two Facts. Keep numbers, names, dates and scope exactly as written; never round, upgrade or generalise them. Include contact details, each role (organization, title, dates), each responsibility/achievement, each education entry, each skill and language. Vague statements stay vague ("some startups" stays "some startups").`;
 
-const COMPOSE_RULES = `Write a CV draft aimed at the Target role.
+export const COMPOSE_RULES = `Write a CV draft aimed at the Target role.
 
 Grounding (most important):
 - Every item cites the Facts it rests on in sourceFactIds. Every claim in the text (number, name, technology, scope, seniority, outcome) must be stated by a cited Fact. Rephrasing and tightening is fine; adding is not.
@@ -152,7 +152,7 @@ export async function staged(client: Anthropic, src: SourceInput, role: string, 
 
 // ---------- optional LLM check: is every claim entailed by its cited facts? ----------
 
-const JudgeOutput = z.object({
+export const JudgeOutput = z.object({
   findings: z.array(z.object({
     path: z.string().describe("e.g. experience[0].bullets[2], skills[3], summary"),
     claim: z.string().describe("the specific unsupported part"),
@@ -161,9 +161,10 @@ const JudgeOutput = z.object({
 });
 export type JudgeFinding = z.infer<typeof JudgeOutput>["findings"][number];
 
+export const JUDGE_SYSTEM = `You audit a CV draft against the Facts it claims to rest on. For every summary, experience header, bullet, education entry and skill, check that every claim in it (numbers, names, technologies, scope, seniority, outcomes) is stated by its cited Facts. Report only problems; an empty list is a valid answer. Rephrasing is fine.`;
+
 export async function judge(client: Anthropic, facts: Fact[], cv: CvDraft) {
-  const { output, stats } = await call(client, "judge", zodOutputFormat(JudgeOutput),
-    `You audit a CV draft against the Facts it claims to rest on. For every summary, experience header, bullet, education entry and skill, check that every claim in it (numbers, names, technologies, scope, seniority, outcomes) is stated by its cited Facts. Report only problems; an empty list is a valid answer. Rephrasing is fine.`,
+  const { output, stats } = await call(client, "judge", zodOutputFormat(JudgeOutput), JUDGE_SYSTEM,
     [{ type: "text", text: `<facts>\n${JSON.stringify(facts.map(({ id, text }) => ({ id, text })), null, 1)}\n</facts>\n<cv>\n${JSON.stringify({ ...cv, questions: undefined }, null, 1)}\n</cv>` }],
     "medium");
   return { findings: output.findings, stats };
