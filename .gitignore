@@ -1,0 +1,6 @@
+# Dependencies
+node_modules/
+
+# Local secrets (ANTHROPIC_API_KEY and friends); commit only the example file
+.env*
+!.env.example
