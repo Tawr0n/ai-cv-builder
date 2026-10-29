@@ -86,7 +86,7 @@
   .tB h1 { font-size: 24pt; font-weight: 700; margin: 0; letter-spacing: -.02em; line-height: 1.05; }
   .tB .contact { display: flex; flex-wrap: wrap; gap: 1mm 5mm; margin-top: 2mm; font-size: 8.8pt; color: #444; }
   .tB section { display: grid; grid-template-columns: 30mm 1fr; gap: 0 5mm; margin-bottom: 5mm; }
-  .tB h2 { font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #2f5bea; margin: .4mm 0 0; }
+  .tB h2 { align-self: start; font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #2f5bea; margin: .4mm 0 0; }
   .tB .body > .item + .item { margin-top: 3.5mm; }
   .tB .ih b { font-weight: 600; }
   .tB .meta { color: #666; font-size: 8.8pt; }
@@ -200,14 +200,14 @@ const T = {
 
   B: c => `<div class="tB">
     <header><h1>${esc(c.contact.name)}</h1><div class="contact">${contactParts(c.contact).map(p => `<span>${p}</span>`).join('')}</div></header>
-    ${c.summary ? `<section><h2>Profile</h2><div class="body">${esc(c.summary)}</div></section>` : ''}
-    <section><h2>Experience</h2><div class="body">
-      ${c.experience.map(e => `<div class="item${hlCls(e.id)}"><div class="ih"><b>${miss(e.title, 'title?')}</b>${qm(e.id)}</div><div class="meta">${metaLine(e.org, e.dates)}</div>${bullets(e)}</div>`).join('')}
+    ${c.summary ? `<section><h2 class="u">Profile</h2><div class="body u">${esc(c.summary)}</div></section>` : ''}
+    <section><h2 class="u">Skills${qm('skills')}</h2><div class="body skills u">${c.skills.map(s => `<span>${esc(s)}</span>`).join('')}</div></section>
+    <section><h2 class="u">Experience</h2><div class="body">
+      ${c.experience.map(e => `<div class="item u${hlCls(e.id)}"><div class="ih"><b>${miss(e.title, 'title?')}</b>${qm(e.id)}</div><div class="meta">${metaLine(e.org, e.dates)}</div>${bullets(e)}</div>`).join('')}
     </div></section>
-    <section><h2>Education</h2><div class="body">
-      ${c.education.map(e => `<div class="item"><div class="ih"><b>${esc(e.degree)}</b>${qm(e.id)}</div><div class="meta">${metaLine(e.school, e.dates)}</div></div>`).join('')}
+    <section><h2 class="u">Education</h2><div class="body">
+      ${c.education.map(e => `<div class="item u"><div class="ih"><b>${esc(e.degree)}</b>${qm(e.id)}</div><div class="meta">${metaLine(e.school, e.dates)}</div></div>`).join('')}
     </div></section>
-    <section><h2>Skills${qm('skills')}</h2><div class="body skills">${c.skills.map(s => `<span>${esc(s)}</span>`).join('')}</div></section>
   </div>`,
 
   C: c => `<div class="tC">
@@ -234,7 +234,7 @@ function render() {
   if (S.view === 'a4') stage.innerHTML = `<div class="frame-a4">${paper}</div>`;
   else if (S.view === 'scaled') stage.innerHTML = `<div class="frame-phone scaled"><div class="scaler">${paper}</div></div>`;
   else stage.innerHTML = `<div class="frame-phone">${paper}</div>`;
-  if (!pdf() && S.variant === 'A') paginate(stage.querySelector('.paper'), cv);
+  if (!pdf() && S.variant !== 'C') paginate(stage.querySelector('.paper'), cv);
   if (S.view === 'scaled') { // shrink an A4-wide sheet to the phone width, keep the layout
     const p = stage.querySelector('.paper'), w = stage.querySelector('.scaler').clientWidth, k = w / p.offsetWidth;
     p.style.transform = `scale(${k})`; stage.querySelector('.scaler').style.height = p.offsetHeight * k + 'px';
@@ -252,7 +252,7 @@ function measureBreaks(cv) {
   const keep = S.mode; S.mode = 'pdf';
   const twin = document.createElement('div');
   twin.className = 'paper'; twin.style.cssText = 'position:absolute;left:-9999px;top:0;width:180mm';
-  twin.innerHTML = T.A(cv).replace('class="tA"', 'class="tA" style="padding:0"');
+  twin.innerHTML = T[S.variant](cv).replace(/class="(t[AB])"/, 'class="$1" style="padding:0"');
   S.mode = keep; document.body.appendChild(twin);
   const units = [...twin.querySelectorAll('.u')], base = twin.getBoundingClientRect().top;
   const contentH = (PAGE_H - M_TOP - M_BOTTOM) * MM, breaks = [];
@@ -273,7 +273,9 @@ function paginate(paper, cv) {
   breaks.forEach((i, n) => {
     const d = document.createElement('div'); d.className = 'pbreak';
     d.innerHTML = `<span>Page ${n + 2}</span>`;
-    units[i].before(d);
+    // a section heading sits in a grid cell (B), so the rule goes before its whole section
+    const u = units[i], at = u.tagName === 'H2' && u.parentElement.tagName === 'SECTION' ? u.parentElement : u;
+    at.before(d);
     if (sheets) { // push the unit to the top margin of the next sheet
       const pTop = paper.getBoundingClientRect().top, y = d.getBoundingClientRect().top - pTop;
       const next = (n + 1) * (PAGE_H + GAP) * MM + M_TOP * MM;
