@@ -1,6 +1,10 @@
 'use client';
 
-import type { User } from '@ai-cv-builder/shared';
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  type User,
+} from '@ai-cv-builder/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -29,7 +33,7 @@ const COPY = {
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: 'Invalid email or password.',
   email_taken: 'That email is already registered. Try logging in.',
-  validation_failed: 'Enter a valid email and a password of 8–128 characters.',
+  validation_failed: `Enter a valid email and a password of ${PASSWORD_MIN_LENGTH}–${PASSWORD_MAX_LENGTH} characters.`,
 };
 
 /** One form for both pages: only the endpoint and the wording differ. */
@@ -75,8 +79,8 @@ export function AuthForm({ mode }: { mode: keyof typeof COPY }) {
           name="password"
           type="password"
           autoComplete={copy.passwordAutocomplete}
-          minLength={mode === 'signup' ? 8 : undefined}
-          maxLength={128}
+          minLength={mode === 'signup' ? PASSWORD_MIN_LENGTH : undefined}
+          maxLength={PASSWORD_MAX_LENGTH}
           required
         />
         {error && (

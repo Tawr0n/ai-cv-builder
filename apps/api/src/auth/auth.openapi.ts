@@ -1,15 +1,6 @@
-import {
-  apiErrorSchema,
-  loginSchema,
-  signupSchema,
-  userSchema,
-} from '@ai-cv-builder/shared';
+import { loginSchema, signupSchema, userSchema } from '@ai-cv-builder/shared';
 import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
-
-const error = (description: string) => ({
-  description,
-  content: { 'application/json': { schema: apiErrorSchema } },
-});
+import { errorResponse } from '../openapi/error-response.js';
 
 const sessionCookie = {
   'Set-Cookie': {
@@ -33,9 +24,9 @@ export function registerAuthDocs(registry: OpenAPIRegistry) {
         headers: sessionCookie,
         content: { 'application/json': { schema: userSchema } },
       },
-      400: error('`validation_failed`'),
-      403: error('`forbidden_origin`'),
-      409: error('`email_taken`'),
+      400: errorResponse('`validation_failed`'),
+      403: errorResponse('`forbidden_origin`'),
+      409: errorResponse('`email_taken`'),
     },
   });
 
@@ -53,11 +44,11 @@ export function registerAuthDocs(registry: OpenAPIRegistry) {
         headers: sessionCookie,
         content: { 'application/json': { schema: userSchema } },
       },
-      400: error('`validation_failed`'),
-      401: error(
+      400: errorResponse('`validation_failed`'),
+      401: errorResponse(
         '`invalid_credentials`: the same answer for an unknown email and a wrong password',
       ),
-      403: error('`forbidden_origin`'),
+      403: errorResponse('`forbidden_origin`'),
     },
   });
 
@@ -68,8 +59,8 @@ export function registerAuthDocs(registry: OpenAPIRegistry) {
     summary: 'End the current session',
     responses: {
       204: { description: 'Logged out; the cookie is cleared' },
-      401: error('`unauthenticated`'),
-      403: error('`forbidden_origin`'),
+      401: errorResponse('`unauthenticated`'),
+      403: errorResponse('`forbidden_origin`'),
     },
   });
 
@@ -83,7 +74,7 @@ export function registerAuthDocs(registry: OpenAPIRegistry) {
         description: 'The signed-in User',
         content: { 'application/json': { schema: userSchema } },
       },
-      401: error('`unauthenticated`'),
+      401: errorResponse('`unauthenticated`'),
     },
   });
 }
