@@ -26,6 +26,23 @@ Open <http://localhost:3000>. `docker compose up` starts `db` → `api` → `web
 7. **Elsewhere:** log out, or open a private window and log in again: the CV list is there. A second User cannot see or change the first User's CVs (a foreign CV answers `404`).
 8. **Phone:** shrink the browser to ~375 px (or open the page on a phone on the same network, see below): the same screens use bottom tabs.
 
+**Example Source to paste** (free text; set the Target role to "Senior Backend Engineer"). It is vague on purpose, so the CV leaves gaps empty and asks about them:
+
+<details>
+<summary>Sample background</summary>
+
+```text
+Olena Shevchenko, olena.shevchenko@example.com, Kyiv.
+Backend developer at FintechSoft since 2019. I worked on payments, wrote services in Node.js and PostgreSQL, and helped with deployments using Docker.
+Before that, in 2016-2018, I was an intern at Romashka, mostly fixing bugs in a Java web app.
+Studied at the Kyiv Polytechnic Institute (KPI).
+Skills: Node.js, PostgreSQL, Docker, some Kubernetes, English B2.
+```
+
+</details>
+
+What to expect: no phone, no degree and no dates for KPI (each becomes a Question), "worked on payments" stays that modest (no invented numbers or seniority), and "some Kubernetes" is not promoted to expertise. Answer e.g. "Bachelor's, graduated 2016" and "I cut payment processing time from 900 ms to 300 ms", press **Update CV**, and the matching items change, with a word diff to Accept or Undo.
+
 To see the anti-hallucination layer work, paste a vague background ("worked on payments for a bank") and watch it become a cautious bullet plus a Question instead of "built payments features". To see failure handling, run `docker compose stop api` during a Generation and bring it back: the Generation is picked up again or ends as a visible failure with **Try again**.
 
 Opening the app by a LAN address (phone testing) needs that origin added to `APP_ORIGINS` in `docker-compose.yml` (`api` service), otherwise unsafe requests get `403 forbidden_origin` (the CSRF check).
