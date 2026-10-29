@@ -10,7 +10,7 @@
     "node": "24.18.0"
   },
   "scripts": {
-    "postinstall": "pnpm --filter @ai-cv-builder/shared build && pnpm --filter @ai-cv-builder/api prisma:generate",
+    "postinstall": "pnpm --filter @ai-cv-builder/shared build && pnpm --filter @ai-cv-builder/cv-template build && pnpm --filter @ai-cv-builder/api prisma:generate",
     "dev": "pnpm --parallel --filter './apps/*' dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",

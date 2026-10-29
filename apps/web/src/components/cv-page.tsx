@@ -8,9 +8,10 @@ import type {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useEffect } from 'react';
-import { CvTemplate } from '@/components/cv-template';
+import { PagedCvPreview } from '@/components/paged-cv-preview';
 import {
   cvQuery,
+  downloadPdfMutation,
   generationQuery,
   isFinished,
   retryGenerationMutation,
@@ -102,10 +103,34 @@ export function CvPage({ cvId }: { cvId: string }) {
 
   return (
     <main className="wide">
-      {back}
+      <div className="bar">
+        {back}
+        <DownloadPdfButton cvId={cvId} />
+      </div>
       {title && <p className="hint">CV for {title}</p>}
-      <CvTemplate content={cv.data.content} mode="preview" />
+      <PagedCvPreview content={cv.data.content} />
     </main>
+  );
+}
+
+function DownloadPdfButton({ cvId }: { cvId: string }) {
+  const download = useMutation(downloadPdfMutation(cvId));
+  return (
+    <div className="stack">
+      <button
+        type="button"
+        onClick={() => download.mutate()}
+        disabled={download.isPending}
+        aria-label="Download PDF"
+      >
+        {download.isPending ? 'Preparing…' : '⬇ PDF'}
+      </button>
+      {download.isError && (
+        <p role="alert" className="hint">
+          Could not make the PDF. Try again.
+        </p>
+      )}
+    </div>
   );
 }
 

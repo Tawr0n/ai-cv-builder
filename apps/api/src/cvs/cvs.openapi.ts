@@ -90,6 +90,28 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
 
   registry.registerPath({
     method: 'get',
+    path: '/api/cvs/{cvId}/pdf',
+    tags: ['cvs'],
+    summary: 'The CV as an A4 PDF with selectable text',
+    description:
+      'Rendered on demand from the stored content, never cached; at most 2 renders run at once and a render is cut off after 15 s.',
+    request: { params: cvIdParams },
+    responses: {
+      200: {
+        description: 'The PDF, as an attachment',
+        content: {
+          'application/pdf': { schema: z.string().meta({ format: 'binary' }) },
+        },
+      },
+      401: errorResponse('`unauthenticated`'),
+      404: errorResponse('`not_found`: missing or another User’s'),
+      409: errorResponse('`cv_not_ready`: no content yet'),
+      503: errorResponse('`pdf_render_failed`'),
+    },
+  });
+
+  registry.registerPath({
+    method: 'get',
     path: '/api/cvs/{cvId}/generation',
     tags: ['cvs'],
     summary: 'The CV’s latest Generation; poll it every 1–2 s',
