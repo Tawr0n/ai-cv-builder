@@ -125,12 +125,14 @@ export class CvsService {
   /** Try again: a new Generation with the same Source and Target role, only after a failure. */
   async retry(userId: string, cvId: string): Promise<GenerationView> {
     const generation = await this.prisma.$transaction(async (tx) => {
-      const cv = await tx.cv.findFirst({
-        where: { id: cvId, ownerId: userId },
+      const latest = await tx.generation.findFirst({
+        where: { cvId, cv: { ownerId: userId } },
+        orderBy: { createdAt: 'desc' },
         select: { status: true },
       });
-      if (!cv) throw cvNotFound();
-      if (cv.status !== 'failed') {
+      if (!latest) throw cvNotFound();
+      // A concurrent Try again passes this check too, then meets the one-active index: 409.
+      if (latest.status !== 'failed') {
         throw new ApiException(
           HttpStatus.CONFLICT,
           'generation_not_failed',
