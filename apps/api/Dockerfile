@@ -1,0 +1,26 @@
+# Built from the repository root: docker build -f apps/api/Dockerfile .
+FROM node:24-bookworm-slim AS base
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# Prisma's schema engine (`migrate deploy`) needs OpenSSL, which the slim image lacks.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/* \
+ && corepack enable
+
+FROM base AS build
+WORKDIR /repo
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm fetch
+COPY . .
+RUN pnpm install --offline --frozen-lockfile \
+ && pnpm --filter @ai-cv-builder/api build \
+ && pnpm --filter @ai-cv-builder/api deploy --prod --legacy /out
+
+FROM base AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build --chown=node:node /out ./
+USER node
+EXPOSE 3001
+# Migrations run here, before the app starts (one api replica, no separate job).
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && exec node dist/main.js"]
