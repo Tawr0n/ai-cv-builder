@@ -1,0 +1,15 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Dependencies whose install scripts may run. `false`: telemetry (swagger-ui)
+# and optional native speed-ups of testcontainers' ssh2.
+allowBuilds:
+  '@prisma/engines': true
+  '@swc/core': true
+  prisma: true
+  sharp: true
+  '@scarf/scarf': false
+  cpu-features: false
+  protobufjs: false
+  ssh2: false
