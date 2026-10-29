@@ -3,6 +3,8 @@ import { z } from 'zod';
 const envSchema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   ANTHROPIC_API_KEY: z.string().min(1),
+  /** The one origin the web app is served from; unsafe requests from any other `Origin` are refused. */
+  APP_ORIGIN: z.url().default('http://localhost:3000'),
   PORT: z.coerce.number().int().positive().default(3001),
 });
 

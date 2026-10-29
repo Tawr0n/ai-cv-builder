@@ -1,9 +1,10 @@
 import { ApiStatus } from './api-status';
+import { CvList } from './cv-list';
 
 export default function HomePage() {
   return (
     <main>
-      <h1>AI CV Builder</h1>
+      <CvList />
       <ApiStatus />
     </main>
   );
