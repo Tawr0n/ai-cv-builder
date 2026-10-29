@@ -107,6 +107,36 @@ describe('reviewing what Update CV changed', () => {
     expect(factSchema.array().parse(stored.facts)).toHaveLength(5);
   });
 
+  it('Update CV after Undo reuses the Fact of an unchanged Answer', async () => {
+    const cv = await givenUpdatedCv();
+    await decide(cv, 'undo').expect(200);
+    const started = await cv.agent
+      .post(`/api/cvs/${cv.cvId}/generations`)
+      .send({ kind: 'answer' })
+      .expect(201);
+    testApp.cvAi
+      .returns(
+        'update',
+        await cv.experienceUpdate({
+          location: 'London',
+          sourceFactIds: ['f3', 'f5'],
+        }),
+      )
+      .returns('judge', noFindings());
+
+    await testApp.app
+      .get(GenerationRunner)
+      .run(generationSchema.parse(started.body).id);
+
+    expect(
+      testApp.cvAi.calls.update.at(-1)?.answers.map(({ id }) => id),
+    ).toEqual(['f5']);
+    const stored = await testApp.app
+      .get(PrismaService)
+      .cv.findUniqueOrThrow({ where: { id: cv.cvId } });
+    expect(factSchema.array().parse(stored.facts)).toHaveLength(5);
+  });
+
   it('a hand edit accepts the change', async () => {
     const cv = await givenUpdatedCv();
 

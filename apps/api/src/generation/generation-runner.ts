@@ -46,8 +46,8 @@ import {
   inWritten,
   nextFactIds,
   type ScopeKey,
-  type Target,
-  targetOf,
+  type Landing,
+  landingOf,
   toUpdateScope,
   writeUpdate,
 } from './answer-update.js';
@@ -57,8 +57,10 @@ const ACTIVE: readonly GenerationStatus[] = ACTIVE_GENERATION_STATUSES;
 /** One Answer an answer Generation applies, and where it lands in the content it read. */
 interface Applied {
   question: { id: string; text: string; answer: string };
-  target: Target;
+  landing: Landing;
   fact: Fact | null;
+  /** The Fact is new; `false` when it is the one an earlier Update CV made from this same Answer (then undone). */
+  isNewFact: boolean;
 }
 
 /** What an answer Generation produced, before it is written over the content as it is by then. */
@@ -72,8 +74,10 @@ interface AnswerResult {
 }
 
 /**
- * The Generation job handler: extract → compose → judge (with repair), each call retried once on a
- * structural failure; an answer Generation (Update CV) runs update → judge over its scope only. Idempotent, because pg-boss re-runs a job after a crash:
+ * The Generation job handler: extract → compose → judge (with repair), each
+ * call retried once on a structural failure; an answer Generation (Update CV)
+ * runs update → judge (with repair) over its scope only. Idempotent, because
+ * pg-boss re-runs a job after a crash:
  * Facts are a checkpoint a re-run resumes from, and the final write is guarded
  * so a late or duplicate worker writes nothing.
  */
@@ -297,30 +301,45 @@ export class GenerationRunner {
       where: { generationId, status: 'answered', appliedAt: null },
       orderBy: { position: 'asc' },
     });
-    const landing = questions.flatMap((question) =>
+    const answered = questions.flatMap((question) =>
       question.answer === null
         ? []
         : [
             {
               question: { ...question, answer: question.answer },
-              target: targetOf(anchorSchema.parse(question.anchor), base),
+              landing: landingOf(anchorSchema.parse(question.anchor), base),
             },
           ],
     );
+    const earlier = (question: Applied['question']) =>
+      facts.find(
+        (fact) =>
+          fact.questionId === question.id && fact.quote === question.answer,
+      );
     const ids = nextFactIds(
       facts,
-      landing.filter(({ target }) => target.kind !== 'gone').length,
+      answered.filter(
+        ({ question, landing }) =>
+          landing.kind !== 'gone' && !earlier(question),
+      ).length,
     );
-    const applied: Applied[] = landing.map(({ question, target }) => ({
-      question,
-      target,
-      fact: target.kind === 'gone' ? null : answerFact(ids.shift()!, question),
-    }));
+    const applied: Applied[] = answered.map(({ question, landing }) => {
+      if (landing.kind === 'gone') {
+        return { question, landing, fact: null, isNewFact: false };
+      }
+      const reused = earlier(question);
+      return {
+        question,
+        landing,
+        fact: reused ?? answerFact(ids.shift()!, question),
+        isNewFact: !reused,
+      };
+    });
     const answers = applied.flatMap(({ fact }) => (fact ? [fact] : []));
     const allFacts = [...facts, ...answers];
     const scope = new Set(
-      applied.flatMap(({ target }) =>
-        target.kind === 'scope' ? [target.key] : [],
+      applied.flatMap(({ landing }) =>
+        landing.kind === 'scope' ? [landing.key] : [],
       ),
     );
     const nothing = { updated: base, changedIds: [], questions: [] };
@@ -396,10 +415,10 @@ export class GenerationRunner {
       const questionIdsFor = (section: CvSection, itemId: string) =>
         applied
           .filter(
-            ({ target }) =>
-              target.kind === 'scope' &&
+            ({ landing }) =>
+              landing.kind === 'scope' &&
               // An item's own Answers, and those about its section as a whole.
-              (target.key === `item:${itemId}` || target.key === section),
+              (landing.key === `item:${itemId}` || landing.key === section),
           )
           .map(({ question }) => question.id);
       const writtenScopes = writeUpdate(
@@ -415,7 +434,12 @@ export class GenerationRunner {
         where: { id: cvId },
         data: {
           content,
-          facts: [...facts, ...applied.flatMap(({ fact }) => fact ?? [])],
+          facts: [
+            ...facts,
+            ...applied.flatMap(({ fact, isNewFact }) =>
+              fact && isNewFact ? [fact] : [],
+            ),
+          ],
         },
       });
       const appliedAt = new Date();
@@ -432,7 +456,10 @@ export class GenerationRunner {
         select: { id: true, anchor: true },
       });
       const replaced = open.filter(({ anchor }) =>
-        inWritten(targetOf(anchorSchema.parse(anchor), content), writtenScopes),
+        inWritten(
+          landingOf(anchorSchema.parse(anchor), content),
+          writtenScopes,
+        ),
       );
       await tx.question.updateMany({
         where: { id: { in: replaced.map(({ id }) => id) } },
@@ -443,16 +470,16 @@ export class GenerationRunner {
         select: { anchor: true, text: true },
       });
       const asked = questions.filter(({ anchor }) =>
-        inWritten(targetOf(anchor, content), writtenScopes),
+        inWritten(landingOf(anchor, content), writtenScopes),
       );
-      const gaps = missingInfoQuestions(content, [
+      const unasked = missingInfoQuestions(content, [
         ...asked,
         ...kept.map(({ anchor, text }) => ({
           anchor: anchorSchema.parse(anchor),
           text,
         })),
       ]).filter(({ anchor }) =>
-        inWritten(targetOf(anchor, content), writtenScopes),
+        inWritten(landingOf(anchor, content), writtenScopes),
       );
       const { _max } = await tx.question.aggregate({
         where: { cvId },
@@ -460,7 +487,7 @@ export class GenerationRunner {
       });
       const start = (_max.position ?? -1) + 1;
       await tx.question.createMany({
-        data: [...asked, ...gaps].map(({ anchor, text }, i) => ({
+        data: [...asked, ...unasked].map(({ anchor, text }, i) => ({
           cvId,
           anchor,
           text,

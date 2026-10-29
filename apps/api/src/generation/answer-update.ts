@@ -28,7 +28,7 @@ import {
 export type ScopeKey = 'contact' | 'summary' | `item:${string}` | ItemSection;
 
 /** Where an Anchor's Answer lands in the content. */
-export type Target =
+export type Landing =
   | { kind: 'gone' }
   | { kind: 'edited' }
   | { kind: 'scope'; key: ScopeKey; section: CvSection };
@@ -45,7 +45,7 @@ const SECTION_LIMITS: Record<ItemSection, number> = {
  * The scope an Anchor's Answer updates: its item (a bullet's Experience), its
  * section when it names no item, or nothing when the item is gone or Edited.
  */
-export function targetOf(anchor: Anchor, content: CvContent): Target {
+export function landingOf(anchor: Anchor, content: CvContent): Landing {
   const { section, itemId } = anchor;
   if (section === 'contact' || section === 'summary') {
     return content[section].edited
@@ -60,13 +60,13 @@ export function targetOf(anchor: Anchor, content: CvContent): Target {
     : { kind: 'scope', key: `item:${entry.item.id}`, section };
 }
 
-/** Whether a Question anchored at `target` belongs to what an update wrote. */
-export function inWritten(target: Target, written: Set<ScopeKey>): boolean {
-  if (target.kind !== 'scope') return false;
+/** Whether a Question anchored at `landing` belongs to what an update wrote. */
+export function inWritten(landing: Landing, written: Set<ScopeKey>): boolean {
+  if (landing.kind !== 'scope') return false;
   return (
-    written.has(target.key) ||
-    ((ITEM_SECTIONS as string[]).includes(target.section) &&
-      written.has(target.section as ItemSection))
+    written.has(landing.key) ||
+    ((ITEM_SECTIONS as string[]).includes(landing.section) &&
+      written.has(landing.section as ItemSection))
   );
 }
 

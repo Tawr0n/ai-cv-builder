@@ -9,7 +9,7 @@ import {
   type UpdateOutput,
   type UpdateScope,
 } from '../ai/cv-ai.js';
-import { checkUpdateOutput, targetOf } from './answer-update.js';
+import { checkUpdateOutput, landingOf } from './answer-update.js';
 import { checkComposeOutput } from './compose-check.js';
 
 let next = 0;
@@ -183,14 +183,14 @@ describe('checkUpdateOutput', () => {
   });
 });
 
-describe('targetOf', () => {
+describe('landingOf', () => {
   it("lands an Answer about a bullet on the bullet's Experience", () => {
     const content = sampleContent();
     content.experience[0]!.bullets[0]!.edited = false;
     const [experience] = content.experience;
 
     expect(
-      targetOf(
+      landingOf(
         {
           section: 'experience',
           itemId: experience!.bullets[0]!.id,
@@ -210,13 +210,13 @@ describe('targetOf', () => {
     content.summary.edited = true;
 
     expect(
-      targetOf(
+      landingOf(
         { section: 'experience', itemId: newId(), field: null },
         content,
       ),
     ).toEqual({ kind: 'gone' });
     expect(
-      targetOf({ section: 'summary', itemId: null, field: 'text' }, content),
+      landingOf({ section: 'summary', itemId: null, field: 'text' }, content),
     ).toEqual({ kind: 'edited' });
   });
 });
