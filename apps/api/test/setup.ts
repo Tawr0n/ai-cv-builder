@@ -26,9 +26,17 @@ beforeEach(async () => {
     `SELECT tablename FROM pg_tables
      WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`,
   );
-  if (rows.length === 0) return;
-  const tables = rows.map(({ tablename }) => `"${tablename}"`).join(', ');
-  await db.query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
+  if (rows.length > 0) {
+    const tables = rows.map(({ tablename }) => `"${tablename}"`).join(', ');
+    await db.query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
+  }
+
+  // pg-boss jobs too: otherwise jobs queued by earlier files pile up ahead of
+  // the one a real-queue test is waiting for. Queue definitions stay.
+  const { rows: boss } = await db.query<{ job: string | null }>(
+    `SELECT to_regclass('pgboss.job')::text AS job`,
+  );
+  if (boss[0]?.job) await db.query('TRUNCATE pgboss.job CASCADE');
 });
 
 afterAll(async () => {
