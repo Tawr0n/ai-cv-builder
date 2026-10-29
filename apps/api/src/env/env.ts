@@ -33,6 +33,8 @@ const envSchema = z.object({
   GENERATION_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(120),
   /** A dead worker's job is noticed after this long without a heartbeat (pg-boss minimum 10). */
   GENERATION_HEARTBEAT_SECONDS: z.coerce.number().int().min(10).default(30),
+  /** Generations this API process runs at once; matches the per-User active limit by default. */
+  GENERATION_CONCURRENCY: z.coerce.number().int().positive().default(3),
   /** Job retries, for transient failures only. */
   GENERATION_RETRY_LIMIT: z.coerce.number().int().min(0).default(1),
   /** `false` starts the API without taking Generation jobs (tests drive the handler directly). */

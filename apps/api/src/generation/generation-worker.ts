@@ -22,10 +22,13 @@ export class GenerationWorker implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     if (!this.env.GENERATION_WORKER || !this.queue.isStarted) return;
-    await this.queue.work(GENERATION_QUEUE, (job) =>
-      this.runner.run(job.data.generationId, job.signal),
+    await this.queue.work(
+      GENERATION_QUEUE,
+      this.env.GENERATION_CONCURRENCY,
+      (job) => this.runner.run(job.data.generationId, job.signal),
     );
-    await this.queue.work(GENERATION_DEAD_LETTER_QUEUE, (job) =>
+    // Marking a Generation lost is one quick write: no need to run several.
+    await this.queue.work(GENERATION_DEAD_LETTER_QUEUE, 1, (job) =>
       this.runner.markWorkerLost(job.data.generationId),
     );
   }

@@ -70,14 +70,15 @@ export class GenerationQueue implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Runs `handler` for every job of `queue`, one at a time per queue. */
+  /** Runs `handler` for every job of `queue`, up to `concurrency` jobs at once. */
   async work(
     queue: typeof GENERATION_QUEUE | typeof GENERATION_DEAD_LETTER_QUEUE,
+    concurrency: number,
     handler: (job: GenerationJob) => Promise<void>,
   ) {
     await this.boss.work<GenerationJobData>(
       queue,
-      { pollingIntervalSeconds: 1 },
+      { pollingIntervalSeconds: 1, localConcurrency: concurrency },
       async ([job]) => {
         if (job) await handler(job);
       },
