@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { registeredRoutes } from './support/registered-routes.js';
 import { createTestApp, type TestApp } from './support/test-app.js';
 
 /** Routes a visitor may call without a session. Everything else must answer 401. */
@@ -7,10 +8,6 @@ const PUBLIC_ROUTES = [
   'POST /api/auth/signup',
   'POST /api/auth/login',
 ];
-
-interface ExpressLayer {
-  route?: { path: string; methods: Record<string, boolean> };
-}
 
 describe('closed by default', () => {
   let testApp: TestApp;
@@ -23,23 +20,8 @@ describe('closed by default', () => {
     await testApp.app.close();
   });
 
-  function registeredRoutes(): string[] {
-    const router = (
-      testApp.app.getHttpAdapter().getInstance() as {
-        router: { stack: ExpressLayer[] };
-      }
-    ).router;
-    return router.stack.flatMap(({ route }) =>
-      route
-        ? Object.keys(route.methods).map(
-            (method) => `${method.toUpperCase()} ${route.path}`,
-          )
-        : [],
-    );
-  }
-
   it('answers 401 to every registered route without a session, except the allowlist', async () => {
-    const routes = registeredRoutes();
+    const routes = registeredRoutes(testApp);
     // Guards the guard test itself: if route discovery breaks, fail loudly.
     expect(routes).toContain('GET /api/cvs');
 
@@ -60,7 +42,7 @@ describe('closed by default', () => {
   });
 
   it('lists exactly the allowlisted routes as registered', () => {
-    const routes = registeredRoutes();
+    const routes = registeredRoutes(testApp);
 
     for (const route of PUBLIC_ROUTES) expect(routes).toContain(route);
   });

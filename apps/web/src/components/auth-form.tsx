@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { type SubmitEvent, useId } from 'react';
 import { ApiRequestError } from '@/lib/api';
 import { loginMutation, signupMutation } from '@/lib/auth';
+import { formField } from '@/lib/form-field';
 import { queryKeys } from '@/lib/query-keys';
 
 const COPY = {
@@ -56,8 +57,8 @@ export function AuthForm({ mode }: { mode: keyof typeof COPY }) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     mutate({
-      email: field(data, 'email'),
-      password: field(data, 'password'),
+      email: formField(data, 'email'),
+      password: formField(data, 'password'),
     });
   }
 
@@ -100,9 +101,4 @@ export function AuthForm({ mode }: { mode: keyof typeof COPY }) {
       </p>
     </main>
   );
-}
-
-function field(data: FormData, name: string): string {
-  const value = data.get(name);
-  return typeof value === 'string' ? value : '';
 }

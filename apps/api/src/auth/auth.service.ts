@@ -2,12 +2,11 @@ import type { Login, Signup, User } from '@ai-cv-builder/shared';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { hash, verify } from '@node-rs/argon2';
 import { createHash, randomBytes } from 'node:crypto';
-import { Prisma } from '../generated/prisma/client.js';
+import { isUniqueViolation } from '../database/prisma-errors.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { ApiException } from '../http/api.exception.js';
 import { SESSION_TTL_MS } from './session-cookie.js';
 
-const PRISMA_UNIQUE_VIOLATION = 'P2002';
 const USER_SELECT = { id: true, email: true } as const;
 
 export interface IssuedSession {
@@ -111,11 +110,4 @@ export class AuthService {
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === PRISMA_UNIQUE_VIOLATION
-  );
 }

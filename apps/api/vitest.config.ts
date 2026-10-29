@@ -10,6 +10,10 @@ export default defineConfig({
     setupFiles: ['test/setup.ts'],
     // Every file shares one Postgres and truncates it before each test.
     fileParallelism: false,
-    env: { ANTHROPIC_API_KEY: 'never-used-by-tests' },
+    env: {
+      ANTHROPIC_API_KEY: 'never-used-by-tests',
+      // Tests run the Generation handler directly; one test turns the worker on.
+      GENERATION_WORKER: 'false',
+    },
   },
 });

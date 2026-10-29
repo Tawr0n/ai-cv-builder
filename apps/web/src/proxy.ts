@@ -15,5 +15,5 @@ export function proxy(request: NextRequest) {
 
 // Only the pages behind log-in; `/api/*` is guarded by the API itself.
 export const config = {
-  matcher: ['/'],
+  matcher: ['/', '/cvs/:path*'],
 };

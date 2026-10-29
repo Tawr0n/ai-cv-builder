@@ -17,14 +17,19 @@ async function apiRequest(
   method: 'GET' | 'POST',
   path: ApiPath,
   body?: unknown,
+  headers: Record<string, string> = {},
 ): Promise<unknown> {
+  // A FormData body goes as multipart; fetch sets its content-type with the boundary.
+  const isForm = body instanceof FormData;
   const response = await fetch(path, {
     method,
     headers: {
       accept: 'application/json',
-      ...(body !== undefined && { 'content-type': 'application/json' }),
+      ...(body !== undefined &&
+        !isForm && { 'content-type': 'application/json' }),
+      ...headers,
     },
-    ...(body !== undefined && { body: JSON.stringify(body) }),
+    ...(body !== undefined && { body: isForm ? body : JSON.stringify(body) }),
   });
   const payload: unknown = await response.json().catch(() => undefined);
 
@@ -62,4 +67,14 @@ export async function apiPost(
 ): Promise<unknown> {
   const payload = await apiRequest('POST', path, body);
   return schema ? schema.parse(payload) : undefined;
+}
+
+/** POSTs a multipart form (e.g. a file upload) with extra headers and parses the answer. */
+export async function apiPostForm<Schema extends z.ZodType>(
+  path: ApiPath,
+  form: FormData,
+  headers: Record<string, string>,
+  schema: Schema,
+): Promise<z.output<Schema>> {
+  return schema.parse(await apiRequest('POST', path, form, headers));
 }
