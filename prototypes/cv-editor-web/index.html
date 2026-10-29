@@ -525,9 +525,9 @@ function editorScreen() {
 const mq = matchMedia('(min-width: 900px)');
 const isDesk = () => mq.matches;
 const VARIANTS = { A: 'Split editor', B: 'Canvas + inspector', C: 'Copilot' };
-let variant = (new URLSearchParams(location.search).get('variant') || 'A').toUpperCase();
+let variant = (location.hash.slice(1) || new URLSearchParams(location.search).get('variant') || 'A').toUpperCase();
 if (!VARIANTS[variant]) variant = 'A';
-function setVariant(v) { variant = v; S.ui.sel = null; S.ui.modal = null; try { history.replaceState(null, '', '?variant=' + v); } catch (e) {} render(); }
+function setVariant(v) { variant = v; S.ui.sel = null; S.ui.modal = null; try { location.hash = v; } catch (e) {} render(); }
 function cycleV(d) { const k = Object.keys(VARIANTS); setVariant(k[(k.indexOf(variant) + d + k.length) % k.length]); }
 addEventListener('keydown', e => {
   if (!isDesk() || S.screen !== 'editor' || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
