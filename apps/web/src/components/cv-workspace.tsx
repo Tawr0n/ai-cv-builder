@@ -1,14 +1,11 @@
 'use client';
 
 import {
-  type Anchor,
   type CvContent,
   type CvView,
   type Generation,
   type GenerationErrorCode,
   type GenerationStep,
-  isPendingAnswer,
-  type Question,
 } from '@ai-cv-builder/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -19,15 +16,14 @@ import {
 } from 'react';
 import { cardId, CvEditor } from '@/components/cv-editor';
 import { PagedCvPreview } from '@/components/paged-cv-preview';
-import { QuestionsInbox, type UpdateCv } from '@/components/questions-inbox';
-import { anchorElementIds, reviewedItems } from '@/lib/anchors';
+import { reviewedItems } from '@/lib/anchors';
 import {
   isFinished,
   reviewDecisionMutation,
   updateCvMutation,
 } from '@/lib/cvs-query';
 import { queryKeys } from '@/lib/query-keys';
-import { wordDiff } from '@/lib/word-diff';
+import { diffSides, wordDiff } from '@/lib/word-diff';
 
 export const FAILURE_MESSAGES: Record<GenerationErrorCode, string> = {
   ai_unavailable: 'The AI service is not available right now.',
@@ -46,6 +42,9 @@ const UPDATE_STEPS: Partial<Record<GenerationStep, string>> = {
   judge: 'Double-checking every line against your answers…',
 };
 
+/** The Questions are asked once, before the editor: it shows none. */
+const NO_QUESTIONS: never[] = [];
+
 /** Phones get bottom tabs; from this width the editor and the CV sit side by side. */
 const DESKTOP_QUERY = '(min-width: 900px)';
 
@@ -61,8 +60,7 @@ function useDesktop(): boolean {
   );
 }
 
-type Tab = 'cv' | 'edit' | 'questions';
-type Pane = 'edit' | 'questions';
+type Tab = 'cv' | 'edit';
 
 /** The part of the CV a click on the preview means: `contact`, a section, or an entry's id. */
 function editTarget(element: HTMLElement, content: CvContent): string | null {
@@ -81,37 +79,27 @@ function editTarget(element: HTMLElement, content: CvContent): string | null {
   return section ? section.id.slice('cv-section-'.length) : null;
 }
 
-/** Open Questions and Answers Update CV has not applied yet. */
-const isActive = (question: Question) =>
-  question.status === 'open' || isPendingAnswer(question);
-
 /**
- * The ready CV. On a phone: the CV, Edit and Questions as bottom tabs. On a
- * desktop the editor and Questions sit beside the live paper.
- * The 📍 links of Questions lead back into the preview and the Answers are
- * applied by Update CV.
+ * The ready CV. On a phone: the CV and Edit as bottom tabs. On a desktop the
+ * editor sits beside the live paper. The Questions were asked once, before
+ * this (see QuestionsStep); what Update CV changed is reviewed on the paper.
  */
 export function CvWorkspace({
   cvId,
   version,
   content,
-  questions,
   generation,
 }: {
   cvId: string;
   version: number;
   content: CvContent;
-  questions: Question[];
   generation: Generation;
 }) {
   const queryClient = useQueryClient();
   const desktop = useDesktop();
   const [tab, setTab] = useState<Tab>('cv');
-  const [pane, setPane] = useState<Pane>('edit');
-  const [located, setLocated] = useState<Anchor | null>(null);
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [scrollToCard, setScrollToCard] = useState<{ id: string } | null>(null);
-  const open = questions.filter(isActive).length;
 
   const isUpdate = generation.kind === 'answer';
   const running = isUpdate && !isFinished(generation);
@@ -127,54 +115,18 @@ export function CvWorkspace({
     ...updateCvMutation(cvId),
     onSuccess: (next) => {
       queryClient.setQueryData(queryKeys.generation(cvId), next);
-      // Its Answers are locked now.
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.questions(cvId),
-      });
       setTab('cv');
     },
   });
-  const update: UpdateCv = {
-    running,
-    failure: start.isError
-      ? 'Could not start the update. Check your connection.'
-      : failure,
-    start: () => start.mutate(),
-    starting: start.isPending,
-  };
-
-  const previewShown = desktop || tab === 'cv';
-  // Runs once the preview the link points into is on screen.
-  useEffect(() => {
-    if (!previewShown || !located) return;
-    const element = anchorElementIds(located)
-      .map((id) => document.getElementById(id))
-      .find(Boolean);
-    if (!element) return;
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    element.classList.add('cv-located');
-    const timer = setTimeout(
-      () => element.classList.remove('cv-located'),
-      2000,
-    );
-    return () => {
-      clearTimeout(timer);
-      element.classList.remove('cv-located');
-    };
-  }, [previewShown, located]);
 
   // A click on the preview scrolls the editor to that card.
   useEffect(() => {
-    if (!scrollToCard || pane !== 'edit') return;
+    if (!scrollToCard) return;
     document
       .getElementById(cardId(scrollToCard.id))
       ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [scrollToCard, pane]);
+  }, [scrollToCard]);
 
-  const locate = (anchor: Anchor) => {
-    setLocated(anchor);
-    setTab('cv');
-  };
   const review = (itemId: string) => {
     setReviewing(itemId);
     setTab('cv');
@@ -230,38 +182,9 @@ export function CvWorkspace({
       cvId={cvId}
       content={content}
       version={version}
-      questions={questions}
+      questions={NO_QUESTIONS}
       onReview={review}
     />
-  );
-  const inbox = (
-    <QuestionsInbox
-      cvId={cvId}
-      questions={questions}
-      content={content}
-      update={update}
-      onLocate={locate}
-    />
-  );
-  const paneTabs = (
-    <div className="pane-tabs" role="tablist">
-      <button
-        type="button"
-        role="tab"
-        aria-selected={pane === 'edit'}
-        onClick={() => setPane('edit')}
-      >
-        ✎ Edit
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={pane === 'questions'}
-        onClick={() => setPane('questions')}
-      >
-        Questions {open > 0 && <span className="count">{open}</span>}
-      </button>
-    </div>
   );
 
   if (!desktop) {
@@ -273,17 +196,14 @@ export function CvWorkspace({
             {reviewBar}
             {preview()}
           </>
-        ) : tab === 'edit' ? (
-          editor()
         ) : (
-          inbox
+          editor()
         )}
         <div className="tabs" role="tablist">
           {(
             [
               ['cv', '📄 CV'],
               ['edit', '✎ Edit'],
-              ['questions', `❓ Questions${open ? ` (${open})` : ''}`],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -304,17 +224,13 @@ export function CvWorkspace({
   // Split editor: the form on the left, the live paper on the right.
   return (
     <div className="dw">
-      <section className="dw-pane dw-form">
-        {paneTabs}
-        {pane === 'edit' ? editor() : inbox}
-      </section>
+      <section className="dw-pane dw-form">{editor()}</section>
       <section className="dw-pane dw-paper">
         {notice}
         {reviewBar}
         {preview((event) => {
           const target = editTarget(event.target as HTMLElement, content);
           if (!target || (event.target as HTMLElement).closest('a')) return;
-          setPane('edit');
           const id =
             target === 'experience' || target === 'education'
               ? content[target][0]?.id
@@ -352,13 +268,6 @@ function ReviewBar({
         queryKey: queryKeys.cv(cvId),
         exact: true,
       }),
-    onSettled: (_view, _error, { decision }) => {
-      if (decision === 'undo') {
-        void queryClient.invalidateQueries({
-          queryKey: queryKeys.questions(cvId),
-        });
-      }
-    },
   });
   const [acceptingAll, setAcceptingAll] = useState(false);
   const items = reviewedItems(content);
@@ -395,12 +304,27 @@ function ReviewBar({
   }
 
   const busy = decide.isPending || acceptingAll;
+  const { was, now } = diffSides(current.before, current.after);
   return (
     <div className="review-bar" role="region" aria-label="AI changes">
-      <p>
+      <p className="review-title">
         ✨ AI change {index + 1} of {items.length}:{' '}
         <strong>{current.name}</strong>
       </p>
+      <div className="changes">
+        <div className="changes-was">
+          <small>Before</small>
+          {was.length ? (
+            was
+          ) : (
+            <p className="muted">Nothing: the AI added this.</p>
+          )}
+        </div>
+        <div className="changes-now">
+          <small>After</small>
+          {now}
+        </div>
+      </div>
       <div className="review-actions">
         <button
           type="button"

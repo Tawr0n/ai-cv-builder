@@ -81,39 +81,96 @@ export function anchorItemId(
   return owner?.id ?? anchor.itemId;
 }
 
-/** Every item under review, in the order the CV shows them, with a name for the review bar. */
-export function reviewedItems(
-  content: CvContent,
-): { id: string; rev: number; name: string }[] {
+const dash = (value: string | null | undefined) => value?.trim() || '—';
+const span = (start: string | null, end: string | null) =>
+  start || end ? `${start ?? '?'} – ${end ?? '?'}` : '—';
+
+type Contact = CvContent['contact'];
+type Experience = CvContent['experience'][number];
+type Education = CvContent['education'][number];
+
+/** An item as plain lines, the same shape before and after, so a change reads as a diff. */
+function itemLines(
+  id: string,
+  item: Pick<Contact, 'fullName' | 'email' | 'phone' | 'location' | 'links'> &
+    Partial<
+      Pick<
+        Experience,
+        'organization' | 'title' | 'bullets' | 'startDate' | 'endDate'
+      >
+    > &
+    Partial<Pick<Education, 'institution' | 'degree' | 'field'>> & {
+      text?: string;
+      name?: string;
+    },
+  section: 'contact' | 'summary' | 'skills' | 'experience' | 'education',
+): string[] {
+  switch (section) {
+    case 'contact':
+      return [
+        `Name: ${dash(item.fullName)}`,
+        `Email: ${dash(item.email)}`,
+        `Phone: ${dash(item.phone)}`,
+        `Location: ${dash(item.location)}`,
+        `Links: ${item.links.length ? item.links.join(', ') : '—'}`,
+      ];
+    case 'summary':
+      return [dash(item.text)];
+    case 'skills':
+      return [dash(item.name)];
+    case 'experience':
+      return [
+        `${dash(item.title)} · ${dash(item.organization)} · ${span(item.startDate ?? null, item.endDate ?? null)}`,
+        ...(item.bullets ?? []).map((bullet) => `• ${bullet.text}`),
+      ];
+    case 'education':
+      return [
+        `${dash(item.degree)} · ${dash(item.institution)} · ${dash(item.field)} · ${span(item.startDate ?? null, item.endDate ?? null)}`,
+      ];
+  }
+}
+
+export interface ReviewedItem {
+  id: string;
+  rev: number;
+  name: string;
+  /** The item before the AI's change; empty when the AI added it. */
+  before: string[];
+  after: string[];
+}
+
+/** Every item under review, in the order the CV shows them, with a name and its before and after lines. */
+export function reviewedItems(content: CvContent): ReviewedItem[] {
   const named = (section: CvSection, id: string | null) =>
     anchorLabel({ section, itemId: id, field: null }, content);
-  return [
-    ...(content.contact.review
-      ? [
-          {
-            id: 'contact',
-            rev: content.contact.rev,
-            name: named('contact', null),
-          },
-        ]
-      : []),
-    ...(content.summary.review
-      ? [
-          {
-            id: 'summary',
-            rev: content.summary.rev,
-            name: named('summary', null),
-          },
-        ]
-      : []),
-    ...(['skills', 'experience', 'education'] as const).flatMap((section) =>
-      content[section]
-        .filter((item) => item.review)
-        .map((item) => ({
-          id: item.id,
-          rev: item.rev,
-          name: named(section, item.id),
-        })),
-    ),
-  ];
+  const items: ReviewedItem[] = [];
+  const add = (
+    section: 'contact' | 'summary' | 'skills' | 'experience' | 'education',
+    item: {
+      id?: string;
+      rev: number;
+      review?: { prev: object | null };
+    },
+    id: string,
+  ) => {
+    if (!item.review) return;
+    items.push({
+      id,
+      rev: item.rev,
+      name: named(
+        section,
+        section === 'contact' || section === 'summary' ? null : id,
+      ),
+      before: item.review.prev
+        ? itemLines(id, item.review.prev as never, section)
+        : [],
+      after: itemLines(id, item as never, section),
+    });
+  };
+  add('contact', content.contact, 'contact');
+  add('summary', content.summary, 'summary');
+  for (const section of ['skills', 'experience', 'education'] as const) {
+    for (const item of content[section]) add(section, item, item.id);
+  }
+  return items;
 }

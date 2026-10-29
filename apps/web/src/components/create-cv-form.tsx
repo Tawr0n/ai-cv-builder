@@ -8,10 +8,15 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type SubmitEvent, useId, useState } from 'react';
+import {
+  type DragEvent,
+  type SubmitEvent,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 import { ApiRequestError } from '@/lib/api';
 import { createCvMutation } from '@/lib/cvs-query';
-import { formField } from '@/lib/form-field';
 import { queryKeys } from '@/lib/query-keys';
 
 const MAX_MB = PDF_LIMITS.maxBytes / (1024 * 1024);
@@ -33,17 +38,38 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 type SourceKind = 'pdf' | 'text';
 
+const number = (value: number) => value.toLocaleString('en');
+
+function fileSize(bytes: number): string {
+  return bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** What is wrong with a picked file, before it is ever uploaded. */
+function fileProblem(file: File): string | null {
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  if (!isPdf) return 'That file is not a PDF.';
+  if (file.size === 0) return 'That file is empty.';
+  if (file.size > PDF_LIMITS.maxBytes) return FILE_TOO_LARGE;
+  return null;
+}
+
 export function CreateCvForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const roleId = useId();
-  const fileId = useId();
   const textId = useId();
+  const fileInput = useRef<HTMLInputElement>(null);
   // One key per opened form: a double submit or a network retry returns the same CV.
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [kind, setKind] = useState<SourceKind>('pdf');
+  const [role, setRole] = useState('');
   const [text, setText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const { mutate, isPending, error } = useMutation({
     ...createCvMutation(),
@@ -53,32 +79,48 @@ export function CreateCvForm() {
     },
   });
 
-  function onSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const targetRole = formField(data, 'targetRole');
-    if (kind === 'text') {
-      mutate({ targetRole, source: { kind, text }, idempotencyKey });
-      return;
-    }
-    const file = data.get('file');
-    if (!(file instanceof File) || file.size === 0) {
-      setFileError('Choose a PDF to upload.');
-      return;
-    }
-    if (file.size > PDF_LIMITS.maxBytes) {
-      setFileError(FILE_TOO_LARGE);
-      return;
-    }
-    setFileError(null);
-    mutate({ targetRole, source: { kind, file }, idempotencyKey });
+  const roleLength = role.trim().length;
+  const textLength = text.trim().length;
+  const roleError =
+    roleLength < TARGET_ROLE_LIMITS.min
+      ? 'Enter the job title this CV is aimed at.'
+      : null;
+  const sourceError =
+    kind === 'text'
+      ? textLength < SOURCE_TEXT_LIMITS.min
+        ? `Write at least ${SOURCE_TEXT_LIMITS.min} characters (${textLength} so far).`
+        : null
+      : (fileError ?? (file ? null : 'Choose a PDF to upload.'));
+
+  function pick(next: File | undefined) {
+    if (!next) return;
+    const problem = fileProblem(next);
+    setFileError(problem);
+    setFile(problem ? null : next);
   }
 
-  const message =
-    fileError ??
-    (error &&
-      ((error instanceof ApiRequestError && ERROR_MESSAGES[error.error.code]) ||
-        'Something went wrong. Try again.'));
+  function onDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    setDragging(false);
+    pick(event.dataTransfer.files[0]);
+  }
+
+  function onSubmit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitted(true);
+    if (isPending || roleError || sourceError) return;
+    const targetRole = role.trim();
+    if (kind === 'text') {
+      mutate({ targetRole, source: { kind, text }, idempotencyKey });
+    } else if (file) {
+      mutate({ targetRole, source: { kind, file }, idempotencyKey });
+    }
+  }
+
+  const serverMessage =
+    error &&
+    ((error instanceof ApiRequestError && ERROR_MESSAGES[error.error.code]) ||
+      'Something went wrong. Try again.');
 
   return (
     <main>
@@ -86,79 +128,154 @@ export function CreateCvForm() {
         <Link href="/">← My CVs</Link>
       </p>
       <h1>New CV</h1>
-      <form onSubmit={onSubmit} className="stack">
-        <label htmlFor={roleId}>Target role</label>
-        <input
-          id={roleId}
-          name="targetRole"
-          placeholder="e.g. Senior Backend Engineer"
-          minLength={TARGET_ROLE_LIMITS.min}
-          maxLength={TARGET_ROLE_LIMITS.max}
-          required
-        />
+      <form onSubmit={onSubmit} className="stack" noValidate>
+        <div className="auth-field">
+          <label htmlFor={roleId}>Target role</label>
+          <input
+            id={roleId}
+            name="targetRole"
+            placeholder="e.g. Senior Backend Engineer"
+            maxLength={TARGET_ROLE_LIMITS.max}
+            value={role}
+            onChange={(event) => setRole(event.target.value)}
+            aria-invalid={submitted && roleError ? true : undefined}
+          />
+          <p
+            className={
+              submitted && roleError
+                ? 'field-message field-message-error'
+                : 'field-message'
+            }
+          >
+            {submitted && roleError ? roleError : null}
+            <span className="field-count">
+              {roleLength} / {TARGET_ROLE_LIMITS.max}
+            </span>
+          </p>
+        </div>
 
-        <fieldset className="segmented">
-          <legend>Your background</legend>
+        <div
+          className="source-switch"
+          role="tablist"
+          aria-label="Your background"
+        >
           {(
             [
               ['pdf', 'Upload PDF'],
               ['text', 'Describe in text'],
             ] as const
           ).map(([value, label]) => (
-            <label key={value}>
-              <input
-                type="radio"
-                name="sourceKind"
-                value={value}
-                checked={kind === value}
-                onChange={() => setKind(value)}
-              />
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={kind === value}
+              onClick={() => setKind(value)}
+            >
               {label}
-            </label>
+            </button>
           ))}
-        </fieldset>
+        </div>
 
         {kind === 'pdf' ? (
-          <>
-            <label htmlFor={fileId}>Your current CV</label>
+          <div className="auth-field">
             <input
-              id={fileId}
-              name="file"
+              ref={fileInput}
               type="file"
+              name="file"
               accept="application/pdf,.pdf"
-              required
+              hidden
+              onChange={(event) => {
+                pick(event.target.files?.[0]);
+                event.target.value = '';
+              }}
             />
-            <p className="hint">
-              PDF up to {MAX_MB} MB and {PDF_LIMITS.maxPages} pages. Scans are
-              fine.
+            {file ? (
+              <div className="file-chip">
+                <span className="file-icon" aria-hidden="true">
+                  PDF
+                </span>
+                <span className="file-meta">
+                  <b>{file.name}</b>
+                  <small>{fileSize(file.size)}</small>
+                </span>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => {
+                    setFile(null);
+                    setFileError(null);
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="dropzone"
+                data-dragging={dragging}
+                data-invalid={submitted && sourceError ? true : undefined}
+                onClick={() => fileInput.current?.click()}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={onDrop}
+              >
+                <span className="dropzone-icon" aria-hidden="true">
+                  ↑
+                </span>
+                <b>Drop your CV here, or click to browse</b>
+                <small>
+                  PDF · up to {MAX_MB} MB · {PDF_LIMITS.maxPages} pages. Scans
+                  are fine.
+                </small>
+              </button>
+            )}
+            <p
+              className="field-message field-message-error"
+              role={sourceError ? 'alert' : undefined}
+            >
+              {(submitted || fileError) && sourceError}
             </p>
-          </>
+          </div>
         ) : (
-          <>
+          <div className="auth-field">
             <label htmlFor={textId}>About you</label>
             <textarea
               id={textId}
               name="text"
-              rows={10}
+              rows={9}
               value={text}
               onChange={(event) => setText(event.target.value)}
               placeholder="Your jobs, projects, education and skills, in your own words."
-              minLength={SOURCE_TEXT_LIMITS.min}
               maxLength={SOURCE_TEXT_LIMITS.max}
-              required
+              aria-invalid={submitted && sourceError ? true : undefined}
             />
-            <p className="hint">
-              {text.length.toLocaleString('en')} /{' '}
-              {SOURCE_TEXT_LIMITS.max.toLocaleString('en')} characters
+            <p
+              className={
+                submitted && sourceError
+                  ? 'field-message field-message-error'
+                  : 'field-message'
+              }
+            >
+              {submitted && sourceError ? sourceError : null}
+              <span className="field-count">
+                {number(text.length)} / {number(SOURCE_TEXT_LIMITS.max)}
+              </span>
             </p>
-          </>
+          </div>
         )}
 
         <p className="hint">
           Anything missing becomes a question for you, never a guess.
         </p>
-        {message && <p role="alert">{message}</p>}
-        <button type="submit" disabled={isPending}>
+        <p role="alert" className="form-error">
+          {serverMessage}
+        </p>
+        <button type="submit" className="primary" disabled={isPending}>
           {isPending ? 'Uploading…' : 'Generate CV'}
         </button>
       </form>

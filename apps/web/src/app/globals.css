@@ -4,25 +4,25 @@
  * only re-tint --accent and the panes (see "Desktop workspace" below).
  */
 :root {
-  color-scheme: light dark;
-  --bg: #f6f6f4;
+  color-scheme: light;
+  --bg: #f5f6f8;
   --card: #ffffff;
-  --ink: #1c1c1e;
-  --muted: #6b6b70;
-  --line: #e3e3e0;
+  --ink: #1a1d24;
+  --muted: #667085;
+  --line: #e4e7ec;
   --field: #ffffff;
-  --accent: #2f5bea;
-  --accent-soft: #e8efff;
+  --accent: #3b6cf4;
+  --accent-soft: #eaf0ff;
   --accent-ink: #ffffff;
-  --warn-bg: #fff6dc;
-  --warn-line: #f0c94a;
-  --warn-ink: #6b5200;
-  --err-bg: #fde8e8;
-  --err-ink: #9b1c1c;
-  --ok-bg: #d9f2e3;
-  --ok-ink: #1d5e36;
-  --shadow: 0 1px 6px rgb(0 0 0 / 0.12);
-  --paper-bg: #dfe2e8;
+  --warn-bg: #fff7e0;
+  --warn-line: #f3d27a;
+  --warn-ink: #7a5b00;
+  --err-bg: #fdecec;
+  --err-ink: #b42318;
+  --ok-bg: #e3f6ea;
+  --ok-ink: #17663a;
+  --shadow: 0 1px 3px rgb(16 24 40 / 0.08), 0 4px 16px rgb(16 24 40 / 0.06);
+  --paper-bg: #e9ecf1;
   font-family:
     Inter,
     system-ui,
@@ -30,29 +30,6 @@
     'Segoe UI',
     sans-serif;
   line-height: 1.5;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #15161a;
-    --card: #1e2025;
-    --ink: #ececf0;
-    --muted: #9a9ba4;
-    --line: #30323a;
-    --field: #17181c;
-    --accent: #7b9bff;
-    --accent-soft: #232c4a;
-    --accent-ink: #0d1530;
-    --warn-bg: #3a3012;
-    --warn-line: #7a6420;
-    --warn-ink: #f1d98a;
-    --err-bg: #3d1c1c;
-    --err-ink: #f4a3a3;
-    --ok-bg: #173826;
-    --ok-ink: #8fdcae;
-    --shadow: 0 1px 8px rgb(0 0 0 / 0.5);
-    --paper-bg: #101114;
-  }
 }
 
 body {
@@ -520,30 +497,35 @@ button.link {
 
 /* The CV template's own styles live in @ai-cv-builder/cv-template/cv.css. */
 
-.cv-paged {
-  position: relative;
+.cv-frame {
+  width: 100%;
 }
 
-/* Estimated page breaks of the PDF: a labelled rule above the first row of each page. */
+.cv-paged {
+  position: relative;
+  transform-origin: top left;
+}
+
+/* The grey gap between two A4 sheets, labelled with the page that follows. */
 .cv-page-break {
   position: absolute;
   left: 0;
   right: 0;
-  height: 0;
-  border-top: 1px dashed #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-bg);
+  box-shadow:
+    inset 0 6px 6px -6px rgb(0 0 0 / 0.25),
+    inset 0 -6px 6px -6px rgb(0 0 0 / 0.25);
   pointer-events: none;
 }
 
 .cv-page-break span {
-  position: absolute;
-  right: 8px;
-  top: -0.8em;
-  padding: 0 6px;
   font:
-    600 11px/1.6 system-ui,
+    600 11px/1 system-ui,
     sans-serif;
-  color: #475569;
-  background: #fff;
+  color: var(--muted);
 }
 
 /* The off-screen pdf-mode layout the breaks are measured on: the printed content width. */
@@ -978,6 +960,13 @@ main.workspace {
 }
 
 @media (min-width: 900px) {
+  /* The panes scroll on their own; the page itself must not, or it ends in empty space. */
+  html:has(main.workspace),
+  body:has(main.workspace) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
   main.workspace {
     display: flex;
     flex-direction: column;
@@ -1051,4 +1040,432 @@ main.workspace {
     background: var(--bg);
     border-right: 1px solid var(--line);
   }
+}
+
+/* Generation: one calm card with a checklist. */
+.gen-card {
+  max-width: 28rem;
+  margin: 6vh auto 0;
+  padding: 28px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.gen-card h1 {
+  margin: 0;
+  font-size: 1.375rem;
+}
+
+.gen-card .muted {
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+
+.gen-progress {
+  height: 4px;
+  margin: 18px 0;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: 4px;
+}
+
+.gen-progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.gen-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.gen-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+}
+
+.gen-steps li[data-state='doing'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.gen-steps li[data-state='done'] {
+  color: var(--ink);
+}
+
+.gen-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+
+[data-state='doing'] > .gen-icon {
+  border-top-color: var(--accent);
+  animation: gen-spin 0.8s linear infinite;
+}
+
+[data-state='done'] > .gen-icon {
+  color: var(--ok-ink);
+  background: var(--ok-bg);
+  border-color: transparent;
+}
+
+@keyframes gen-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gen-progress i {
+    transition: none;
+  }
+}
+
+/* Before / after of an AI change: red is what went, green is what came. */
+.changes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.changes > div {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.changes p {
+  margin: 0 0 4px;
+}
+
+.changes small {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.6875rem;
+}
+
+.changes-was {
+  color: #7f1d1d;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.changes-now {
+  color: #14532d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.changes .diff-removed {
+  color: #991b1b;
+  background: #fecaca;
+}
+
+.changes .diff-added {
+  color: #166534;
+  background: #bbf7d0;
+  text-decoration: none;
+}
+
+.changes p.diff-removed,
+.changes p.diff-added {
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+@media (max-width: 520px) {
+  .changes {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* New CV: PDF drop zone, source switch, field counters. */
+.field-message {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field-count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.source-switch {
+  display: flex;
+  padding: 3px;
+  gap: 3px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.source-switch button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 9px;
+}
+
+.source-switch button[aria-selected='true'] {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 150px;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1.5px dashed var(--line);
+  border-radius: 14px;
+}
+
+.dropzone:hover:not(:disabled),
+.dropzone[data-dragging='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dropzone[data-invalid='true'] {
+  border-color: var(--err-ink);
+}
+
+.dropzone small {
+  color: var(--muted);
+}
+
+.dropzone-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 4px;
+  font-size: 1.125rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 50%;
+}
+
+.file-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.file-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--err-ink);
+  background: var(--err-bg);
+  border-radius: 8px;
+}
+
+.file-meta {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.file-meta b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-meta small {
+  color: var(--muted);
+}
+
+/* The before / after panel is tall: it scrolls with the page instead of covering the paper. */
+.review-bar {
+  position: static;
+}
+
+.review-title {
+  font-weight: 500;
+}
+
+/* The one-time Questions step. */
+.qs {
+  margin-top: 4vh;
+  padding: 24px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.qs h1 {
+  margin: 0;
+  font-size: 1.375rem;
+}
+
+.qs .muted {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.qs-progress {
+  height: 4px;
+  margin: 16px 0 6px;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: 4px;
+}
+
+.qs-progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.qs-count {
+  margin: 0 0 12px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.qs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.qs-row {
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.qs-row[data-open='true'] {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.qs-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  height: auto;
+  padding: 12px;
+  text-align: left;
+  background: none;
+  border: 0;
+}
+
+.qs-check {
+  display: grid;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  font-size: 12px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+
+.qs-row[data-done='true'] .qs-check {
+  color: var(--ok-ink);
+  background: var(--ok-bg);
+  border-color: transparent;
+}
+
+.qs-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qs-text small {
+  color: var(--muted);
+}
+
+.qs-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 12px 46px;
+}
+
+.qs-body textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 12px;
+  font: inherit;
+}
+
+.qs-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qs-apply {
+  width: 100%;
+}
+
+.qs-note {
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }

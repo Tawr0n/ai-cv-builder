@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { CvWorkspace, FAILURE_MESSAGES } from '@/components/cv-workspace';
+import { QuestionsStep } from '@/components/questions-step';
 import {
   cvQuery,
   downloadPdfMutation,
@@ -106,7 +107,23 @@ export function CvPage({ cvId }: { cvId: string }) {
     return <p role="status">Loading…</p>;
   }
 
-  const pending = questions.data.items.filter(isPendingAnswer).length;
+  // Asked once: right after the first Generation, before anyone edits. Update
+  // CV's own follow-up Questions are never shown.
+  const asked = questions.data.items.filter(
+    (question) => question.status === 'open' || isPendingAnswer(question),
+  );
+  if (generation.data.kind === 'initial' && asked.length > 0) {
+    return (
+      <main>
+        {back}
+        <QuestionsStep
+          cvId={cvId}
+          questions={asked}
+          content={cv.data.content}
+        />
+      </main>
+    );
+  }
   return (
     <main className="workspace">
       <header className="ws-head">
@@ -117,27 +134,19 @@ export function CvPage({ cvId }: { cvId: string }) {
           {title ?? 'Your CV'}
           <small>{cv.data.content.contact.fullName}</small>
         </h1>
-        <DownloadPdfButton cvId={cvId} pending={pending} />
+        <DownloadPdfButton cvId={cvId} />
       </header>
       <CvWorkspace
         cvId={cvId}
         version={cv.data.version}
         content={cv.data.content}
-        questions={questions.data.items}
         generation={generation.data}
       />
     </main>
   );
 }
 
-function DownloadPdfButton({
-  cvId,
-  pending,
-}: {
-  cvId: string;
-  /** Answers not applied yet: the PDF does not have them. */
-  pending: number;
-}) {
+function DownloadPdfButton({ cvId }: { cvId: string }) {
   const download = useMutation(downloadPdfMutation(cvId));
   return (
     <div className="stack">
@@ -149,12 +158,6 @@ function DownloadPdfButton({
       >
         {download.isPending ? 'Preparing…' : '⬇ PDF'}
       </button>
-      {pending > 0 && (
-        <p className="hint">
-          You have {pending} {pending === 1 ? 'answer' : 'answers'} not applied
-          yet.
-        </p>
-      )}
       {download.isError && (
         <p role="alert" className="hint">
           Could not make the PDF. Try again.
@@ -164,12 +167,32 @@ function DownloadPdfButton({
   );
 }
 
-function GenerationProgress({ generation }: { generation: Generation }) {
+function GenerationProgress({
+  generation,
+  targetRole,
+}: {
+  generation: Generation;
+  targetRole?: string;
+}) {
   const current = STEPS.findIndex(({ step }) => step === generation.step);
+  // A thin bar: some progress from the start, one third more per finished step.
+  const progress = Math.round(
+    ((Math.max(current, 0) + 0.25) / STEPS.length) * 100,
+  );
   return (
-    <section aria-live="polite">
-      <h1>Generating your CV…</h1>
-      <ol className="steps">
+    <section aria-live="polite" className="gen-card">
+      <h1>Creating your CV</h1>
+      {targetRole && <p className="muted">{targetRole}</p>}
+      <div
+        className="gen-progress"
+        role="progressbar"
+        aria-valuenow={progress}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <i style={{ width: `${progress}%` }} />
+      </div>
+      <ol className="gen-steps">
         {STEPS.map(({ step, label }, index) => {
           const state =
             current === -1 || index > current
@@ -178,9 +201,11 @@ function GenerationProgress({ generation }: { generation: Generation }) {
                 ? 'doing'
                 : 'done';
           return (
-            <li key={step} className={`step step-${state}`}>
+            <li key={step} data-state={state}>
+              <span className="gen-icon" aria-hidden="true">
+                {state === 'done' && '✓'}
+              </span>
               {label}
-              {state === 'doing' && '…'}
             </li>
           );
         })}
