@@ -22,6 +22,9 @@ ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 WORKDIR /app
 COPY --from=build --chown=node:node /out ./
+# `pnpm deploy` packs files like npm does, and npm never packs a directory named
+# `CVS` (any case), so it drops dist/cvs. Copy the build output over it as is.
+COPY --from=build --chown=node:node /repo/apps/api/dist ./dist
 # Chromium's headless shell only (no full browser, Firefox or WebKit) plus the
 # system libraries and fonts it needs; the PDF endpoint prints with it.
 RUN ./node_modules/.bin/playwright install --with-deps --only-shell chromium \
