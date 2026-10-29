@@ -117,3 +117,12 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 **What limits the damage:** Whatever `update` returns goes through the same judge → repair → soften path as the first Generation's CV content, so an invented fact is flagged the same way, and every changed item stays under review (word diff, Accept / Undo) until the User decides. A failed update leaves the CV as it was, with the Answers still pending.
 
 **What would remove it:** Extending `pnpm smoke:live` with one pending Answer on each section and an Update CV, checking structure only.
+
+## The interface is functional, not polished
+
+**What:** The UI is plain and, honestly, ugly: default-looking controls, no design system, no visual pass on spacing, colour or empty and loading states. It works at phone width and every feature is reachable, but nobody would call it good-looking. The CV itself (preview and PDF) is the one part that got a deliberate design.
+
+**Why we accept it:** There was not enough time to make it look good. The task grades the whole flow, the system design, failure handling and trade-offs, so the budget went to the API, the pipeline and the tests, and the UI was built only as far as it needed to be correct and usable.
+
+**What would remove it:** A design pass: pick a component library or a small design system, then one round on layout, typography, colour, and the empty, loading and error states, checked at phone width.
+
