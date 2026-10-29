@@ -29,9 +29,15 @@
   .frame-phone .paper { margin: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.12); }
   .frame-phone.scaled .scaler { width: 351px; overflow: hidden; margin: 12px; }
   .frame-phone.scaled .paper { width: 210mm; margin: 0; transform-origin: 0 0; }
-  .frame-a4 .paper { width: 210mm; min-height: 297mm; box-shadow: 0 2px 10px rgba(0,0,0,.2);
-    /* dashed guide at every A4 page boundary (print output is the source of truth) */
-    background-image: repeating-linear-gradient(to bottom, transparent 0 calc(297mm - 1px), #e66 calc(297mm - 1px) 297mm); }
+  .frame-a4 .paper { width: 210mm; min-height: 297mm; box-shadow: 0 2px 10px rgba(0,0,0,.2); }
+  /* sheets drawn as white 297mm bands with a 10mm gap; .pbreak spacers push content onto the next sheet */
+  .paper.sheets { background: repeating-linear-gradient(to bottom, #fff 0 297mm, #cfcfcc 297mm 307mm); box-shadow: none; }
+  .pbreak { position: relative; }
+  .sheets .pbreak span { position: absolute; left: 0; right: 0; text-align: center; font: 600 10px/10mm Inter, sans-serif; color: #777; letter-spacing: .1em; text-transform: uppercase; }
+  /* phone reflow: a labelled rule where the PDF turns the page */
+  .frame-phone:not(.scaled) .pbreak { margin: 14px -16px; border-top: 1px dashed #b5b5b5; height: 0; }
+  .frame-phone:not(.scaled) .pbreak span { position: absolute; left: 50%; top: -8px; transform: translateX(-50%); background: #fff; padding: 0 8px; font: 600 10px/16px Inter, sans-serif; color: #888; letter-spacing: .1em; text-transform: uppercase; }
+  @media print { .pbreak { display: none !important; } .paper.sheets { background: none !important; } }
   #bar { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 30; background: #111; color: #fff; border-radius: 99px; padding: 6px 8px; display: flex; gap: 8px; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,.35); font-size: 13px; }
   #bar button { background: #333; color: #fff; border: 0; border-radius: 99px; width: 34px; height: 34px; font-size: 16px; cursor: pointer; }
   #bar span { min-width: 200px; text-align: center; }
@@ -182,14 +188,14 @@ const metaLine = (org, d) => [miss(org, 'organisation?'), dates(d)].filter(Boole
 const T = {
   A: c => `<div class="tA">
     <header><h1>${esc(c.contact.name)}</h1><div class="contact">${contactParts(c.contact).map(p => `<span>${p}</span>`).join('')}</div></header>
-    ${c.summary ? `<h2>Summary</h2><p style="margin:0">${esc(c.summary)}</p>` : ''}
-    <h2>Experience</h2>
-    ${c.experience.map(e => `<div class="item${hlCls(e.id)}">
+    ${c.summary ? `<h2 class="u">Summary</h2><p class="u" style="margin:0">${esc(c.summary)}</p>` : ''}
+    <h2 class="u">Skills${qm('skills')}</h2><p class="skills u">${c.skills.map(esc).join(' · ')}</p>
+    <h2 class="u">Experience</h2>
+    ${c.experience.map(e => `<div class="item u${hlCls(e.id)}">
       <div class="ih"><span><b>${miss(e.title, 'title?')}</b>${e.org ? `, <span class="org">${esc(e.org)}</span>` : ' ' + miss(null, 'organisation?')}${qm(e.id)}</span><span class="d">${dates(e.dates)}</span></div>
       ${bullets(e)}</div>`).join('')}
-    <h2>Education</h2>
-    ${c.education.map(e => `<div class="item"><div class="ih"><span><b>${esc(e.degree)}</b>, <span class="org">${esc(e.school)}</span>${qm(e.id)}</span><span class="d">${dates(e.dates)}</span></div></div>`).join('')}
-    <h2>Skills${qm('skills')}</h2><p class="skills">${c.skills.map(esc).join(' · ')}</p>
+    <h2 class="u">Education</h2>
+    ${c.education.map(e => `<div class="item u"><div class="ih"><span><b>${esc(e.degree)}</b>, <span class="org">${esc(e.school)}</span>${qm(e.id)}</span><span class="d">${dates(e.dates)}</span></div></div>`).join('')}
   </div>`,
 
   B: c => `<div class="tB">
@@ -228,6 +234,7 @@ function render() {
   if (S.view === 'a4') stage.innerHTML = `<div class="frame-a4">${paper}</div>`;
   else if (S.view === 'scaled') stage.innerHTML = `<div class="frame-phone scaled"><div class="scaler">${paper}</div></div>`;
   else stage.innerHTML = `<div class="frame-phone">${paper}</div>`;
+  if (!pdf() && S.variant === 'A') paginate(stage.querySelector('.paper'), cv);
   if (S.view === 'scaled') { // shrink an A4-wide sheet to the phone width, keep the layout
     const p = stage.querySelector('.paper'), w = stage.querySelector('.scaler').clientWidth, k = w / p.offsetWidth;
     p.style.transform = `scale(${k})`; stage.querySelector('.scaler').style.height = p.offsetHeight * k + 'px';
@@ -235,6 +242,46 @@ function render() {
   document.getElementById('vlabel').textContent = `${S.variant} (${VARIANTS[S.variant]})`;
   const u = new URL(location); for (const k of ['variant', 'view', 'data']) u.searchParams.set(k, S[k]); history.replaceState(null, '', u);
   renderCtl();
+}
+// ---------- page breaks in the preview ----------
+// Lay the pdf-mode markup out at the printed content width, walk the units the way Chromium
+// paginates (an item never splits, a heading never ends a page) and return the unit indexes
+// that start page 2, 3, … The real app does this in the preview component.
+const MM = 96 / 25.4, PAGE_H = 297, M_TOP = 14, M_BOTTOM = 16, GAP = 10;
+function measureBreaks(cv) {
+  const keep = S.mode; S.mode = 'pdf';
+  const twin = document.createElement('div');
+  twin.className = 'paper'; twin.style.cssText = 'position:absolute;left:-9999px;top:0;width:180mm';
+  twin.innerHTML = T.A(cv).replace('class="tA"', 'class="tA" style="padding:0"');
+  S.mode = keep; document.body.appendChild(twin);
+  const units = [...twin.querySelectorAll('.u')], base = twin.getBoundingClientRect().top;
+  const contentH = (PAGE_H - M_TOP - M_BOTTOM) * MM, breaks = [];
+  let pageStart = 0;
+  units.forEach((u, i) => {
+    const r = u.getBoundingClientRect(), top = r.top - base, bottom = r.bottom - base;
+    if (bottom - pageStart <= contentH || i === 0) return;
+    const at = i > 0 && units[i - 1].tagName === 'H2' ? i - 1 : i; // keep a heading with its first item
+    if (breaks.includes(at)) return;
+    breaks.push(at); pageStart = units[at].getBoundingClientRect().top - base;
+  });
+  twin.remove();
+  return breaks;
+}
+function paginate(paper, cv) {
+  const breaks = measureBreaks(cv), units = [...paper.querySelectorAll('.u')];
+  const sheets = S.view !== 'phone';
+  breaks.forEach((i, n) => {
+    const d = document.createElement('div'); d.className = 'pbreak';
+    d.innerHTML = `<span>Page ${n + 2}</span>`;
+    units[i].before(d);
+    if (sheets) { // push the unit to the top margin of the next sheet
+      const pTop = paper.getBoundingClientRect().top, y = d.getBoundingClientRect().top - pTop;
+      const next = (n + 1) * (PAGE_H + GAP) * MM + M_TOP * MM;
+      d.style.height = (next - y) + 'px';
+      d.firstChild.style.top = ((n + 1) * (PAGE_H + GAP) * MM - GAP * MM - y) + 'px';
+    }
+  });
+  if (sheets) { paper.classList.add('sheets'); paper.style.minHeight = ((breaks.length + 1) * (PAGE_H + GAP) - GAP) + 'mm'; }
 }
 function renderCtl() {
   const sel = (k, opts) => `<select data-k="${k}">${Object.entries(opts).map(([v, l]) => `<option value="${v}"${S[k] === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
@@ -259,6 +306,7 @@ document.getElementById('prev').onclick = () => step(-1);
 document.getElementById('next').onclick = () => step(1);
 addEventListener('keydown', e => { if (e.target.closest('input,select,textarea,[contenteditable]')) return; if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1); });
 document.fonts.ready.then(render);
+document.fonts.addEventListener('loadingdone', render); // late faces (italics) shift the layout
 render();
 </script>
 </body>
