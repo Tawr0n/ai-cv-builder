@@ -19,7 +19,7 @@
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: #d9d9d6; font: 15px/1.45 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
-  .phone { max-width: 420px; min-height: 100vh; margin: 0 auto; background: var(--bg); position: relative; padding-bottom: 140px; }
+  .phone { max-width: 420px; min-height: 100vh; margin: 0 auto; background: var(--bg); position: relative; padding-bottom: 240px; }
   header.top { position: sticky; top: 0; z-index: 5; background: var(--card); border-bottom: 1px solid var(--line); padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
   header.top h1 { font-size: 16px; margin: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   header.top .sub { font-size: 12px; color: var(--muted); font-weight: normal; display: block; }
@@ -85,6 +85,12 @@
   .paper.busy { opacity: .6; }
   .flash { animation: flash 2.5s ease-out; }
   @keyframes flash { 0%, 40% { background: #d9f2e3; } 100% { background: transparent; } }
+  del.dd { background: #fde8e8; color: #9b1c1c; text-decoration: line-through; }
+  ins.di { background: #d9f2e3; color: #1d5e36; text-decoration: none; }
+  .changed { border-left: 3px solid #2fa865; padding-left: 6px; margin-left: -9px; cursor: pointer; }
+  .changed.sel { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  .rbar { position: fixed; bottom: 112px; left: 50%; transform: translateX(-50%); width: min(420px,100%); background: var(--card); border-top: 1px solid var(--line); box-shadow: 0 -4px 12px rgba(0,0,0,.08); padding: 8px 12px; z-index: 6; }
+  .rbar .row button { min-height: 36px; padding: 6px 12px; }
   .bnav { position: fixed; bottom: 64px; left: 50%; transform: translateX(-50%); width: min(420px,100%); background: var(--card); border-top: 1px solid var(--line); display: flex; z-index: 6; }
   .bnav button { flex: 1; border: 0; border-radius: 0; padding: 10px 0; font-size: 13px; }
   .bnav button.on { color: var(--accent); font-weight: 600; }
@@ -161,6 +167,7 @@ const cap = s => s[0].toUpperCase() + s.slice(1);
 // Simulated item operation: one item, base rev, may fail.
 function saveItem(id, patch) {
   const it = itemById(id); Object.assign(it, patch); // optimistic: keep the user's text on screen
+  if (it.review) { it.review = false; delete it.prev; } // editing a changed item by hand accepts the change
   S.saves[id] = 'saving'; render();
   setTimeout(() => {
     if (S.sim.saveFails) { S.saves[id] = 'error'; render(); return; }
@@ -183,6 +190,7 @@ function startAnswerRun() {
     for (const q of pend) {
       q.status = 'answered';
       const it = itemById(q.anchor.item || q.anchor.section);
+      if (!it.review) { it.prev = snapshot(it); it.review = true; } // applied, but awaits Accept / Undo
       if (q.id === 'q1') it.bullets[1] = 'Cut p95 latency of the checkout API from 800 ms to 250 ms by moving reads to a replica';
       if (q.id === 'q2') { it.dates = q.answer.match(/\d{4}.*\d{4}/)?.[0] || '2020 – 2021'; it.org = 'Upwork'; }
       if (q.id === 'q3') it.dates = q.answer.match(/\d{4}/)?.[0] || '2018';
@@ -262,7 +270,7 @@ function runBanner() {
   const g = S.generation; if (!g || g.kind !== 'answer') return '';
   if (running()) return `<div class="banner run">Updating ${g.scope.length} part${g.scope.length === 1 ? '' : 's'} with your answers (${g.step === 'judge' ? 'checking facts' : 'writing'})… You can keep editing other parts.</div>`;
   if (g.status === 'failed') return `<div class="banner err">Couldn't apply your answers: ${errorText(g.errorCode)} Your answers are kept. <button class="link" onclick="startAnswerRun()">Try again</button></div>`;
-  if (g.status === 'succeeded') return `<div class="banner run">✅ CV updated with your answers.</div>`;
+  if (g.status === 'succeeded') return `<div class="banner run">✅ CV updated with your answers. Review the highlighted changes.</div>`;
   return '';
 }
 function questionBox(q, compact) {
@@ -364,18 +372,60 @@ function variantB() {
 // ---------- Variant C: paper preview + questions inbox ----------
 function cMark(id) { const qs = qFor(id); return qs.length ? `<span class="qmark" onclick="S.ui.cTab='questions';render()">?${qs.length}</span>` : ''; }
 function cPaper() {
-  const c = S.cv, hl = S.ui.hl, flash = S.generation?.status === 'succeeded' ? S.generation.scope : [];
-  const h = id => (hl === id ? 'hl' : '') + (inScope(id) ? ' shimmer' : '') + (flash.includes(id) ? ' flash' : '');
-  const pen = sec => `<button class="pen" onclick="cGoEdit('${sec}')">✎ Edit</button>`;
+  const c = S.cv, hl = S.ui.hl;
+  const h = id => (hl === id ? 'hl' : '') + (inScope(id) ? ' shimmer' : '') + (itemById(id).review ? ' changed' + (S.ui.rSel === id ? ' sel' : '') : '');
+  const on = id => `id="p-${id}"` + (itemById(id).review ? ` onclick="rSelect('${id}')"` : '');
+  const pen = sec => `<button class="pen" onclick="event.stopPropagation();cGoEdit('${sec}')">✎ Edit</button>`;
+  const ct = c.contact;
   return `${cLoader()}<div class="paper ${running() && S.generation.kind === 'answer' ? 'busy' : ''}">
-    <div class="${h('contact')}"><div class="row"><div class="grow" style="font-size:20px;font-weight:600">${esc(c.contact.name)}</div>${pen('contact')}</div><div style="font-size:11px">${esc(c.contact.email)} · ${esc(c.contact.phone)} · ${esc(c.contact.location)} · ${esc(c.contact.links)}</div></div>
-    <h3>Summary ${pen('summary')}</h3><div class="${h('summary')}">${esc(c.summary.text)}</div>
-    <h3>Experience ${pen('experience')}</h3>${c.experience.map(e => `<div class="${h(e.id)}" style="margin-bottom:8px"><b>${esc(e.title)}</b>${e.org ? ', ' + esc(e.org) : ''} ${cMark(e.id)}<div style="font-size:11px;color:#666">${esc(e.dates || '')}</div><ul class="b">${e.bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}
-    <h3>Education ${pen('education')}</h3>${c.education.map(e => `<div class="${h(e.id)}"><b>${esc(e.degree)}</b>, ${esc(e.school)} ${esc(e.dates || '')} ${cMark(e.id)}</div>`).join('')}
-    <h3>Skills ${pen('skills')}</h3><div class="${h('skills')}">${esc(c.skills.list)} ${cMark('skills')}</div>
+    <div class="${h('contact')}" ${on('contact')}><div class="row"><div class="grow" style="font-size:20px;font-weight:600">${F(ct, 'name')}</div>${pen('contact')}</div><div style="font-size:11px">${F(ct, 'email')} · ${F(ct, 'phone')} · ${F(ct, 'location')} · ${F(ct, 'links')}</div></div>
+    <h3>Summary ${pen('summary')}</h3><div class="${h('summary')}" ${on('summary')}>${F(c.summary, 'text')}</div>
+    <h3>Experience ${pen('experience')}</h3>${c.experience.map(e => `<div class="${h(e.id)}" ${on(e.id)} style="margin-bottom:8px"><b>${F(e, 'title')}</b>${e.org || e.prev?.org ? ', ' + F(e, 'org') : ''} ${cMark(e.id)}<div style="font-size:11px;color:#666">${F(e, 'dates')}</div><ul class="b">${FB(e)}</ul></div>`).join('')}
+    <h3>Education ${pen('education')}</h3>${c.education.map(e => `<div class="${h(e.id)}" ${on(e.id)}><b>${F(e, 'degree')}</b>, ${F(e, 'school')} ${F(e, 'dates')} ${cMark(e.id)}</div>`).join('')}
+    <h3>Skills ${pen('skills')}</h3><div class="${h('skills')}" ${on('skills')}>${F(c.skills, 'list')} ${cMark('skills')}</div>
     <p style="font:11px -apple-system,sans-serif;color:#999;margin-top:14px">This is exactly what the PDF will look like.</p>
   </div>`;
 }
+// ---- review of AI changes: word diff against the item's previous snapshot ----
+const ITEM_IDS = () => ['contact', 'summary', ...S.cv.experience.map(e => e.id), ...S.cv.education.map(e => e.id), 'skills'];
+const changes = () => ITEM_IDS().filter(id => itemById(id).review);
+function snapshot(it) { const { prev, review, ...rest } = it; return JSON.parse(JSON.stringify(rest)); }
+function diffWords(a, b) {
+  const x = String(a ?? '').split(/(\s+)/), y = String(b ?? '').split(/(\s+)/);
+  const L = Array.from({ length: x.length + 1 }, () => new Array(y.length + 1).fill(0));
+  for (let i = x.length - 1; i >= 0; i--) for (let j = y.length - 1; j >= 0; j--) L[i][j] = x[i] === y[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  let i = 0, j = 0, out = '';
+  while (i < x.length && j < y.length) {
+    if (x[i] === y[j]) { out += esc(x[i]); i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) { out += `<del class="dd">${esc(x[i++])}</del>`; }
+    else { out += `<ins class="di">${esc(y[j++])}</ins>`; }
+  }
+  while (i < x.length) out += `<del class="dd">${esc(x[i++])}</del>`;
+  while (j < y.length) out += `<ins class="di">${esc(y[j++])}</ins>`;
+  return out;
+}
+// Field as HTML: plain when unchanged, word diff when the item awaits review.
+const F = (it, f) => it.review && it.prev ? diffWords(it.prev[f], it[f]) : esc(it[f]);
+const FB = it => it.bullets.map((b, k) => `<li>${it.review && it.prev ? diffWords(it.prev.bullets[k], b) : esc(b)}</li>`).join('')
+  + (it.review && it.prev ? it.prev.bullets.slice(it.bullets.length).map(b => `<li><del class="dd">${esc(b)}</del></li>`).join('') : '');
+function rSelect(id) { S.ui.rSel = id; render(); document.getElementById('p-' + id)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+function rStep(d) { const cs = changes(); const k = Math.max(0, cs.indexOf(S.ui.rSel)); rSelect(cs[(k + d + cs.length) % cs.length]); }
+function rAccept(id) { const it = itemById(id); it.review = false; delete it.prev; it.rev++; rNext(); }
+function rUndo(id) { const it = itemById(id); Object.assign(it, it.prev); it.review = false; delete it.prev; it.rev++; rNext(); }
+function rAcceptAll() { changes().forEach(id => { const it = itemById(id); it.review = false; delete it.prev; it.rev++; }); S.ui.rSel = null; render(); }
+function rNext() { const cs = changes(); S.ui.rSel = cs[0] || null; render(); if (cs[0]) document.getElementById('p-' + cs[0])?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+function rBar() {
+  const cs = changes(); if (!cs.length || running()) return '';
+  if (!cs.includes(S.ui.rSel)) S.ui.rSel = cs[0];
+  const k = cs.indexOf(S.ui.rSel), it = itemById(S.ui.rSel);
+  const name = it.title || it.degree || cap(S.ui.rSel);
+  return `<div class="rbar">
+    <div class="row" style="font-size:13px"><b class="grow">✨ AI change ${k + 1} of ${cs.length}</b><button class="link" onclick="rAcceptAll()">Accept all</button></div>
+    <div class="muted" style="margin:2px 0 6px">${esc(name)}</div>
+    <div class="row"><button onclick="rStep(-1)" aria-label="Previous change">‹</button><button onclick="rStep(1)" aria-label="Next change">›</button><span class="grow"></span><button onclick="rUndo('${S.ui.rSel}')">↶ Undo</button><button class="primary" onclick="rAccept('${S.ui.rSel}')">✓ Accept</button></div>
+  </div>`;
+}
+
 // Loader over the preview while an answer Generation runs; text follows the real step.
 function cLoader() {
   const g = S.generation;
@@ -416,7 +466,7 @@ function cEditItem(it, sec) {
   const qs = qFor(it.id);
   return `<div class="card ${inScope(it.id) ? 'shimmer' : ''}" id="edit-${it.id}">
     ${fieldsFor(it, sec).map(f => inputFor(it, f, `aField('${it.id}','${f}',this.value)`)).join('')}
-    <div class="row" style="margin-top:8px">${qs.length ? `<button class="link" style="padding:0" onclick="S.ui.cTab='questions';render()"><span class="chip warn">❓ ${qs.length} question${qs.length > 1 ? 's' : ''}</span></button>` : ''}${it.edited ? '<span class="edited">✎ edited by you</span>' : ''}<span class="grow"></span>${saveLabel(it.id)}</div></div>`;
+    <div class="row" style="margin-top:8px">${qs.length ? `<button class="link" style="padding:0" onclick="S.ui.cTab='questions';render()"><span class="chip warn">❓ ${qs.length} question${qs.length > 1 ? 's' : ''}</span></button>` : ''}${it.review ? `<button class="link" style="padding:0" onclick="S.ui.cTab='preview';rSelect('${it.id}')"><span class="chip ok">✨ AI change, review</span></button>` : ''}${it.edited ? '<span class="edited">✎ edited by you</span>' : ''}<span class="grow"></span>${saveLabel(it.id)}</div></div>`;
 }
 function cEditTab() {
   const c = S.cv;
@@ -432,9 +482,10 @@ function cEditTab() {
 function cGoEdit(sec) { S.ui.cTab = 'edit'; render(); document.getElementById('edit-sec-' + sec)?.scrollIntoView(); window.scrollBy(0, -70); }
 function variantC() {
   const t = S.ui.cTab, n = openCount();
+  const cs = changes(); if (cs.length && !cs.includes(S.ui.rSel)) S.ui.rSel = cs[0]; // select before the paper renders
   const tab = (key, label) => `<button class="${t === key ? 'on' : ''}" onclick="S.ui.cTab='${key}';S.ui.hl=null;window.scrollTo(0,0);render()">${label}</button>`;
   return `${topBar('Senior Backend Engineer', 'Ready', downloadBtn())}${t === 'preview' && running() ? '' : runBanner()}
-  ${t === 'preview' ? cPaper() : t === 'edit' ? cEditTab() : cInbox()}
+  ${t === 'preview' ? cPaper() + rBar() : t === 'edit' ? cEditTab() : cInbox()}
   <nav class="bnav">${tab('preview', '📄 CV')}${tab('edit', '✎ Edit')}${tab('questions', `❓ Questions${n ? ` (${n})` : ''}`)}</nav>`;
 }
 
