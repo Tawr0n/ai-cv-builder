@@ -382,3 +382,129 @@ button.link {
   background: #fef9c3;
   transition: background 0.3s;
 }
+
+/* Answering Questions and Update CV */
+
+.question textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+}
+
+.question-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.resolved {
+  margin-top: 16px;
+}
+
+.resolved summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* Sticky at the bottom of the Questions tab, so the counter is always in view. */
+.update-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 0;
+  background: Canvas;
+}
+
+.primary {
+  font-weight: 600;
+}
+
+.update-error {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #dc2626 15%, transparent);
+}
+
+.update-error p {
+  margin: 0 0 8px;
+}
+
+.update-loader,
+.update-done {
+  position: sticky;
+  top: 8px;
+  z-index: 1;
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: Canvas;
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.25);
+  font-weight: 600;
+}
+
+.cv-updating {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Reviewing what Update CV changed */
+
+.review-bar {
+  position: sticky;
+  top: 8px;
+  z-index: 1;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: Canvas;
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.25);
+}
+
+.review-bar p {
+  margin: 0 0 8px;
+}
+
+.review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge-review {
+  min-height: 32px;
+  border: 0;
+  color: inherit;
+  background: color-mix(in srgb, #16a34a 25%, transparent);
+}
+
+.answer-note {
+  margin: 0 0 8px;
+}
+
+.cv [data-review-id] {
+  box-shadow: -4px 0 0 #16a34a;
+  cursor: pointer;
+}
+
+.cv .cv-review-selected {
+  background: #f0fdf4;
+}
+
+.cv .diff-added {
+  color: #166534;
+  background: #dcfce7;
+  text-decoration: none;
+}
+
+.cv .diff-removed {
+  color: #991b1b;
+  background: #fee2e2;
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { CvTemplate } from '@ai-cv-builder/cv-template';
+import { type CvDiff, CvTemplate } from '@ai-cv-builder/cv-template';
 import type { CvContent } from '@ai-cv-builder/shared';
 import { useEffect, useRef, useState } from 'react';
 
@@ -36,8 +36,19 @@ export function pageStartRows(
  * to start a new page of the PDF. The estimate comes from laying the same
  * template out off-screen in `pdf` mode at the printed width (180 mm); the PDF
  * stays authoritative. Re-measured after every change, resize and font load.
+ * Items under review show `diff`; tapping one selects it.
  */
-export function PagedCvPreview({ content }: { content: CvContent }) {
+export function PagedCvPreview({
+  content,
+  diff,
+  selected = null,
+  onSelect,
+}: {
+  content: CvContent;
+  diff?: CvDiff;
+  selected?: string | null;
+  onSelect?: (itemId: string) => void;
+}) {
   const previewRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const [marks, setMarks] = useState<{ top: number; page: number }[]>([]);
@@ -83,9 +94,29 @@ export function PagedCvPreview({ content }: { content: CvContent }) {
     };
   }, [content]);
 
+  useEffect(() => {
+    for (const element of previewRef.current?.querySelectorAll<HTMLElement>(
+      '[data-review-id]',
+    ) ?? []) {
+      element.classList.toggle(
+        'cv-review-selected',
+        element.dataset.reviewId === selected,
+      );
+    }
+  }, [content, selected]);
+
   return (
-    <div ref={previewRef} className="cv-paged">
-      <CvTemplate content={content} mode="preview" />
+    <div
+      ref={previewRef}
+      className="cv-paged"
+      onClick={(event) => {
+        const reviewed = (event.target as HTMLElement).closest<HTMLElement>(
+          '[data-review-id]',
+        );
+        if (reviewed?.dataset.reviewId) onSelect?.(reviewed.dataset.reviewId);
+      }}
+    >
+      <CvTemplate content={content} mode="preview" diff={diff} />
       {marks.map(({ top, page }) => (
         <div
           key={page}

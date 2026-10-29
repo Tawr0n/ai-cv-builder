@@ -62,6 +62,20 @@ describe('the CV as printable HTML', () => {
     expect(body).not.toContain('?');
   });
 
+  it('prints an AI change under review as it is stored, without its previous version', () => {
+    const content = cv({ summary: 'Backend engineer in London.' });
+    content.summary.review = {
+      prev: { ...content.summary, text: 'Backend engineer.' },
+      questionIds: [],
+    };
+
+    const body = renderCvHtml(content).split('<body>')[1]!;
+
+    expect(body).toContain('Backend engineer in London.');
+    expect(body).not.toContain('<del');
+    expect(body).not.toContain('data-review-id');
+  });
+
   it('carries its own fonts and asks for nothing from the network', () => {
     const html = renderCvHtml(cv({}));
 

@@ -5,14 +5,18 @@ import {
   type CvContent,
   type CvEducation,
   type CvExperience,
+  type Question,
 } from '@ai-cv-builder/shared';
 import {
+  createContext,
   type ReactNode,
   type SubmitEvent,
+  useContext,
   useEffect,
   useId,
   useState,
 } from 'react';
+import { anchorItemId } from '@/lib/anchors';
 import {
   STRUCTURAL_MESSAGES,
   type SaveState,
@@ -22,6 +26,15 @@ import {
 
 type Edits = ReturnType<typeof useStructuralEdits>;
 type Saver = ReturnType<typeof useItemSaver>;
+
+/** What a card needs to say about the AI: a change to review, or Answers to fold in by hand. */
+interface ReviewNotes {
+  content: CvContent;
+  questions: Question[];
+  onReview: (itemId: string) => void;
+}
+
+const ReviewNotesContext = createContext<ReviewNotes | null>(null);
 
 /**
  * The Edit tab: every field of the CV as a form of cards, one card per item.
@@ -33,11 +46,16 @@ export function CvEditor({
   cvId,
   content,
   version,
+  questions,
+  onReview,
 }: {
   cvId: string;
   content: CvContent;
   /** The CV's `version`: what a move names as the order it saw. */
   version: number;
+  questions: Question[];
+  /** Opens the review of the AI change to this item. */
+  onReview: (itemId: string) => void;
 }) {
   const edits = useStructuralEdits(cvId);
   // A card that was just added or moved is scrolled into view (and focused when new).
@@ -57,67 +75,71 @@ export function CvEditor({
   }
 
   return (
-    <div className="editor">
-      {edits.error && (
-        <p role="alert" className="editor-alert">
-          {STRUCTURAL_MESSAGES[edits.error]}
-        </p>
-      )}
-      <ContactCard cvId={cvId} contact={content.contact} />
-      <SummaryCard cvId={cvId} summary={content.summary} />
+    <ReviewNotesContext value={{ content, questions, onReview }}>
+      <div className="editor">
+        {edits.error && (
+          <p role="alert" className="editor-alert">
+            {STRUCTURAL_MESSAGES[edits.error]}
+          </p>
+        )}
+        <ContactCard cvId={cvId} contact={content.contact} />
+        <SummaryCard cvId={cvId} summary={content.summary} />
 
-      <h2>Experience</h2>
-      {content.experience.map((item, index) => (
-        <ExperienceCard
-          key={item.id}
-          cvId={cvId}
-          item={item}
-          index={index}
-          count={content.experience.length}
-          version={version}
-          edits={edits}
-          onMoved={() => setReveal({ id: item.id, focus: false })}
+        <h2>Experience</h2>
+        {content.experience.map((item, index) => (
+          <ExperienceCard
+            key={item.id}
+            cvId={cvId}
+            item={item}
+            index={index}
+            count={content.experience.length}
+            version={version}
+            edits={edits}
+            onMoved={() => setReveal({ id: item.id, focus: false })}
+          />
+        ))}
+        <AddButton
+          label="Add experience"
+          disabled={
+            edits.busy || content.experience.length >= CV_LIMITS.experience
+          }
+          onClick={() =>
+            edits.addItem.mutate(
+              { section: 'experience' },
+              { onSuccess: (next) => revealLast(next.content?.experience) },
+            )
+          }
         />
-      ))}
-      <AddButton
-        label="Add experience"
-        disabled={
-          edits.busy || content.experience.length >= CV_LIMITS.experience
-        }
-        onClick={() =>
-          edits.addItem.mutate(
-            { section: 'experience' },
-            { onSuccess: (next) => revealLast(next.content?.experience) },
-          )
-        }
-      />
 
-      <h2>Education</h2>
-      {content.education.map((item, index) => (
-        <EducationCard
-          key={item.id}
-          cvId={cvId}
-          item={item}
-          index={index}
-          count={content.education.length}
-          version={version}
-          edits={edits}
-          onMoved={() => setReveal({ id: item.id, focus: false })}
+        <h2>Education</h2>
+        {content.education.map((item, index) => (
+          <EducationCard
+            key={item.id}
+            cvId={cvId}
+            item={item}
+            index={index}
+            count={content.education.length}
+            version={version}
+            edits={edits}
+            onMoved={() => setReveal({ id: item.id, focus: false })}
+          />
+        ))}
+        <AddButton
+          label="Add education"
+          disabled={
+            edits.busy || content.education.length >= CV_LIMITS.education
+          }
+          onClick={() =>
+            edits.addItem.mutate(
+              { section: 'education' },
+              { onSuccess: (next) => revealLast(next.content?.education) },
+            )
+          }
         />
-      ))}
-      <AddButton
-        label="Add education"
-        disabled={edits.busy || content.education.length >= CV_LIMITS.education}
-        onClick={() =>
-          edits.addItem.mutate(
-            { section: 'education' },
-            { onSuccess: (next) => revealLast(next.content?.education) },
-          )
-        }
-      />
 
-      <SkillsCard content={content} edits={edits} />
-    </div>
+        <SkillsCard content={content} edits={edits} />
+      </div>
+    </ReviewNotesContext>
   );
 }
 
@@ -134,7 +156,13 @@ function ContactCard({
   const field = (name: string) => (next: string) =>
     saver.save({ [name]: next });
   return (
-    <Card title="Contact" edited={contact.edited} saver={saver}>
+    <Card
+      title="Contact"
+      itemId="contact"
+      edited={contact.edited}
+      underReview={Boolean(contact.review)}
+      saver={saver}
+    >
       <TextField
         label="Full name"
         value={contact.fullName}
@@ -174,7 +202,13 @@ function SummaryCard({
 }) {
   const saver = useItemSaver(cvId, 'summary');
   return (
-    <Card title="Summary" edited={summary.edited} saver={saver}>
+    <Card
+      title="Summary"
+      itemId="summary"
+      edited={summary.edited}
+      underReview={Boolean(summary.review)}
+      saver={saver}
+    >
       <TextField
         label="Summary"
         multiline
@@ -212,7 +246,9 @@ function ExperienceCard({
     <Card
       id={cardId(item.id)}
       title={`Experience ${index + 1}`}
+      itemId={item.id}
       edited={item.edited}
+      underReview={Boolean(item.review)}
       saver={saver}
       actions={
         <EntryActions
@@ -363,7 +399,9 @@ function EducationCard({
     <Card
       id={cardId(item.id)}
       title={`Education ${index + 1}`}
+      itemId={item.id}
       edited={item.edited}
+      underReview={Boolean(item.review)}
       saver={saver}
       actions={
         <EntryActions
@@ -534,25 +572,56 @@ function LinksField({
 function Card({
   id,
   title,
+  itemId,
   edited,
+  underReview,
   saver,
   actions,
   children,
 }: {
   id?: string;
   title: string;
+  itemId: string;
   edited: boolean;
+  /** Update CV changed it and the User has not accepted or undone that yet. */
+  underReview: boolean;
   saver: Saver;
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const notes = useContext(ReviewNotesContext);
+  // Update CV never rewrites an Edited item: its applied Answers wait for the User.
+  const unfolded =
+    notes && edited
+      ? notes.questions.filter(
+          (question) =>
+            question.status === 'answered' &&
+            question.appliedAt !== null &&
+            anchorItemId(question.anchor, notes.content) === itemId,
+        )
+      : [];
   return (
     <section className="card" id={id}>
       <header className="card-head">
         <h2>{title}</h2>
         {edited && <span className="badge">✎ edited by you</span>}
+        {underReview && notes && (
+          <button
+            type="button"
+            className="badge badge-review"
+            onClick={() => notes.onReview(itemId)}
+          >
+            ✨ AI change, review
+          </button>
+        )}
         {actions}
       </header>
+      {unfolded.map((question) => (
+        <p key={question.id} className="hint answer-note">
+          Your answer: “{question.answer}” — add it to this item yourself if it
+          is not here yet.
+        </p>
+      ))}
       {/* Keyed by the epoch: "load latest" drops whatever the fields had typed. */}
       <div className="card-body" key={saver.epoch}>
         {children}

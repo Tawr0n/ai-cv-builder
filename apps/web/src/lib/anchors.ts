@@ -62,3 +62,58 @@ function itemName(id: string, content: CvContent): string | null {
   if (education) return education.institution ?? education.degree ?? null;
   return content.skills.find((skill) => skill.id === id)?.name ?? null;
 }
+
+/**
+ * The id of the editor card an Anchor belongs to: `contact`, `summary`, or
+ * the item (a bullet's Experience); `null` for a section as a whole.
+ */
+export function anchorItemId(
+  anchor: Anchor,
+  content: CvContent,
+): string | null {
+  if (anchor.section === 'contact' || anchor.section === 'summary') {
+    return anchor.section;
+  }
+  if (!anchor.itemId) return null;
+  const owner = content.experience.find(({ bullets }) =>
+    bullets.some(({ id }) => id === anchor.itemId),
+  );
+  return owner?.id ?? anchor.itemId;
+}
+
+/** Every item under review, in the order the CV shows them, with a name for the review bar. */
+export function reviewedItems(
+  content: CvContent,
+): { id: string; rev: number; name: string }[] {
+  const named = (section: CvSection, id: string | null) =>
+    anchorLabel({ section, itemId: id, field: null }, content);
+  return [
+    ...(content.contact.review
+      ? [
+          {
+            id: 'contact',
+            rev: content.contact.rev,
+            name: named('contact', null),
+          },
+        ]
+      : []),
+    ...(content.summary.review
+      ? [
+          {
+            id: 'summary',
+            rev: content.summary.rev,
+            name: named('summary', null),
+          },
+        ]
+      : []),
+    ...(['skills', 'experience', 'education'] as const).flatMap((section) =>
+      content[section]
+        .filter((item) => item.review)
+        .map((item) => ({
+          id: item.id,
+          rev: item.rev,
+          name: named(section, item.id),
+        })),
+    ),
+  ];
+}
