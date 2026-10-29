@@ -15,7 +15,9 @@ import {
   moveItemSchema,
   patchItemSchema,
   removeItemQuerySchema,
+  answerQuestionSchema,
   questionListSchema,
+  questionSchema,
 } from '@ai-cv-builder/shared';
 import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
@@ -257,6 +259,50 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
       401: errorResponse('`unauthenticated`'),
       404: errorResponse('`not_found`: missing or another User’s'),
     },
+  });
+
+  const questionParams = cvIdParams.extend({ questionId: z.uuid() });
+  const questionChange = {
+    200: { description: 'The Question as it is now', ...json(questionSchema) },
+    401: errorResponse('`unauthenticated`'),
+    403: errorResponse('`forbidden_origin`'),
+    404: errorResponse('`not_found`: missing or another User’s'),
+    409: errorResponse(
+      '`question_locked`: a running Update CV is applying its Answer | `question_closed`: not in a state that allows this',
+    ),
+  };
+
+  registry.registerPath({
+    method: 'put',
+    path: '/api/cvs/{cvId}/questions/{questionId}/answer',
+    tags: ['cvs'],
+    summary: 'Save a pending Answer, or change one',
+    description:
+      'The Question becomes `answered` with `appliedAt` null: the Answer stays editable until Update CV (`POST …/generations` with `kind: answer`) turns it into a Fact. An open Question or a pending Answer can be (re)answered.',
+    request: { params: questionParams, body: json(answerQuestionSchema) },
+    responses: {
+      ...questionChange,
+      400: errorResponse('`validation_failed`'),
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: '/api/cvs/{cvId}/questions/{questionId}/dismiss',
+    tags: ['cvs'],
+    summary: '“Not relevant”: dismiss an open Question or a pending Answer',
+    description: 'A pending Answer is dropped. Undo with `…/reopen`.',
+    request: { params: questionParams },
+    responses: questionChange,
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: '/api/cvs/{cvId}/questions/{questionId}/reopen',
+    tags: ['cvs'],
+    summary: 'Undo a dismissal: the Question is open again',
+    request: { params: questionParams },
+    responses: questionChange,
   });
 
   registry.registerPath({

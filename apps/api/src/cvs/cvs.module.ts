@@ -8,6 +8,8 @@ import { CvItemsController } from './cv-items.controller.js';
 import { CvItemsService } from './cv-items.service.js';
 import { CvsController } from './cvs.controller.js';
 import { CvsService } from './cvs.service.js';
+import { QuestionsController } from './questions.controller.js';
+import { QuestionsService } from './questions.service.js';
 
 @Module({
   imports: [
@@ -22,7 +24,7 @@ import { CvsService } from './cvs.service.js';
       }),
     }),
   ],
-  controllers: [CvsController, CvItemsController],
-  providers: [CvsService, CvItemsService],
+  controllers: [CvsController, CvItemsController, QuestionsController],
+  providers: [CvsService, CvItemsService, QuestionsService],
 })
 export class CvsModule {}
