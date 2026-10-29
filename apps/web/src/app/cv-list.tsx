@@ -2,10 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { ApiRequestError } from '@/lib/api';
 import { logoutMutation, meQuery } from '@/lib/auth';
 import { cvsQuery } from '@/lib/cvs-query';
+import { useSignedOutRedirect } from '@/lib/use-signed-out-redirect';
 
 /** The signed-in User's CVs; sends visitors without a session to the log-in page. */
 export function CvList() {
@@ -21,11 +20,7 @@ export function CvList() {
     },
   });
 
-  const signedOut =
-    me.error instanceof ApiRequestError && me.error.status === 401;
-  useEffect(() => {
-    if (signedOut) router.replace('/login');
-  }, [signedOut, router]);
+  const signedOut = useSignedOutRedirect(me.error);
 
   if (me.isError) {
     return signedOut ? (
