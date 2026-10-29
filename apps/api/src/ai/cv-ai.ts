@@ -120,7 +120,10 @@ export const composeOutputSchema = z.object({
           .int()
           .nullable()
           .describe('0-based index of the bullet in the experience, or null'),
-        field: z.enum(CV_FIELDS).nullable().describe('The field, or null'),
+        field: z
+          .enum(CV_FIELDS)
+          .nullable()
+          .describe("The field, or null; for a bullet use 'text' or null"),
         text: questionText,
       }),
     )

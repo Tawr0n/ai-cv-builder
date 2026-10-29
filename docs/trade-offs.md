@@ -97,3 +97,32 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 - `pnpm smoke:live` runs the real pipeline on a fixture PDF (including a prompt injection) and checks only structural rules: every item cites existing Facts, every field is within its limit. It is run by hand after prompt changes and costs about $0.3–1.3 per run.
 
 **What would remove it:** One Playwright happy-path test against `docker compose up` with the fake model wired in, run in CI on every pull request.
+
+## A CV cannot be deleted
+
+**What:** There is no way to delete a CV (no `DELETE /api/cvs/:cvId`, no button). A User who no longer wants one can only stop using it.
+
+**Why we accept it:** No slice of the plan owned it, and it is not among the task's requirements ("find their CVs", not "remove"). It is also the one route that interacts with every other part (a running Generation, its job, the stored Source, PDFs in flight), so doing it half-way would be worse than leaving it out.
+
+**What limits the damage:** CVs belong to one User and are never shared. The Generation pipeline already treats a deleted CV as a no-op (a tested case), so the worker side is ready.
+
+**What would remove it:** `DELETE /api/cvs/:cvId` scoped by `userId` (foreign CV → 404), cascading to the Source, Facts, Questions and Generations, with a confirmation in the UI.
+
+## The Answer-update prompt is not part of the live smoke script
+
+**What:** The `update` step, which rewrites items from the User's Answers, is not exercised by `pnpm smoke:live`, which only runs extract → compose → judge → repair. Its structure is enforced by our code and covered by tests with the scripted fake; against the real model it has been run by hand, not by any script. Running it that way is how a real defect was found before submission: the first version of its output schema was rejected by the API as too large (see "How I used AI tools" in the README).
+
+**Why we accept it:** `smoke:live` costs real money per run and extending it did not fit the time budget. The structural rules (only items in scope change, an Edited item is untouched, every change is cited and judged) are in code and tested. What cannot be tested without the model is that the API accepts the schema and the quality of the rewrite.
+
+**What limits the damage:** Whatever `update` returns goes through the same judge → repair → soften path as the first Generation's CV content, so an invented fact is flagged the same way, and every changed item stays under review (word diff, Accept / Undo) until the User decides. A failed update leaves the CV as it was, with the Answers still pending.
+
+**What would remove it:** Extending `pnpm smoke:live` with one pending Answer on each section and an Update CV, checking structure only.
+
+## The interface is functional, not polished
+
+**What:** The UI is plain and, honestly, ugly: default-looking controls, no design system, no visual pass on spacing, colour or empty and loading states. It works at phone width and every feature is reachable, but nobody would call it good-looking. The CV itself (preview and PDF) is the one part that got a deliberate design.
+
+**Why we accept it:** There was not enough time to make it look good. The task grades the whole flow, the system design, failure handling and trade-offs, so the budget went to the API, the pipeline and the tests, and the UI was built only as far as it needed to be correct and usable.
+
+**What would remove it:** A design pass: pick a component library or a small design system, then one round on layout, typography, colour, and the empty, loading and error states, checked at phone width.
+

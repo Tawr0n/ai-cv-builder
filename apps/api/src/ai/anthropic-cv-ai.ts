@@ -14,10 +14,14 @@ import {
   InvalidAiOutputError,
   judgeOutputSchema,
   repairOutputSchema,
-  updateOutputSchema,
 } from './cv-ai.js';
 import type { CvContent } from '@ai-cv-builder/shared';
 import type { Source } from '../source/source-storage.js';
+import {
+  mergeUpdateOutputs,
+  updateCalls,
+  updateSchemaFor,
+} from './update-calls.js';
 import {
   COMPOSE_SYSTEM,
   EXTRACT_SYSTEM,
@@ -82,7 +86,7 @@ export class AnthropicCvAi extends CvAi {
     );
   }
 
-  update({
+  async update({
     facts,
     answers,
     targetRole,
@@ -90,26 +94,31 @@ export class AnthropicCvAi extends CvAi {
     scope,
     signal,
   }: CvAiInput<'update'>) {
-    return this.call(
-      'update',
-      this.env.ANTHROPIC_MODEL_COMPOSE,
-      UPDATE_SYSTEM,
-      [
-        {
-          type: 'text',
-          text: [
-            `<target_role>${targetRole}</target_role>`,
-            `<facts>${JSON.stringify(factLines(facts))}</facts>`,
-            `<answers>${JSON.stringify(factLines(answers))}</answers>`,
-            `<cv>${JSON.stringify(cvLines(content))}</cv>`,
-            `<scope>${JSON.stringify(scope)}</scope>`,
-            'Rewrite the items in scope using these facts and answers only.',
-          ].join('\n'),
-        },
-      ],
-      updateOutputSchema,
-      signal,
+    const outputs = await Promise.all(
+      updateCalls(scope, content).map((call) =>
+        this.call(
+          'update',
+          this.env.ANTHROPIC_MODEL_COMPOSE,
+          UPDATE_SYSTEM,
+          [
+            {
+              type: 'text',
+              text: [
+                `<target_role>${targetRole}</target_role>`,
+                `<facts>${JSON.stringify(factLines(facts))}</facts>`,
+                `<answers>${JSON.stringify(factLines(answers))}</answers>`,
+                `<cv>${JSON.stringify(cvLines(content))}</cv>`,
+                `<scope>${JSON.stringify(call.scope)}</scope>`,
+                'Rewrite the items in scope using these facts and answers only.',
+              ].join('\n'),
+            },
+          ],
+          updateSchemaFor(call.parts),
+          signal,
+        ),
+      ),
     );
+    return mergeUpdateOutputs(outputs);
   }
 
   judge({ facts, assertions, signal }: CvAiInput<'judge'>) {
