@@ -26,10 +26,10 @@ async function apiRequest(
     },
     ...(body !== undefined && { body: JSON.stringify(body) }),
   });
-  const parsedBody: unknown = await response.json().catch(() => undefined);
+  const payload: unknown = await response.json().catch(() => undefined);
 
   if (!response.ok) {
-    const parsed = apiErrorSchema.safeParse(parsedBody);
+    const parsed = apiErrorSchema.safeParse(payload);
     throw new ApiRequestError(
       response.status,
       parsed.success
@@ -37,7 +37,7 @@ async function apiRequest(
         : { code: 'unexpected_response', message: response.statusText },
     );
   }
-  return parsedBody;
+  return payload;
 }
 
 /** Calls the API through the Next.js `/api/*` rewrite and parses the answer with a shared schema. */
@@ -60,6 +60,6 @@ export async function apiPost(
   body?: unknown,
   schema?: z.ZodType,
 ): Promise<unknown> {
-  const parsedBody = await apiRequest('POST', path, body);
-  return schema ? schema.parse(parsedBody) : undefined;
+  const payload = await apiRequest('POST', path, body);
+  return schema ? schema.parse(payload) : undefined;
 }

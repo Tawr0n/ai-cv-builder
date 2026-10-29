@@ -9,6 +9,8 @@ export function configureApp(app: NestExpressApplication) {
   app.setGlobalPrefix('api');
   app.use(cookieParser());
 
+  // The API docs are mounted outside Nest, so the auth guard does not cover
+  // them: they are public on purpose.
   const document = buildOpenApiDocument();
   app.use('/api/docs/openapi.json', (_req: Request, res: Response) => {
     res.json(document);

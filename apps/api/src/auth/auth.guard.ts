@@ -28,10 +28,10 @@ export class AuthGuard implements CanActivate {
 
     const http = context.switchToHttp();
     const req = http.getRequest<Request>();
-    const token: unknown = req.cookies?.[SESSION_COOKIE];
-    const session =
-      typeof token === 'string' ? await this.auth.authenticate(token) : null;
-    if (!session) {
+    const cookie: unknown = req.cookies?.[SESSION_COOKIE];
+    const token = typeof cookie === 'string' ? cookie : undefined;
+    const session = token ? await this.auth.authenticate(token) : null;
+    if (!token || !session) {
       throw new ApiException(
         HttpStatus.UNAUTHORIZED,
         'unauthenticated',
@@ -40,7 +40,8 @@ export class AuthGuard implements CanActivate {
     }
 
     req.user = session.user;
-    if (session.renewed && typeof token === 'string') {
+    req.sessionToken = token;
+    if (session.renewed) {
       setSessionCookie(http.getResponse<Response>(), token);
     }
     return true;

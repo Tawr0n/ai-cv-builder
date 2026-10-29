@@ -20,11 +20,7 @@ import { ZodValidationPipe } from '../http/zod-validation.pipe.js';
 import { AuthService } from './auth.service.js';
 import { CurrentUser } from './current-user.decorator.js';
 import { Public } from './public.decorator.js';
-import {
-  clearSessionCookie,
-  SESSION_COOKIE,
-  setSessionCookie,
-} from './session-cookie.js';
+import { clearSessionCookie, setSessionCookie } from './session-cookie.js';
 
 @Controller('auth')
 export class AuthController {
@@ -60,7 +56,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
     // The guard already proved the cookie holds a live session.
-    await this.auth.logout(req.cookies[SESSION_COOKIE] as string);
+    await this.auth.logout(req.sessionToken!);
     clearSessionCookie(res);
   }
 

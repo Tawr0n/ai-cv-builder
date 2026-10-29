@@ -24,7 +24,8 @@ services:
     environment:
       DATABASE_URL: postgresql://cv:cv@db:5432/cv
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY (see .env.example)}
-      APP_ORIGIN: http://localhost:3000
+      # Add the LAN address here to use the app from another device.
+      APP_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
       PORT: 3001
     depends_on:
       db:

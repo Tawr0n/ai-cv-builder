@@ -178,6 +178,26 @@ describe('authentication', () => {
       expect(stillLoggedIn.status).toBe(200);
     });
 
+    it('also guards the public sign-up', async () => {
+      const response = await testApp
+        .http()
+        .post('/api/auth/signup')
+        .set('origin', 'https://evil.example')
+        .send({ email: 'a@example.com', password: 'correct horse battery' });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('accepts the loopback alias of the web app origin', async () => {
+      const response = await testApp
+        .http()
+        .post('/api/auth/login')
+        .set('origin', 'http://127.0.0.1:3000')
+        .send({ email: 'a@example.com', password: 'whatever' });
+
+      expect(response.status).toBe(401);
+    });
+
     it('also guards the public log-in', async () => {
       const response = await testApp
         .http()

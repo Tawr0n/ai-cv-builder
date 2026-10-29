@@ -2,14 +2,13 @@ import type { Login, Signup, User } from '@ai-cv-builder/shared';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { hash, verify } from '@node-rs/argon2';
 import { createHash, randomBytes } from 'node:crypto';
+import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { ApiException } from '../http/api.exception.js';
 import { SESSION_TTL_MS } from './session-cookie.js';
 
 const PRISMA_UNIQUE_VIOLATION = 'P2002';
-
-/** Checked for unknown emails so a miss takes as long as a wrong password. */
-const dummyHash = await hash('not-a-real-password');
+const USER_SELECT = { id: true, email: true } as const;
 
 export interface IssuedSession {
   token: string;
@@ -24,6 +23,9 @@ export interface AuthenticatedSession {
 
 @Injectable()
 export class AuthService {
+  /** Checked for unknown emails so a miss takes as long as a wrong password. */
+  private readonly dummyHash = hash('not-a-real-password');
+
   constructor(private readonly prisma: PrismaService) {}
 
   async signup({ email, password }: Signup): Promise<IssuedSession> {
@@ -32,7 +34,7 @@ export class AuthService {
     try {
       user = await this.prisma.user.create({
         data: { email, passwordHash },
-        select: { id: true, email: true },
+        select: USER_SELECT,
       });
     } catch (error) {
       if (isUniqueViolation(error)) {
@@ -49,7 +51,10 @@ export class AuthService {
 
   async login({ email, password }: Login): Promise<IssuedSession> {
     const found = await this.prisma.user.findUnique({ where: { email } });
-    const passwordOk = await verify(found?.passwordHash ?? dummyHash, password);
+    const passwordOk = await verify(
+      found?.passwordHash ?? (await this.dummyHash),
+      password,
+    );
     if (!found || !passwordOk) {
       throw new ApiException(
         HttpStatus.UNAUTHORIZED,
@@ -71,7 +76,7 @@ export class AuthService {
   async authenticate(token: string): Promise<AuthenticatedSession | null> {
     const session = await this.prisma.session.findUnique({
       where: { tokenHash: hashToken(token) },
-      include: { user: { select: { id: true, email: true } } },
+      include: { user: { select: USER_SELECT } },
     });
     if (!session) return null;
 
@@ -110,9 +115,7 @@ function hashToken(token: string): string {
 
 function isUniqueViolation(error: unknown): boolean {
   return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
+    error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === PRISMA_UNIQUE_VIOLATION
   );
 }

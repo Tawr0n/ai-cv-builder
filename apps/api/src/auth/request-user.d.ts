@@ -5,6 +5,8 @@ declare global {
     interface Request {
       /** Set by the AuthGuard once the session cookie checks out. */
       user?: User;
+      /** The session cookie token the guard accepted. */
+      sessionToken?: string;
     }
   }
 }

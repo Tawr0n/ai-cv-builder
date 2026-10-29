@@ -27,7 +27,7 @@ export class OriginGuard implements CanActivate {
     if (
       SAFE_METHODS.has(req.method) ||
       origin === undefined ||
-      origin === this.env.APP_ORIGIN
+      this.env.APP_ORIGINS.includes(origin)
     ) {
       return true;
     }
