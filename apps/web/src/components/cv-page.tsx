@@ -7,7 +7,8 @@ import type {
 } from '@ai-cv-builder/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { CvEditor } from '@/components/cv-editor';
 import { CvTemplate } from '@/components/cv-template';
 import {
   cvQuery,
@@ -36,11 +37,12 @@ const FAILURE_MESSAGES: Record<GenerationErrorCode, string> = {
 
 /**
  * One CV: the step-driven loader while it generates, the failure with Try
- * again, then the read-only preview. Everything comes from the server, so a
+ * again, then the preview (CV tab) and the editor (Edit tab). Everything comes from the server, so a
  * reload or another device picks up exactly where the Generation is.
  */
 export function CvPage({ cvId }: { cvId: string }) {
   const queryClient = useQueryClient();
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('cv');
   const generation = useQuery(generationQuery(cvId));
   const succeeded = generation.data?.status === 'succeeded';
   const cv = useQuery({ ...cvQuery(cvId), enabled: succeeded });
@@ -100,14 +102,41 @@ export function CvPage({ cvId }: { cvId: string }) {
   }
   if (!cv.data?.content) return <p role="status">Loading…</p>;
 
+  const view = { ...cv.data, content: cv.data.content };
   return (
-    <main className="wide">
+    <main className="wide has-tabs">
       {back}
       {title && <p className="hint">CV for {title}</p>}
-      <CvTemplate content={cv.data.content} mode="preview" />
+      <div role="tabpanel" id="cv-panel" aria-labelledby={`tab-${tab}`}>
+        {tab === 'cv' ? (
+          <CvTemplate content={view.content} mode="preview" />
+        ) : (
+          <CvEditor cvId={cvId} view={view} />
+        )}
+      </div>
+      <nav className="tabs" role="tablist" aria-label="CV">
+        {TABS.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`tab-${id}`}
+            aria-selected={tab === id}
+            aria-controls="cv-panel"
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
     </main>
   );
 }
+
+const TABS = [
+  { id: 'cv', label: 'CV' },
+  { id: 'edit', label: 'Edit' },
+] as const;
 
 function GenerationProgress({ generation }: { generation: Generation }) {
   const current = STEPS.findIndex(({ step }) => step === generation.step);

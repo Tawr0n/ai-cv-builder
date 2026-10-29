@@ -14,7 +14,7 @@ export class ApiRequestError extends Error {
 type ApiPath = `/api/${string}`;
 
 async function apiRequest(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path: ApiPath,
   body?: unknown,
   headers: Record<string, string> = {},
@@ -67,6 +67,23 @@ export async function apiPost(
 ): Promise<unknown> {
   const payload = await apiRequest('POST', path, body);
   return schema ? schema.parse(payload) : undefined;
+}
+
+/** PATCHes JSON and parses the answer with a shared schema. */
+export async function apiPatch<Schema extends z.ZodType>(
+  path: ApiPath,
+  body: unknown,
+  schema: Schema,
+): Promise<z.output<Schema>> {
+  return schema.parse(await apiRequest('PATCH', path, body));
+}
+
+/** DELETEs and parses the answer with a shared schema. */
+export async function apiDelete<Schema extends z.ZodType>(
+  path: ApiPath,
+  schema: Schema,
+): Promise<z.output<Schema>> {
+  return schema.parse(await apiRequest('DELETE', path));
 }
 
 /** POSTs a multipart form (e.g. a file upload) with extra headers and parses the answer. */

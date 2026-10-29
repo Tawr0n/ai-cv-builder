@@ -137,6 +137,185 @@ textarea {
   content: '✓  ';
 }
 
+/* CV page: bottom tabs and the Edit tab */
+
+main.has-tabs {
+  /* Room for the fixed tab bar. */
+  padding-bottom: 72px;
+}
+
+.tabs {
+  position: fixed;
+  inset: auto 0 0;
+  display: flex;
+  background: Canvas;
+  border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.tabs button {
+  flex: 1;
+  min-height: 56px;
+  border: 0;
+  border-top: 3px solid transparent;
+  background: none;
+  color: inherit;
+}
+
+.tabs button[aria-selected='true'] {
+  border-top-color: currentColor;
+  font-weight: 600;
+}
+
+.editor h2 {
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+.editor h3 {
+  font-size: 0.875rem;
+  margin: 12px 0 4px;
+}
+
+.editor > h2 {
+  margin: 24px 0 8px;
+}
+
+.editor-alert {
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: color-mix(in srgb, #dc2626 20%, transparent);
+}
+
+.card {
+  margin: 8px 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 8px;
+}
+
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-head h2 {
+  margin-right: auto;
+}
+
+.card-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.card-actions button,
+.row button,
+.chips button {
+  min-width: 44px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.field label,
+.links legend {
+  font-size: 0.875rem;
+}
+
+.field input,
+.field textarea,
+.row-main {
+  font: inherit;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 12px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.row > .row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.row .field {
+  margin-top: 0;
+}
+
+.links {
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.add {
+  margin-top: 8px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.chips li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.chips button {
+  border: 0;
+  background: none;
+  color: inherit;
+}
+
+.save-status {
+  margin: 4px 0 0;
+  min-height: 1.5em;
+  font-size: 0.875rem;
+}
+
+button.link {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /*
  * CV template B: Inter-style sans, labels in a 30 mm gutter, one reading
  * column. Always a white sheet, whatever the page's colour scheme.
