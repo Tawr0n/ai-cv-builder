@@ -14,6 +14,7 @@ import {
   toGenerationView,
 } from '../generation/generations.service.js';
 import { ApiException } from '../http/api.exception.js';
+import { type Source, SourceStorage } from '../source/source-storage.js';
 import { assertReadablePdf } from './pdf-check.js';
 
 export interface UploadedPdf {
@@ -38,6 +39,7 @@ export class CvsService {
     @Inject(ENV) private readonly env: Env,
     private readonly prisma: PrismaService,
     private readonly generations: GenerationsService,
+    private readonly sources: SourceStorage,
   ) {}
 
   async list(userId: string): Promise<CvList> {
@@ -81,10 +83,10 @@ export class CvsService {
           targetRole,
           status: 'generating',
           idempotencyKey,
-          source: { create: source },
         },
         select: { id: true },
       });
+      await this.sources.put(tx, cv.id, source);
       await this.generations.start(tx, { userId, cvId: cv.id });
       return { cvId: cv.id, replayed: false };
     });
@@ -145,7 +147,10 @@ export class CvsService {
     return toGenerationView(generation);
   }
 
-  private async toSource(text: string | undefined, file?: UploadedPdf) {
+  private async toSource(
+    text: string | undefined,
+    file?: UploadedPdf,
+  ): Promise<Source> {
     if ((text === undefined) === (file === undefined)) {
       throw new ApiException(
         HttpStatus.BAD_REQUEST,
@@ -156,13 +161,9 @@ export class CvsService {
     }
     if (file) {
       await assertReadablePdf(file.buffer, this.env.PDF_MAX_PAGES);
-      return {
-        kind: 'pdf' as const,
-        fileName: file.originalname,
-        bytes: new Uint8Array(file.buffer),
-      };
+      return { kind: 'pdf', fileName: file.originalname, bytes: file.buffer };
     }
-    return { kind: 'text' as const, text };
+    return { kind: 'text', text: text! };
   }
 }
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Source } from '../source/source-storage.js';
 
 /** A single statement about the User that CV content may rest on; `id` is assigned by us (`f1`, `f2`, ...). */
 export const factSchema = z.object({
@@ -105,7 +106,7 @@ interface Abortable {
  */
 export interface CvAiSteps {
   extract: {
-    input: { source: ExtractSource } & Abortable;
+    input: { source: Source } & Abortable;
     output: z.infer<typeof extractOutputSchema>;
   };
   /** Compose sees only the Facts and the Target role, never the Source. */

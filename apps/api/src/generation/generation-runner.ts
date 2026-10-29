@@ -7,13 +7,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
   CvAi,
-  type ExtractSource,
   type Fact,
   factSchema,
   InvalidAiOutputError,
 } from '../ai/cv-ai.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { SourceStorage } from '../source/source-storage.js';
 import { classifyFailure, UnreadableSourceError } from './classify-failure.js';
 import { checkComposeOutput } from './compose-check.js';
 
@@ -32,6 +32,7 @@ export class GenerationRunner {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cvAi: CvAi,
+    private readonly sources: SourceStorage,
   ) {}
 
   /**
@@ -50,7 +51,7 @@ export class GenerationRunner {
     try {
       const facts =
         cv.facts === null
-          ? await this.extract(generationId, cv.id, cv.source, signal)
+          ? await this.extract(generationId, cv.id, signal)
           : z.array(factSchema).parse(cv.facts);
 
       step = 'compose';
@@ -87,7 +88,7 @@ export class GenerationRunner {
   private async claim(generationId: string) {
     const generation = await this.prisma.generation.findUnique({
       where: { id: generationId },
-      include: { cv: { include: { source: true } } },
+      include: { cv: true },
     });
     if (!generation || !isActive(generation.status)) return null;
 
@@ -100,26 +101,18 @@ export class GenerationRunner {
         startedAt: generation.startedAt ?? new Date(),
       },
     });
-    const { cv } = generation;
-    if (count === 0 || !cv.source) return null;
-    return { cv: { ...cv, source: cv.source } };
+    return count === 0 ? null : { cv: generation.cv };
   }
 
   private async extract(
     generationId: string,
     cvId: string,
-    stored: {
-      kind: 'pdf' | 'text';
-      bytes: Uint8Array | null;
-      text: string | null;
-    },
     signal?: AbortSignal,
   ): Promise<Fact[]> {
     await this.setStep(generationId, 'extract');
-    const source: ExtractSource =
-      stored.kind === 'pdf'
-        ? { kind: 'pdf', bytes: stored.bytes! }
-        : { kind: 'text', text: stored.text! };
+    const source = await this.sources.get(cvId);
+    // Only when the CV was deleted meanwhile; failing it then writes nothing.
+    if (!source) throw new Error('Source not found');
 
     const facts = await retryOnceIfInvalid(async () => {
       const output = await this.cvAi.extract({ source, signal });
@@ -130,7 +123,7 @@ export class GenerationRunner {
         id: `f${index + 1}`,
         text: fact.text.trim(),
         quote: fact.quote,
-        source: stored.kind,
+        source: source.kind,
       }));
     });
     if (facts.length === 0) throw new UnreadableSourceError();

@@ -9,10 +9,10 @@ import {
   type CvAiInput,
   type CvAiOutput,
   type CvAiStep,
-  type ExtractSource,
   extractOutputSchema,
   InvalidAiOutputError,
 } from './cv-ai.js';
+import type { Source } from '../source/source-storage.js';
 import { COMPOSE_SYSTEM, EXTRACT_SYSTEM } from './prompts.js';
 
 /** Output ceiling per call (thinking included): with the timeouts, the cost ceiling of a Generation. */
@@ -132,7 +132,7 @@ export class AnthropicCvAi extends CvAi {
 }
 
 /** The Source as data: a PDF as a native document block (pages read as text + image), text fenced off. */
-function sourceBlock(source: ExtractSource): Anthropic.ContentBlockParam {
+function sourceBlock(source: Source): Anthropic.ContentBlockParam {
   if (source.kind === 'pdf') {
     return {
       type: 'document',
