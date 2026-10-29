@@ -55,7 +55,7 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 - An explicit `max_tokens` on every step plus the per-call and per-Generation timeouts put a known ceiling on what one Generation can cost.
 - Output that breaks the schema or the length limits fails validation, retries once and then fails visibly; the guarded single write means the CV content is never left half-written.
 - LLM output is rendered escaped everywhere (no raw HTML, `http(s)` links only), so an injected payload cannot reach the browser or the PDF as markup.
-- The opt-in live smoke test includes a CV carrying an injection.
+- The manual live smoke script (`pnpm smoke:live`, never part of `pnpm test`) runs a CV carrying an injection through the real pipeline and checks the result stays within its Facts and limits.
 
 **What would remove it:** Nothing fully does. A dedicated classifier pass before extract would catch the obvious cases if the product ever processed text written by someone other than the CV's owner.
 
@@ -84,3 +84,16 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 **What limits the damage:** The API container runs as a non-root user and publishes no port to the host.
 
 **What would remove it:** `chromiumSandbox: true` plus `security_opt: seccomp=<Playwright's seccomp_profile.json>` on the `api` service.
+
+## No browser end-to-end or frontend tests
+
+**What:** The automated tests stop at the HTTP API. Nothing drives a real browser through upload → generate → edit → PDF, the Next.js components have no tests, and the Next.js proxy in front of the API is not tested. The real Anthropic adapter and prompts are not exercised by `pnpm test` either: every test runs against a scripted fake, so the suite costs nothing and needs no API key.
+
+**Why we accept it:** The rules that matter live in the API and the database: ownership, the guarded final write, the active-Generation limit, optimistic concurrency, the retry and failure handling. Integration tests against a real Postgres cover them directly. The web app is a thin UI with no business logic, and it shares its zod schemas with the API, so a contract mismatch fails the type check. A browser test costs about an hour to set up and is the slowest, flakiest test to keep green; tests that call the real model would spend money on every run and still could not assert on wording.
+
+**What limits the damage:**
+
+- Every pull request runs type check, lint and the full test suite in CI.
+- `pnpm smoke:live` runs the real pipeline on a fixture PDF (including a prompt injection) and checks only structural rules: every item cites existing Facts, every field is within its limit. It is run by hand after prompt changes and costs about $0.3–1.3 per run.
+
+**What would remove it:** One Playwright happy-path test against `docker compose up` with the fake model wired in, run in CI on every pull request.
