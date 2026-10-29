@@ -17,11 +17,32 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 
 ## AI never touches an item the user edited by hand
 
-**What:** When an Answer-driven update reaches an item the user has already changed by hand (`edited: true`), the AI leaves it alone. The Answer is still saved as a Fact and the Question is marked answered, but the user has to fold the new information into that item themselves; the UI shows the Answer next to the item with a hint.
+**What:** When an Answer-driven update reaches an item the user has already changed by hand (`edited: true`), or an item the user added themselves, the AI leaves it alone. The Answer is still saved as a Fact and the Question is marked answered, but the user has to fold the new information into that item themselves; the Edit tab shows the Answer on that item's card with a hint.
 
-**Why we accept it:** The alternative is a **Suggestion**: the AI proposes a replacement for the item, the UI shows "before → after", and the user accepts or rejects it. That needs its own state (pending / accepted / rejected / stale when the item changed again), a before/after view that works on mobile, and conflict handling on accept. It does not fit the time budget, and the simpler rule never overwrites the user's words.
+**Why we accept it:** Items the AI _does_ update are already reviewable: the change is written into the CV content, but the item keeps a snapshot of its previous version and stays highlighted (a word-level diff in the preview) until the user taps Accept or Undo. Undo can restore the AI's own previous text, but for an edited item it would have to offer the user's words back as the "before", which turns into a real **Suggestion**: the AI proposes a replacement, the UI shows "before → after", and nothing changes until the user accepts. That needs its own state (pending / accepted / rejected / stale when the item changed again), a decision on what the preview and the PDF show meanwhile, and conflict handling on accept. It does not fit the time budget, and the simpler rule never overwrites the user's words.
 
-**What would remove it:** Suggestions for every Answer-driven update, not only edited items. The worker would then never write into the CV content at all, which also removes the race between background updates and manual edits.
+**What would remove it:** Suggestions for every Answer-driven update, edited items included, replacing the apply-then-review flow. The worker would then never write into the CV content at all, which also removes the race between background updates and manual edits.
+
+## Hand edits have no undo
+
+**What:** The editor autosaves each item as soon as the user leaves a field. There is no history of the user's own changes and no "discard my changes": text replaced or an entry removed by hand is gone (removing an entry asks for confirmation first).
+
+**Why we accept it:** Autosave keeps the preview and the PDF always matching what is stored and needs no "Save?" prompt when switching tabs on a phone. Undo for hand edits means keeping a version history per item and a UI to browse and restore it, which does not fit the time budget.
+
+**What limits the damage:**
+
+- Changes made by the AI _can_ be undone: each one stays under review with a snapshot of the previous version until the user accepts it or taps Undo.
+- Saves are per item with optimistic concurrency (`rev`), so an edit on another device can't silently overwrite this one: the second save gets a `409` and the UI shows both versions.
+
+**What would remove it:** Keeping the last few revisions of each item (the `rev` already numbers them) and a "Restore previous version" action on the item's card.
+
+## The interface is English only
+
+**What:** All interface text is in English, and there is no language switch.
+
+**Why we accept it:** The generated CV is in English, and so are the task, the README and the code; a Ukrainian interface around an English document would be inconsistent. Internationalisation (message catalogues, a locale per User, translated error messages) is real work that does not change how the product behaves.
+
+**What would remove it:** An i18n library with message catalogues in the web app and a locale setting per User; error responses already carry a stable `errorCode` the UI could translate.
 
 ## Prompt injection is contained, not detected
 
