@@ -225,9 +225,7 @@ function ExperienceCard({
               { onSuccess: onMoved },
             )
           }
-          onRemove={() =>
-            edits.removeItem.mutate({ itemId: item.id, rev: item.rev })
-          }
+          onRemove={() => edits.removeItem.mutate({ itemId: item.id })}
         />
       }
     >
@@ -314,9 +312,7 @@ function BulletRow({
         type="button"
         aria-label="Remove bullet"
         disabled={edits.busy}
-        onClick={() =>
-          edits.removeItem.mutate({ itemId: bullet.id, rev: bullet.rev })
-        }
+        onClick={() => edits.removeItem.mutate({ itemId: bullet.id })}
       >
         ✕
       </button>
@@ -380,9 +376,7 @@ function EducationCard({
               { onSuccess: onMoved },
             )
           }
-          onRemove={() =>
-            edits.removeItem.mutate({ itemId: item.id, rev: item.rev })
-          }
+          onRemove={() => edits.removeItem.mutate({ itemId: item.id })}
         />
       }
     >
@@ -447,9 +441,7 @@ function SkillsCard({ content, edits }: { content: CvContent; edits: Edits }) {
               type="button"
               aria-label={`Remove ${skill.name}`}
               disabled={edits.busy}
-              onClick={() =>
-                edits.removeItem.mutate({ itemId: skill.id, rev: skill.rev })
-              }
+              onClick={() => edits.removeItem.mutate({ itemId: skill.id })}
             >
               ✕
             </button>

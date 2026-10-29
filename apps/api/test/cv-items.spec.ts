@@ -130,7 +130,7 @@ describe('editing CV items', () => {
   });
 
   describe('DELETE /api/cvs/:cvId/items/:itemId', () => {
-    it('removes an item with its own rev, bumps the version and returns the CV view', async () => {
+    it('removes a skill with its own rev and returns the CV view, leaving the version alone', async () => {
       const { agent, cvId, content, view } = await givenReadyCv();
       const [skill] = (await content()).skills;
       const { version } = await view();
@@ -142,6 +142,21 @@ describe('editing CV items', () => {
 
       const after = cvViewSchema.parse(response.body);
       expect(after.content!.skills).toEqual([]);
+      expect(after.version).toBe(version);
+    });
+
+    it('bumps the version when an experience goes, because the order shifts', async () => {
+      const { agent, cvId, content, view } = await givenReadyCv();
+      const [experience] = (await content()).experience;
+      const { version } = await view();
+
+      const response = await agent
+        .delete(`/api/cvs/${cvId}/items/${experience!.id}`)
+        .query({ rev: experience!.rev })
+        .expect(200);
+
+      const after = cvViewSchema.parse(response.body);
+      expect(after.content!.experience).toEqual([]);
       expect(after.version).toBe(version + 1);
     });
 

@@ -101,8 +101,9 @@ export class CvItemsService {
   }
 
   /**
-   * Removes an item; `rev` must be the removed item's own. Moves the following
-   * items up one place, so the CV `version` goes up. Returns the CV view.
+   * Removes an item; `rev` must be the removed item's own. Removing an
+   * experience or education entry moves the following ones up a place, so the
+   * CV `version` goes up; a skill or bullet leaves it alone. Returns the CV view.
    */
   async remove(
     userId: string,
@@ -120,9 +121,11 @@ export class CvItemsService {
       if (ref.item.rev !== rev) throw itemConflict(ref.item);
 
       removeItem(content, itemId);
+      // Only experience and education have an order the removal can shift.
+      const shiftsOrder = movableSection(ref, content) !== undefined;
       await tx.cv.update({
         where: { id: cvId },
-        data: { content, version: { increment: 1 } },
+        data: { content, ...(shiftsOrder && { version: { increment: 1 } }) },
       });
     });
     return this.cvs.view(userId, cvId);

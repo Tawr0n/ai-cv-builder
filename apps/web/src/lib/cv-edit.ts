@@ -59,6 +59,35 @@ export function replaceItem(content: CvContent, item: CvItem): CvContent {
   return { ...content, summary: item };
 }
 
+/**
+ * An answer to an add / remove / move is built after the operation committed,
+ * so a slower one can arrive after a newer item save. Where the cache already
+ * holds a higher `rev` for an item, that one stays.
+ */
+export function keepNewer(cached: CvContent, next: CvContent): CvContent {
+  const newest = <Entry extends { id: string; rev: number }>(
+    before: Entry[],
+    after: Entry[],
+  ) =>
+    after.map((entry) => {
+      const old = before.find(({ id }) => id === entry.id);
+      return old && old.rev > entry.rev ? old : entry;
+    });
+  const newer = <Entry extends { rev: number }>(old: Entry, entry: Entry) =>
+    old.rev > entry.rev ? old : entry;
+
+  return {
+    contact: newer(cached.contact, next.contact),
+    summary: newer(cached.summary, next.summary),
+    experience: newest(cached.experience, next.experience).map((entry) => {
+      const old = cached.experience.find(({ id }) => id === entry.id);
+      return { ...entry, bullets: newest(old?.bullets ?? [], entry.bullets) };
+    }),
+    education: newest(cached.education, next.education),
+    skills: newest(cached.skills, next.skills),
+  };
+}
+
 export type SaveState =
   | { status: 'idle' }
   | { status: 'saving' }
@@ -193,7 +222,11 @@ export function useStructuralEdits(cvId: string) {
   const options = {
     onMutate: () => setError(null),
     onSuccess: (view: CvView) => {
-      queryClient.setQueryData(cvKey, view);
+      queryClient.setQueryData<CvView>(cvKey, (cached) =>
+        cached?.content && view.content
+          ? { ...view, content: keepNewer(cached.content, view.content) }
+          : view,
+      );
       void queryClient.invalidateQueries({
         queryKey: queryKeys.cvs(),
         exact: true,
@@ -234,8 +267,16 @@ export function useStructuralEdits(cvId: string) {
   });
   const removeItem = useMutation({
     ...options,
-    mutationFn: ({ itemId, rev }: { itemId: string; rev: number }) =>
-      apiDelete(`/api/cvs/${cvId}/items/${itemId}?rev=${rev}`, cvViewSchema),
+    // The `rev` is read when the request goes out: a blur that tapping Remove
+    // just triggered may have saved the item a moment ago.
+    mutationFn: ({ itemId }: { itemId: string }) => {
+      const rev = itemRevInCache(queryClient.getQueryData(cvKey), itemId);
+      if (rev === undefined) return Promise.reject(new Error('Item is gone'));
+      return apiDelete(
+        `/api/cvs/${cvId}/items/${itemId}?rev=${rev}`,
+        cvViewSchema,
+      );
+    },
   });
   const moveItem = useMutation({
     ...options,

@@ -13,7 +13,6 @@ export const RESERVED_ITEM_IDS = ['contact', 'summary'] as const;
 
 /** Sections whose items the User can add, remove and (except skills) move. */
 export const CV_SECTIONS = ['experience', 'education', 'skills'] as const;
-export const MOVABLE_SECTIONS = ['experience', 'education'] as const;
 
 export const itemIdSchema = z.union([z.uuid(), z.enum(RESERVED_ITEM_IDS)]);
 export const cvSectionSchema = z.enum(CV_SECTIONS);
