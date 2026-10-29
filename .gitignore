@@ -1,6 +1,15 @@
 # Dependencies
 node_modules/
 
+# Build output
+dist/
+.next/
+*.tsbuildinfo
+next-env.d.ts
+
+# Generated Prisma client (pnpm install runs `prisma generate`)
+apps/api/src/generated/
+
 # Local secrets (ANTHROPIC_API_KEY and friends); commit only the example file
 .env*
 !.env.example
