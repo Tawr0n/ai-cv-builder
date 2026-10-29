@@ -108,12 +108,12 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 
 **What would remove it:** `DELETE /api/cvs/:cvId` scoped by `userId` (foreign CV → 404), cascading to the Source, Facts, Questions and Generations, with a confirmation in the UI.
 
-## The Answer-update prompt is checked only against the fake model
+## The Answer-update prompt is not part of the live smoke script
 
-**What:** The `update` step, which rewrites items from the User's Answers, has a prompt that has never been run against the real model. Its structure is enforced by our code and covered by tests with the scripted fake, but `pnpm smoke:live` only runs extract → compose → judge → repair.
+**What:** The `update` step, which rewrites items from the User's Answers, is not exercised by `pnpm smoke:live`, which only runs extract → compose → judge → repair. Its structure is enforced by our code and covered by tests with the scripted fake; against the real model it has been run by hand, not by any script. Running it that way is how a real defect was found before submission: the first version of its output schema was rejected by the API as too large (see "How I used AI tools" in the README).
 
-**Why we accept it:** `smoke:live` costs real money per run and extending it did not fit the time budget. The structural rules (only items in scope change, an Edited item is untouched, every change is cited and judged) are in code and tested. What cannot be tested without the model is the wording quality of the rewrite.
+**Why we accept it:** `smoke:live` costs real money per run and extending it did not fit the time budget. The structural rules (only items in scope change, an Edited item is untouched, every change is cited and judged) are in code and tested. What cannot be tested without the model is that the API accepts the schema and the quality of the rewrite.
 
-**What limits the damage:** Whatever `update` returns goes through the same judge → repair → soften path as the first Generation’s CV content, so an invented fact is flagged the same way, and every changed item stays under review (word diff, Accept / Undo) until the User decides. A failed update leaves the CV as it was.
+**What limits the damage:** Whatever `update` returns goes through the same judge → repair → soften path as the first Generation's CV content, so an invented fact is flagged the same way, and every changed item stays under review (word diff, Accept / Undo) until the User decides. A failed update leaves the CV as it was, with the Answers still pending.
 
-**What would remove it:** Extending `pnpm smoke:live` with one pending Answer and an Update CV, checking structure only.
+**What would remove it:** Extending `pnpm smoke:live` with one pending Answer on each section and an Update CV, checking structure only.
