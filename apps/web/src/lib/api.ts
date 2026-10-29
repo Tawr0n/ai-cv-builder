@@ -11,18 +11,25 @@ export class ApiRequestError extends Error {
   }
 }
 
-/** Calls the API through the Next.js `/api/*` rewrite and parses the answer with a shared schema. */
-export async function apiGet<Schema extends z.ZodType>(
-  path: `/api/${string}`,
-  schema: Schema,
-): Promise<z.output<Schema>> {
+type ApiPath = `/api/${string}`;
+
+async function apiRequest(
+  method: 'GET' | 'POST',
+  path: ApiPath,
+  body?: unknown,
+): Promise<unknown> {
   const response = await fetch(path, {
-    headers: { accept: 'application/json' },
+    method,
+    headers: {
+      accept: 'application/json',
+      ...(body !== undefined && { 'content-type': 'application/json' }),
+    },
+    ...(body !== undefined && { body: JSON.stringify(body) }),
   });
-  const body: unknown = await response.json().catch(() => undefined);
+  const payload: unknown = await response.json().catch(() => undefined);
 
   if (!response.ok) {
-    const parsed = apiErrorSchema.safeParse(body);
+    const parsed = apiErrorSchema.safeParse(payload);
     throw new ApiRequestError(
       response.status,
       parsed.success
@@ -30,5 +37,29 @@ export async function apiGet<Schema extends z.ZodType>(
         : { code: 'unexpected_response', message: response.statusText },
     );
   }
-  return schema.parse(body);
+  return payload;
+}
+
+/** Calls the API through the Next.js `/api/*` rewrite and parses the answer with a shared schema. */
+export async function apiGet<Schema extends z.ZodType>(
+  path: ApiPath,
+  schema: Schema,
+): Promise<z.output<Schema>> {
+  return schema.parse(await apiRequest('GET', path));
+}
+
+/** POSTs JSON; `schema` parses the answer, or pass `undefined` for an empty `204`. */
+export async function apiPost<Schema extends z.ZodType>(
+  path: ApiPath,
+  body: unknown,
+  schema: Schema,
+): Promise<z.output<Schema>>;
+export async function apiPost(path: ApiPath, body?: unknown): Promise<void>;
+export async function apiPost(
+  path: ApiPath,
+  body?: unknown,
+  schema?: z.ZodType,
+): Promise<unknown> {
+  const payload = await apiRequest('POST', path, body);
+  return schema ? schema.parse(payload) : undefined;
 }

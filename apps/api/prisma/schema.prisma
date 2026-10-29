@@ -10,8 +10,21 @@ datasource db {
 
 /// A person who signs up with an email and password and owns CVs.
 model User {
-  id           String   @id @default(uuid(7)) @db.Uuid
-  email        String   @unique
+  id           String    @id @default(uuid(7)) @db.Uuid
+  email        String    @unique
   passwordHash String
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+}
+
+/// A logged-in browser. Only the SHA-256 hash of the cookie token is stored.
+model Session {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  tokenHash String   @unique
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

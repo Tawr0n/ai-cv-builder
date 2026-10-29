@@ -1,5 +1,6 @@
-import { apiErrorSchema, healthSchema } from '@ai-cv-builder/shared';
+import { healthSchema } from '@ai-cv-builder/shared';
 import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
+import { errorResponse } from '../openapi/error-response.js';
 
 export function registerHealthDocs(registry: OpenAPIRegistry) {
   registry.registerPath({
@@ -12,10 +13,7 @@ export function registerHealthDocs(registry: OpenAPIRegistry) {
         description: 'The API and the database answer',
         content: { 'application/json': { schema: healthSchema } },
       },
-      503: {
-        description: '`database_unavailable`',
-        content: { 'application/json': { schema: apiErrorSchema } },
-      },
+      503: errorResponse('`database_unavailable`'),
     },
   });
 }
