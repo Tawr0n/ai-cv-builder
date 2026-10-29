@@ -15,6 +15,7 @@ import {
   moveItemSchema,
   patchItemSchema,
   removeItemQuerySchema,
+  reviewDecisionSchema,
   answerQuestionSchema,
   questionListSchema,
   questionSchema,
@@ -179,6 +180,38 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
       409: errorResponse('`item_conflict`: stale `rev` | `cv_not_ready`'),
     },
   });
+
+  for (const [decision, summary, description] of [
+    [
+      'accept',
+      'Accept an AI change under review',
+      'Update CV left the item changed and under review (`review` holds its previous version); Accept keeps the change. Editing the item by hand accepts it too.',
+    ],
+    [
+      'undo',
+      'Undo an AI change under review',
+      'The item goes back to `review.prev` (an item Update CV added is removed), and the Questions whose Answers caused the change are pending again, with their Answers kept.',
+    ],
+  ] as const) {
+    registry.registerPath({
+      method: 'post',
+      path: `/api/cvs/{cvId}/items/{itemId}/${decision}`,
+      tags: ['cvs'],
+      summary,
+      description: `${description} Send the item's own \`rev\`.`,
+      request: { params: itemParams, body: json(reviewDecisionSchema) },
+      responses: {
+        200: { description: 'The CV view', ...json(cvViewSchema) },
+        400: errorResponse('`validation_failed`'),
+        401: errorResponse('`unauthenticated`'),
+        403: errorResponse('`forbidden_origin`'),
+        404: notFound,
+        409: errorResponse(
+          '`item_conflict`: `error.current` is the item now | `not_in_review` | `cv_not_ready`',
+        ),
+      },
+    });
+  }
 
   registry.registerPath({
     method: 'post',

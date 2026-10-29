@@ -4,7 +4,7 @@ import {
   type Question,
   questionListSchema,
 } from '@ai-cv-builder/shared';
-import type { ComposeOutput } from '../../src/ai/cv-ai.js';
+import type { ComposeOutput, CvAiOutput } from '../../src/ai/cv-ai.js';
 import { PrismaService } from '../../src/database/prisma.service.js';
 import { GenerationRunner } from '../../src/generation/generation-runner.js';
 import { composeOutput, extractOutput, noFindings } from './cv-ai-fixtures.js';
@@ -54,7 +54,56 @@ export async function givenReadyCv(
     if (!found) throw new Error(`No Question "${text}"`);
     return found;
   }
-  return { ...owner, cvId, view, content, questions, question };
+  /** Saves a pending Answer to the Question with this text; returns the Question's id. */
+  async function answer(questionText: string, text: string) {
+    const { id } = await question(questionText);
+    await owner.agent
+      .put(`/api/cvs/${cvId}/questions/${id}/answer`)
+      .send({ answer: text })
+      .expect(200);
+    return id;
+  }
+  /** What update returns for the sample Experience as it is now, with `changes` applied. */
+  async function experienceUpdate(
+    changes: Partial<CvAiOutput<'update'>['experience'][number]> = {},
+    asked: CvAiOutput<'update'>['questions'] = [],
+  ): Promise<CvAiOutput<'update'>> {
+    const [experience] = (await content()).experience;
+    const {
+      review: _review,
+      rev: _rev,
+      edited: _edited,
+      ...fields
+    } = experience!;
+    return {
+      contact: null,
+      summary: null,
+      experience: [
+        {
+          ...fields,
+          bullets: fields.bullets.map(({ id, text, sourceFactIds }) => ({
+            id,
+            text,
+            sourceFactIds,
+          })),
+          ...changes,
+        },
+      ],
+      education: [],
+      skills: [],
+      questions: asked,
+    };
+  }
+  return {
+    ...owner,
+    cvId,
+    view,
+    content,
+    questions,
+    question,
+    answer,
+    experienceUpdate,
+  };
 }
 
 export const LOCATION_QUESTION = 'Where were you based?';

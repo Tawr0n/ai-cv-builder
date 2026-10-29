@@ -188,6 +188,8 @@ describe('/api/cvs/:cvId routes', () => {
       'POST /api/cvs/:cvId/items/:itemId/move': {
         body: { direction: 'up', version: 1 },
       },
+      'POST /api/cvs/:cvId/items/:itemId/accept': { body: { rev: 1 } },
+      'POST /api/cvs/:cvId/items/:itemId/undo': { body: { rev: 1 } },
       'POST /api/cvs/:cvId/items/:experienceId/bullets': {
         body: { text: 'Not yours.' },
       },

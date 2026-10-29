@@ -1,7 +1,6 @@
 import { apiErrorSchema, generationSchema } from '@ai-cv-builder/shared';
 import Anthropic from '@anthropic-ai/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import type { CvAiOutput } from '../src/ai/cv-ai.js';
 import { factSchema } from '../src/ai/cv-ai.js';
 import { PrismaService } from '../src/database/prisma.service.js';
 import { GenerationRunner } from '../src/generation/generation-runner.js';
@@ -38,15 +37,6 @@ describe('Update CV: an answer Generation applies the pending Answers', () => {
     testApp.app.get(GenerationRunner).run(generationId);
   const given = () => givenReadyCv(testApp, composeWithQuestions());
 
-  async function answer(cv: ReadyCv, questionText: string, text: string) {
-    const { id } = await cv.question(questionText);
-    await cv.agent
-      .put(`/api/cvs/${cv.cvId}/questions/${id}/answer`)
-      .send({ answer: text })
-      .expect(200);
-    return id;
-  }
-
   const updateCv = (cv: ReadyCv) =>
     cv.agent.post(`/api/cvs/${cv.cvId}/generations`).send({ kind: 'answer' });
 
@@ -60,45 +50,11 @@ describe('Update CV: an answer Generation applies the pending Answers', () => {
     return factSchema.array().parse(cv.facts);
   }
 
-  /** What update returns for the sample Experience, with `changes` applied. */
-  async function experienceUpdate(
-    cv: ReadyCv,
-    changes: Partial<CvAiOutput<'update'>['experience'][number]> = {},
-    questions: CvAiOutput<'update'>['questions'] = [],
-  ): Promise<CvAiOutput<'update'>> {
-    const [experience] = (await cv.content()).experience;
-    const {
-      review: _review,
-      rev: _rev,
-      edited: _edited,
-      ...fields
-    } = experience!;
-    return {
-      contact: null,
-      summary: null,
-      experience: [
-        {
-          ...fields,
-          bullets: fields.bullets.map(({ id, text, sourceFactIds }) => ({
-            id,
-            text,
-            sourceFactIds,
-          })),
-          ...changes,
-        },
-      ],
-      education: [],
-      skills: [],
-      questions,
-    };
-  }
-
   it('applies every pending Answer in one update call over the anchored item only', async () => {
     const cv = await given();
     const before = await cv.content();
-    const location = await answer(cv, LOCATION_QUESTION, 'London');
-    const numbers = await answer(
-      cv,
+    const location = await cv.answer(LOCATION_QUESTION, 'London');
+    const numbers = await cv.answer(
       NUMBERS_QUESTION,
       'About 2 million a month',
     );
@@ -111,7 +67,7 @@ describe('Update CV: an answer Generation applies the pending Answers', () => {
     testApp.cvAi
       .returns(
         'update',
-        await experienceUpdate(cv, {
+        await cv.experienceUpdate({
           location: 'London',
           bullets: [
             {
@@ -192,7 +148,7 @@ describe('Update CV: an answer Generation applies the pending Answers', () => {
       .patch(`/api/cvs/${cv.cvId}/items/summary`)
       .send({ rev: 1, text: 'My own words.' })
       .expect(200);
-    await answer(cv, SUMMARY_QUESTION, 'Small product teams');
+    await cv.answer(SUMMARY_QUESTION, 'Small product teams');
     const before = await cv.content();
 
     // Only an Edited item is anchored: nothing for the model to do.
@@ -211,15 +167,14 @@ describe('Update CV: an answer Generation applies the pending Answers', () => {
 
   it('replaces the open Questions in scope with what the update asks', async () => {
     const cv = await given();
-    await answer(cv, LOCATION_QUESTION, 'London');
+    await cv.answer(LOCATION_QUESTION, 'London');
     const generation = await startUpdate(cv);
     const bulletId = (await cv.content()).experience[0]!.bullets[0]!.id;
 
     testApp.cvAi
       .returns(
         'update',
-        await experienceUpdate(
-          cv,
+        await cv.experienceUpdate(
           { location: 'London', sourceFactIds: ['f3', 'f5'] },
           [
             {
@@ -250,12 +205,12 @@ describe('Update CV: an answer Generation applies the pending Answers', () => {
 
   it('keeps an item in scope that the update leaves out: a refuting Answer never deletes it', async () => {
     const cv = await given();
-    await answer(cv, LOCATION_QUESTION, 'I never worked there');
+    await cv.answer(LOCATION_QUESTION, 'I never worked there');
     const before = await cv.content();
     const generation = await startUpdate(cv);
 
     testApp.cvAi.returns('update', {
-      ...(await experienceUpdate(cv)),
+      ...(await cv.experienceUpdate()),
       experience: [],
     });
     await run(generation.id);
@@ -266,7 +221,7 @@ describe('Update CV: an answer Generation applies the pending Answers', () => {
 
   it('leaves the CV ready and the Answers pending when the update fails', async () => {
     const cv = await given();
-    await answer(cv, LOCATION_QUESTION, 'London');
+    await cv.answer(LOCATION_QUESTION, 'London');
     const before = await cv.content();
     const generation = await startUpdate(cv);
 
@@ -291,13 +246,13 @@ describe('Update CV: an answer Generation applies the pending Answers', () => {
       locked: false,
     });
     // Still editable, and Try again is another Update CV.
-    await answer(cv, LOCATION_QUESTION, 'London, UK');
+    await cv.answer(LOCATION_QUESTION, 'London, UK');
     await startUpdate(cv);
   });
 
   it('answers 409 to a second Update CV while one runs, and locks the Answers it took', async () => {
     const cv = await given();
-    const location = await answer(cv, LOCATION_QUESTION, 'London');
+    const location = await cv.answer(LOCATION_QUESTION, 'London');
     const generation = await startUpdate(cv);
 
     const second = await updateCv(cv).expect(409);
@@ -319,11 +274,11 @@ describe('Update CV: an answer Generation applies the pending Answers', () => {
       .expect(409);
 
     // An Answer typed during the run waits for the next Update CV.
-    await answer(cv, SUMMARY_QUESTION, 'Small product teams');
+    await cv.answer(SUMMARY_QUESTION, 'Small product teams');
     testApp.cvAi
       .returns(
         'update',
-        await experienceUpdate(cv, {
+        await cv.experienceUpdate({
           location: 'London',
           sourceFactIds: ['f3', 'f5'],
         }),
@@ -351,9 +306,9 @@ describe('Update CV: an answer Generation applies the pending Answers', () => {
 
   it('leaves alone an item the User edits while the update runs', async () => {
     const cv = await given();
-    await answer(cv, LOCATION_QUESTION, 'London');
+    await cv.answer(LOCATION_QUESTION, 'London');
     const generation = await startUpdate(cv);
-    const output = await experienceUpdate(cv, {
+    const output = await cv.experienceUpdate({
       location: 'London',
       sourceFactIds: ['f3', 'f5'],
     });

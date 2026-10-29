@@ -11,6 +11,8 @@ import {
   type PatchItem,
   patchItemSchema,
   removeItemQuerySchema,
+  type ReviewDecision,
+  reviewDecisionSchema,
   type User,
 } from '@ai-cv-builder/shared';
 import {
@@ -82,6 +84,30 @@ export class CvItemsController {
     @Body(new ZodValidationPipe(moveItemSchema)) body: MoveItem,
   ): Promise<CvView> {
     return this.items.move(user.id, cvId, itemId, body);
+  }
+
+  /** Keeps the AI change under review. */
+  @Post('items/:itemId/accept')
+  @HttpCode(HttpStatus.OK)
+  accept(
+    @CurrentUser() user: User,
+    @Param('cvId', cvIdPipe) cvId: string,
+    @Param('itemId', itemIdPipe) itemId: string,
+    @Body(new ZodValidationPipe(reviewDecisionSchema)) { rev }: ReviewDecision,
+  ): Promise<CvView> {
+    return this.items.decide(user.id, cvId, itemId, 'accept', rev);
+  }
+
+  /** Puts the item back as it was before the AI change and reopens its Questions. */
+  @Post('items/:itemId/undo')
+  @HttpCode(HttpStatus.OK)
+  undo(
+    @CurrentUser() user: User,
+    @Param('cvId', cvIdPipe) cvId: string,
+    @Param('itemId', itemIdPipe) itemId: string,
+    @Body(new ZodValidationPipe(reviewDecisionSchema)) { rev }: ReviewDecision,
+  ): Promise<CvView> {
+    return this.items.decide(user.id, cvId, itemId, 'undo', rev);
   }
 
   @Post('items/:experienceId/bullets')
