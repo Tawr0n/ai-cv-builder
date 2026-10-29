@@ -1,3 +1,4 @@
+import { SESSION_COOKIE } from '@ai-cv-builder/shared';
 import {
   type CanActivate,
   type ExecutionContext,
@@ -9,7 +10,7 @@ import type { Request, Response } from 'express';
 import { ApiException } from '../http/api.exception.js';
 import { AuthService } from './auth.service.js';
 import { IS_PUBLIC } from './public.decorator.js';
-import { SESSION_COOKIE, setSessionCookie } from './session-cookie.js';
+import { setSessionCookie } from './session-cookie.js';
 
 /** Global guard: every route needs a valid session unless it is marked `@Public()`. */
 @Injectable()

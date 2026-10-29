@@ -1,6 +1,6 @@
+import { SESSION_COOKIE } from '@ai-cv-builder/shared';
 import type { Response } from 'express';
 
-export const SESSION_COOKIE = 'sid';
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const COOKIE_BASE = { httpOnly: true, sameSite: 'lax', path: '/' } as const;

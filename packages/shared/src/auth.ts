@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+/** Name of the session cookie; the API sets it and the web proxy looks for it. */
+export const SESSION_COOKIE = 'sid';
+
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
 
 export const signupSchema = z
