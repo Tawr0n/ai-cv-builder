@@ -1,8 +1,9 @@
 <!doctype html>
 <!--
   PROTOTYPE — throwaway. Answers wayfinder ticket "Mobile-friendly CV editor UX" (#11).
-  Three structurally different CV editor variants, switchable via ?variant=A|B|C and the
-  floating bottom bar (← / → keys). Shared screens: CV list, New CV, Generating, Failed.
+  Agreed shape (variant C): paper preview + bottom tabs CV | Edit | Questions. Variants A
+  (inline document) and B (section tabs + sheets) were dropped; they live in this branch's
+  history (commit 0fddffd). Other screens: CV list, New CV, Generating, Failed.
   No backend: all state is in memory; the "Sim" panel forces states (save error, failures).
   Open on a phone or in a 375px viewport. Never merge into main.
 -->
@@ -51,8 +52,6 @@
   .shimmer { position: relative; opacity: .55; pointer-events: none; }
   .shimmer::after { content: "Updating…"; position: absolute; top: 6px; right: 8px; font-size: 11px; color: var(--accent); background: var(--pending-bg); padding: 1px 6px; border-radius: 99px; }
   .edited { font-size: 11px; color: var(--muted); }
-  .bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 64px; width: min(420px, 100%); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--line); display: flex; gap: 8px; z-index: 6; }
-  .bar button { flex: 1; }
   h2.sec { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
   ul.b { margin: 6px 0 0; padding-left: 18px; }
   ul.b li { margin: 2px 0; }
@@ -64,21 +63,20 @@
   .seg button.on { background: var(--ink); color: #fff; }
   .steps li { margin: 6px 0; list-style: none; }
   .steps { padding: 0; }
-  /* B */
-  .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 10px 14px; background: var(--card); border-bottom: 1px solid var(--line); position: sticky; top: 61px; z-index: 4; }
-  .tabs button { white-space: nowrap; border-radius: 99px; padding: 6px 12px; min-height: 34px; }
-  .tabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
-  .dot { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 99px; background: var(--warn-line); color: #000; font-size: 11px; margin-left: 4px; }
-  .sheet { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
-  .sheet .in { background: var(--bg); width: min(420px,100%); max-height: 92vh; overflow: auto; border-radius: 16px 16px 0 0; }
-  .sheet header { position: sticky; top: 0; background: var(--card); display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
-  .fab { position: fixed; bottom: 80px; right: max(14px, calc(50% - 196px)); z-index: 7; border-radius: 99px; padding: 12px 18px; box-shadow: 0 4px 14px rgba(0,0,0,.2); }
-  /* C */
   .paper { background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.12); padding: 22px 20px; margin: 12px; font-family: Georgia, serif; font-size: 13px; }
   .paper h3 { font: 600 11px/1 -apple-system, system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin: 16px 0 6px; display: flex; justify-content: space-between; align-items: center; }
   .paper .pen { font: 12px -apple-system, system-ui, sans-serif; letter-spacing: 0; text-transform: none; color: var(--accent); border: 0; background: none; padding: 0 4px; min-height: 0; }
   .hl { background: #fff1b8; outline: 2px solid var(--warn-line); border-radius: 3px; }
   .qmark { display: inline-block; font: 600 10px -apple-system, system-ui, sans-serif; color: var(--warn-ink); background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 99px; padding: 0 5px; margin-left: 4px; cursor: pointer; }
+  .li { display: flex; gap: 6px; align-items: flex-start; margin: 6px 0; }
+  .li textarea, .li input { flex: 1; min-height: 40px; }
+  .x { min-height: 40px; padding: 0 10px; color: var(--muted); }
+  .add { width: 100%; border-style: dashed; color: var(--accent); margin-top: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .chips span { background: #eef1f6; border-radius: 99px; padding: 4px 4px 4px 10px; font-size: 14px; display: inline-flex; align-items: center; gap: 2px; }
+  .chips span button { border: 0; background: none; min-height: 0; padding: 0 6px; color: var(--muted); }
+  .chead { display: flex; align-items: center; margin-bottom: -4px; }
+  .chead b { flex: 1; font-size: 12px; color: var(--muted); font-weight: 600; }
   .loader { position: sticky; top: 70px; z-index: 3; margin: 12px; background: var(--card); border: 1px solid #b9cbff; border-radius: 12px; padding: 14px; display: flex; gap: 12px; align-items: center; box-shadow: 0 4px 14px rgba(47,91,234,.15); }
   .spin { width: 26px; height: 26px; border: 3px solid var(--pending-bg); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; flex: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -89,15 +87,12 @@
   ins.di { background: #d9f2e3; color: #1d5e36; text-decoration: none; }
   .changed { border-left: 3px solid #2fa865; padding-left: 6px; margin-left: -9px; cursor: pointer; }
   .changed.sel { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
-  .rbar { position: fixed; bottom: 112px; left: 50%; transform: translateX(-50%); width: min(420px,100%); background: var(--card); border-top: 1px solid var(--line); box-shadow: 0 -4px 12px rgba(0,0,0,.08); padding: 8px 12px; z-index: 6; }
+  .rbar { position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%); width: min(420px,100%); background: var(--card); border-top: 1px solid var(--line); box-shadow: 0 -4px 12px rgba(0,0,0,.08); padding: 8px 12px; z-index: 6; }
   .rbar .row button { min-height: 36px; padding: 6px 12px; }
-  .bnav { position: fixed; bottom: 64px; left: 50%; transform: translateX(-50%); width: min(420px,100%); background: var(--card); border-top: 1px solid var(--line); display: flex; z-index: 6; }
-  .bnav button { flex: 1; border: 0; border-radius: 0; padding: 10px 0; font-size: 13px; }
+  .bnav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: min(420px,100%); background: var(--card); border-top: 1px solid var(--line); display: flex; z-index: 6; }
+  .bnav button { flex: 1; border: 0; border-radius: 0; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); font-size: 13px; }
   .bnav button.on { color: var(--accent); font-weight: 600; }
   /* prototype chrome (not part of the design) */
-  #switcher { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 50; background: #111; color: #fff; border-radius: 99px; display: flex; align-items: center; gap: 4px; padding: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.4); font-size: 13px; }
-  #switcher button { background: transparent; color: #fff; border: 0; min-height: 34px; padding: 4px 12px; }
-  #switcher .lbl { padding: 0 6px; white-space: nowrap; }
   #sim { position: fixed; top: 120px; right: 8px; z-index: 51; font-size: 12px; }
   #sim > button { background: #111; color: #fff; border: 0; border-radius: 99px; min-height: 30px; padding: 4px 12px; }
   #sim .panel { background: #111; color: #eee; border-radius: 12px; padding: 10px; margin-top: 6px; width: 290px; max-height: 70vh; overflow: auto; }
@@ -109,15 +104,11 @@
 <body>
 <div class="phone" id="app"></div>
 <div id="sim"></div>
-<div id="switcher"></div>
 <script>
 // ---------- in-memory state ----------
-const VARIANTS = { A: 'Inline document', B: 'Section tabs + sheets', C: 'Preview + Questions inbox' };
-const params = new URLSearchParams(location.search);
-let variant = VARIANTS[params.get('variant')] ? params.get('variant') : 'A';
 
 const initialCv = () => ({
-  contact: { id: 'contact', rev: 1, edited: false, name: 'Olena Kovalenko', email: 'olena.k@example.com', phone: '+380 67 123 4567', location: 'Lviv, Ukraine', links: 'github.com/olenak' },
+  contact: { id: 'contact', rev: 1, edited: false, name: 'Olena Kovalenko', email: 'olena.k@example.com', phone: '+380 67 123 4567', location: 'Lviv, Ukraine', links: ['https://github.com/olenak'] },
   summary: { id: 'summary', rev: 1, edited: false, text: 'Backend engineer with 6 years of Node.js and PostgreSQL experience, focused on payment systems and high-load APIs. Targeting a Senior Backend Engineer role.' },
   experience: [
     { id: 'e1', rev: 1, edited: false, title: 'Backend Engineer', org: 'PayFlow', dates: '2021 – present', bullets: ['Built the payment authorisation service in NestJS and PostgreSQL', 'Cut p95 latency of the checkout API by moving reads to a replica', 'Mentored two junior engineers'] },
@@ -125,7 +116,7 @@ const initialCv = () => ({
     { id: 'e3', rev: 1, edited: false, title: 'Junior Developer', org: 'SoftServe', dates: '2018 – 2020', bullets: ['Maintained internal reporting tools in Express'] },
   ],
   education: [ { id: 'ed1', rev: 1, edited: false, degree: 'BSc Computer Science', school: 'Lviv Polytechnic', dates: null } ],
-  skills: { id: 'skills', rev: 1, edited: false, list: 'Node.js, TypeScript, NestJS, PostgreSQL, Redis, Docker' },
+  skills: { id: 'skills', rev: 1, edited: false, items: ['Node.js', 'TypeScript', 'NestJS', 'PostgreSQL', 'Redis', 'Docker'] },
 });
 const initialQuestions = () => ([
   { id: 'q1', anchor: { section: 'experience', item: 'e1', field: 'bullets' }, text: 'How much did the p95 latency of the checkout API drop?', status: 'open', answer: '' },
@@ -142,7 +133,7 @@ let S = {
   questions: initialQuestions(),
   saves: {},                   // itemId -> 'saving' | 'saved' | 'error'
   sim: { saveFails: false, answerRunFails: false, initialFails: false, open: false },
-  ui: { aOpen: null, bTab: 'experience', bSheet: null, bDraft: null, cTab: 'preview', cEdit: null, cDraft: null, hl: null },
+  ui: { cTab: 'preview', hl: null, rSel: null, focus: null },
 };
 
 // ---------- helpers ----------
@@ -182,7 +173,7 @@ function startAnswerRun() {
   const pend = S.questions.filter(q => q.status === 'pending');
   const scope = [...new Set(pend.map(q => q.anchor.item || q.anchor.section))].filter(id => !itemById(id)?.edited);
   S.generation = { kind: 'answer', status: 'running', step: 'compose', scope };
-  if (variant === 'C') { S.ui.cTab = 'preview'; S.ui.hl = null; window.scrollTo(0, 0); } // show the CV being updated
+  S.ui.cTab = 'preview'; S.ui.hl = null; window.scrollTo(0, 0); // show the CV being updated
   render();
   setTimeout(() => { if (S.generation) { S.generation.step = 'judge'; render(); } }, 1500);
   setTimeout(() => {
@@ -194,7 +185,7 @@ function startAnswerRun() {
       if (q.id === 'q1') it.bullets[1] = 'Cut p95 latency of the checkout API from 800 ms to 250 ms by moving reads to a replica';
       if (q.id === 'q2') { it.dates = q.answer.match(/\d{4}.*\d{4}/)?.[0] || '2020 – 2021'; it.org = 'Upwork'; }
       if (q.id === 'q3') it.dates = q.answer.match(/\d{4}/)?.[0] || '2018';
-      if (q.id === 'q4') it.list += ', RabbitMQ';
+      if (q.id === 'q4') it.items = [...it.items, 'RabbitMQ'];
       it.rev++;
     }
     S.generation = { ...S.generation, status: 'succeeded' };
@@ -283,91 +274,9 @@ function updateBtn(extraClass = '') {
 }
 function downloadBtn(label = '⬇ PDF') { return `<button onclick="alert('GET /api/cvs/:id/pdf → A4 PDF download')">${label}</button>`; }
 
-// ---------- Variant A: inline document ----------
-function fieldsFor(it, sec) {
-  if (sec === 'contact') return ['name','email','phone','location','links'];
-  if (sec === 'summary') return ['text'];
-  if (sec === 'skills') return ['list'];
-  if (sec === 'experience') return ['title','org','dates','bullets'];
-  return ['degree','school','dates'];
-}
-function inputFor(it, f, onchange) {
-  const v = f === 'bullets' ? it.bullets.join('\n') : it[f];
-  const big = f === 'bullets' || f === 'text' || f === 'list';
-  const ph = v === null ? 'Unknown, see the question' : '';
-  return `<label class="f">${f === 'bullets' ? 'Bullets (one per line)' : cap(f)}</label>${big ? `<textarea rows="${f === 'bullets' ? 4 : 3}" placeholder="${ph}" onchange="${onchange}">${esc(v)}</textarea>` : `<input placeholder="${ph}" value="${esc(v)}" onchange="${onchange}">`}`;
-}
-function readItem(it, sec) {
-  if (sec === 'contact') return `<b>${esc(it.name)}</b><div class="muted">${esc(it.email)} · ${esc(it.phone)} · ${esc(it.location)} · ${esc(it.links)}</div>`;
-  if (sec === 'summary') return esc(it.text);
-  if (sec === 'skills') return esc(it.list);
-  if (sec === 'experience') return `<b>${esc(it.title)}</b>${it.org ? ` · ${esc(it.org)}` : ` · <span class="chip warn">organisation?</span>`}<div class="muted">${it.dates ? esc(it.dates) : '<span class="chip warn">dates?</span>'}</div><ul class="b">${it.bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul>`;
-  return `<b>${esc(it.degree)}</b> · ${esc(it.school)}<div class="muted">${it.dates ? esc(it.dates) : '<span class="chip warn">year?</span>'}</div>`;
-}
-function aItem(it, sec) {
-  const open = S.ui.aOpen === it.id, qs = qFor(it.id);
-  const body = open
-    ? fieldsFor(it, sec).map(f => inputFor(it, f, `aField('${it.id}','${f}',this.value)`)).join('') + `<div class="row" style="margin-top:8px"><span class="grow">${saveLabel(it.id)}</span><button class="link" onclick="S.ui.aOpen=null;render()">Done</button></div>`
-    : `<div onclick="S.ui.aOpen='${it.id}';render()" style="cursor:text">${readItem(it, sec)}</div><div class="row"><span class="grow">${it.edited ? '<span class="edited">✎ edited by you</span>' : ''}</span>${saveLabel(it.id)}</div>`;
-  return `<div class="card ${inScope(it.id) ? 'shimmer' : ''}">${body}${qs.map(q => questionBox(q)).join('')}</div>`;
-}
-function variantA() {
-  const c = S.cv;
-  return `${topBar('Senior Backend Engineer', `${openCount()} open questions · tap any text to edit`, downloadBtn())}${runBanner()}
-  <div class="pad">
-    <h2 class="sec">Contact</h2>${aItem(c.contact, 'contact')}
-    <h2 class="sec">Summary</h2>${aItem(c.summary, 'summary')}
-    <h2 class="sec">Experience</h2>${c.experience.map(e => aItem(e, 'experience')).join('')}
-    <h2 class="sec">Education</h2>${c.education.map(e => aItem(e, 'education')).join('')}
-    <h2 class="sec">Skills</h2>${aItem(c.skills, 'skills')}
-  </div>
-  <div class="bar">${updateBtn()}${downloadBtn('Download PDF')}</div>`;
-}
-let aTimers = {};
-function aField(id, f, v) { // autosave: debounce per item, one item operation
-  const patch = f === 'bullets' ? { bullets: v.split('\n').filter(Boolean) } : { [f]: v };
-  clearTimeout(aTimers[id]); aTimers[id] = setTimeout(() => saveItem(id, patch), 300);
-}
-
-// ---------- Variant B: tabs + bottom sheets with explicit save ----------
-const B_TABS = ['contact','summary','experience','education','skills'];
-function bCard(it, sec) {
-  const qs = qFor(it.id);
-  return `<div class="card ${inScope(it.id) ? 'shimmer' : ''}" onclick="bOpen('${it.id}','${sec}')" style="cursor:pointer">
-    <div class="row"><div class="grow">${readItem(it, sec)}</div><span>›</span></div>
-    <div class="row" style="margin-top:6px">${qs.length ? `<span class="chip ${qs.every(q => q.status === 'pending') ? 'run' : 'warn'}">${qs.length} question${qs.length > 1 ? 's' : ''}</span>` : ''}${it.edited ? '<span class="edited">✎ edited</span>' : ''}<span class="grow"></span>${S.saves[it.id] === 'saved' ? '<span class="save ok">Saved</span>' : ''}</div></div>`;
-}
-function bOpen(id, sec) { const it = itemById(id); S.ui.bSheet = { id, sec }; S.ui.bDraft = JSON.parse(JSON.stringify(it)); delete S.saves[id]; render(); }
-function bSheet() {
-  const sh = S.ui.bSheet; if (!sh) return '';
-  const d = S.ui.bDraft, qs = qFor(sh.id), saving = S.saves[sh.id] === 'saving';
-  return `<div class="sheet"><div class="in">
-    <header><button class="link" onclick="S.ui.bSheet=null;render()">Cancel</button><b class="grow" style="text-align:center">${cap(sh.sec)}</b><button class="primary" ${saving ? 'disabled' : ''} onclick="bSave()">${saving ? 'Saving…' : 'Save'}</button></header>
-    ${S.saves[sh.id] === 'error' ? `<div class="banner err">Couldn't save, your changes are still here. Check your connection and tap Save again.</div>` : ''}
-    <div class="pad">${qs.map(q => questionBox(q)).join('')}
-    ${fieldsFor(d, sh.sec).map(f => inputFor(d, f, `bField('${f}',this.value)`)).join('')}</div></div></div>`;
-}
-function bField(f, v) { if (f === 'bullets') S.ui.bDraft.bullets = v.split('\n').filter(Boolean); else S.ui.bDraft[f] = v; }
-function bSave() {
-  const id = S.ui.bSheet.id, d = S.ui.bDraft;
-  S.saves[id] = 'saving'; render();
-  setTimeout(() => {
-    if (S.sim.saveFails) { S.saves[id] = 'error'; render(); return; }
-    const it = itemById(id); const { rev, edited, id: _i, ...rest } = d; Object.assign(it, rest); it.rev++; it.edited = true;
-    S.saves[id] = 'saved'; S.ui.bSheet = null; render();
-  }, 700);
-}
-function variantB() {
-  const c = S.cv, t = S.ui.bTab;
-  const items = t === 'experience' ? c.experience : t === 'education' ? c.education : [c[t]];
-  return `${topBar('Senior Backend Engineer', 'Ready', downloadBtn())}
-  <div class="tabs">${B_TABS.map(s => { const n = qForSection(s).length; return `<button class="${s === t ? 'on' : ''}" onclick="S.ui.bTab='${s}';render()">${cap(s)}${n ? `<span class="dot">${n}</span>` : ''}</button>`; }).join('')}</div>
-  ${runBanner()}
-  <div class="pad">${items.map(it => bCard(it, t)).join('')}
-  ${t === 'experience' ? `<p class="muted">Ordered by relevance to the role.</p>` : ''}</div>
-  ${pendingCount() || running() ? updateBtn('fab') : ''}
-  ${bSheet()}`;
-}
+// ---------- autosave: one item operation per change ----------
+let saveTimers = {};
+function queueSave(id, patch) { clearTimeout(saveTimers[id]); saveTimers[id] = setTimeout(() => saveItem(id, patch), 300); }
 
 // ---------- Variant C: paper preview + questions inbox ----------
 function cMark(id) { const qs = qFor(id); return qs.length ? `<span class="qmark" onclick="S.ui.cTab='questions';render()">?${qs.length}</span>` : ''; }
@@ -380,9 +289,9 @@ function cPaper() {
   return `${cLoader()}<div class="paper ${running() && S.generation.kind === 'answer' ? 'busy' : ''}">
     <div class="${h('contact')}" ${on('contact')}><div class="row"><div class="grow" style="font-size:20px;font-weight:600">${F(ct, 'name')}</div>${pen('contact')}</div><div style="font-size:11px">${F(ct, 'email')} · ${F(ct, 'phone')} · ${F(ct, 'location')} · ${F(ct, 'links')}</div></div>
     <h3>Summary ${pen('summary')}</h3><div class="${h('summary')}" ${on('summary')}>${F(c.summary, 'text')}</div>
-    <h3>Experience ${pen('experience')}</h3>${c.experience.map(e => `<div class="${h(e.id)}" ${on(e.id)} style="margin-bottom:8px"><b>${F(e, 'title')}</b>${e.org || e.prev?.org ? ', ' + F(e, 'org') : ''} ${cMark(e.id)}<div style="font-size:11px;color:#666">${F(e, 'dates')}</div><ul class="b">${FB(e)}</ul></div>`).join('')}
-    <h3>Education ${pen('education')}</h3>${c.education.map(e => `<div class="${h(e.id)}" ${on(e.id)}><b>${F(e, 'degree')}</b>, ${F(e, 'school')} ${F(e, 'dates')} ${cMark(e.id)}</div>`).join('')}
-    <h3>Skills ${pen('skills')}</h3><div class="${h('skills')}" ${on('skills')}>${F(c.skills, 'list')} ${cMark('skills')}</div>
+    <h3>Experience ${pen('experience')}</h3>${c.experience.filter(e => e.title || e.prev).map(e => `<div class="${h(e.id)}" ${on(e.id)} style="margin-bottom:8px"><b>${F(e, 'title')}</b>${e.org || e.prev?.org ? ', ' + F(e, 'org') : ''} ${cMark(e.id)}<div style="font-size:11px;color:#666">${F(e, 'dates')}</div><ul class="b">${FB(e)}</ul></div>`).join('')}
+    <h3>Education ${pen('education')}</h3>${c.education.filter(e => e.degree || e.prev).map(e => `<div class="${h(e.id)}" ${on(e.id)}><b>${F(e, 'degree')}</b>, ${F(e, 'school')} ${F(e, 'dates')} ${cMark(e.id)}</div>`).join('')}
+    <h3>Skills ${pen('skills')}</h3><div class="${h('skills')}" ${on('skills')}>${F(c.skills, 'items', ', ')} ${cMark('skills')}</div>
     <p style="font:11px -apple-system,sans-serif;color:#999;margin-top:14px">This is exactly what the PDF will look like.</p>
   </div>`;
 }
@@ -391,7 +300,8 @@ const ITEM_IDS = () => ['contact', 'summary', ...S.cv.experience.map(e => e.id),
 const changes = () => ITEM_IDS().filter(id => itemById(id).review);
 function snapshot(it) { const { prev, review, ...rest } = it; return JSON.parse(JSON.stringify(rest)); }
 function diffWords(a, b) {
-  const x = String(a ?? '').split(/(\s+)/), y = String(b ?? '').split(/(\s+)/);
+  const tok = v => String(v ?? '').split(/(\s+|[,;·])/).filter(Boolean); // punctuation is its own token
+  const x = tok(a), y = tok(b);
   const L = Array.from({ length: x.length + 1 }, () => new Array(y.length + 1).fill(0));
   for (let i = x.length - 1; i >= 0; i--) for (let j = y.length - 1; j >= 0; j--) L[i][j] = x[i] === y[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
   let i = 0, j = 0, out = '';
@@ -405,13 +315,18 @@ function diffWords(a, b) {
   return out;
 }
 // Field as HTML: plain when unchanged, word diff when the item awaits review.
-const F = (it, f) => it.review && it.prev ? diffWords(it.prev[f], it[f]) : esc(it[f]);
-const FB = it => it.bullets.map((b, k) => `<li>${it.review && it.prev ? diffWords(it.prev.bullets[k], b) : esc(b)}</li>`).join('')
+const J = (v, sep) => Array.isArray(v) ? v.filter(Boolean).join(sep) : v;
+const F = (it, f, sep = ' · ') => it.review && it.prev ? diffWords(J(it.prev[f], sep), J(it[f], sep)) : esc(J(it[f], sep));
+const FB = it => it.bullets.filter(Boolean).map((b, k) => `<li>${it.review && it.prev ? diffWords(it.prev.bullets[k], b) : esc(b)}</li>`).join('')
   + (it.review && it.prev ? it.prev.bullets.slice(it.bullets.length).map(b => `<li><del class="dd">${esc(b)}</del></li>`).join('') : '');
 function rSelect(id) { S.ui.rSel = id; render(); document.getElementById('p-' + id)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
 function rStep(d) { const cs = changes(); const k = Math.max(0, cs.indexOf(S.ui.rSel)); rSelect(cs[(k + d + cs.length) % cs.length]); }
 function rAccept(id) { const it = itemById(id); it.review = false; delete it.prev; it.rev++; rNext(); }
-function rUndo(id) { const it = itemById(id); Object.assign(it, it.prev); it.review = false; delete it.prev; it.rev++; rNext(); }
+function rUndo(id) {
+  const it = itemById(id); Object.assign(it, it.prev); it.review = false; delete it.prev; it.rev++;
+  S.questions.forEach(q => { if ((q.anchor.item || q.anchor.section) === id && q.status === 'answered') q.status = 'pending'; }); // answer kept, editable, re-applied by Update CV
+  rNext();
+}
 function rAcceptAll() { changes().forEach(id => { const it = itemById(id); it.review = false; delete it.prev; it.rev++; }); S.ui.rSel = null; render(); }
 function rNext() { const cs = changes(); S.ui.rSel = cs[0] || null; render(); if (cs[0]) document.getElementById('p-' + cs[0])?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
 function rBar() {
@@ -433,24 +348,6 @@ function cLoader() {
   const text = g.step === 'judge' ? 'Double-checking every line against your answers…' : 'Working our magic on your CV…';
   return `<div class="loader"><div class="spin"></div><div><b>${text}</b><div class="muted">Updating ${g.scope.length} part${g.scope.length === 1 ? '' : 's'}. Safe to leave or reload; you can keep editing other parts.</div></div></div>`;
 }
-function cEdit(sec) { S.ui.cEdit = sec; const items = sec === 'experience' || sec === 'education' ? S.cv[sec] : [S.cv[sec]]; S.ui.cDraft = JSON.parse(JSON.stringify(items)); render(); }
-function cEditScreen() {
-  const sec = S.ui.cEdit, d = S.ui.cDraft, anyErr = d.some(it => S.saves[it.id] === 'error'), saving = d.some(it => S.saves[it.id] === 'saving');
-  return `<header class="top"><button class="link" onclick="S.ui.cEdit=null;render()">Cancel</button><h1 style="text-align:center">Edit ${sec}</h1><button class="primary" ${saving ? 'disabled' : ''} onclick="cSave()">${saving ? 'Saving…' : 'Save'}</button></header>
-  ${anyErr ? `<div class="banner err">Some changes couldn't be saved. They're still here; tap Save to retry.</div>` : ''}
-  <div class="pad">${d.map((it, i) => `<div class="card">${it.edited ? '<span class="edited">✎ edited by you</span>' : ''}${fieldsFor(it, sec).map(f => inputFor(it, f, `cField(${i},'${f}',this.value)`)).join('')}</div>`).join('')}</div>`;
-}
-function cField(i, f, v) { const it = S.ui.cDraft[i]; if (f === 'bullets') it.bullets = v.split('\n').filter(Boolean); else it[f] = v; }
-function cSave() { // one item operation per changed item
-  const changed = S.ui.cDraft.filter(d => JSON.stringify(d) !== JSON.stringify(itemById(d.id)));
-  if (!changed.length) { S.ui.cEdit = null; render(); return; }
-  changed.forEach(d => S.saves[d.id] = 'saving'); render();
-  setTimeout(() => {
-    if (S.sim.saveFails) { changed.forEach(d => S.saves[d.id] = 'error'); render(); return; }
-    changed.forEach(d => { const it = itemById(d.id); const { rev, edited, id, ...rest } = d; Object.assign(it, rest); it.rev++; it.edited = true; S.saves[d.id] = 'saved'; });
-    S.ui.cEdit = null; render();
-  }, 700);
-}
 function cInbox() {
   const qs = S.questions.filter(q => q.status === 'open' || q.status === 'pending');
   const done = S.questions.filter(q => q.status === 'answered' || q.status === 'dismissed');
@@ -461,26 +358,66 @@ function cInbox() {
     <div style="margin-top:12px">${updateBtn()}</div>
   </div>`;
 }
-// Edit tab: every field of the CV as a form, autosaved per item (one item operation with its rev).
-function cEditItem(it, sec) {
-  const qs = qFor(it.id);
-  return `<div class="card ${inScope(it.id) ? 'shimmer' : ''}" id="edit-${it.id}">
-    ${fieldsFor(it, sec).map(f => inputFor(it, f, `aField('${it.id}','${f}',this.value)`)).join('')}
-    <div class="row" style="margin-top:8px">${qs.length ? `<button class="link" style="padding:0" onclick="S.ui.cTab='questions';render()"><span class="chip warn">❓ ${qs.length} question${qs.length > 1 ? 's' : ''}</span></button>` : ''}${it.review ? `<button class="link" style="padding:0" onclick="S.ui.cTab='preview';rSelect('${it.id}')"><span class="chip ok">✨ AI change, review</span></button>` : ''}${it.edited ? '<span class="edited">✎ edited by you</span>' : ''}<span class="grow"></span>${saveLabel(it.id)}</div></div>`;
+// ---------- Edit tab: every field, lists you can grow and shrink, per-item autosave ----------
+let seq = 1;
+const field = (it, f, label, ph = '') => `<label class="f">${label}</label><input value="${esc(it[f])}" placeholder="${it[f] === null ? 'Unknown, see the question' : ph}" onchange="queueSave('${it.id}', { ${f}: this.value })">`;
+function listEditor(it, key, label, addLabel, ph, multiline) {
+  const rows = it[key].map((v, k) => {
+    const fid = `${it.id}-${key}-${k}`;
+    const input = multiline
+      ? `<textarea id="${fid}" rows="2" placeholder="${ph}" onchange="setListItem('${it.id}','${key}',${k},this.value)">${esc(v)}</textarea>`
+      : `<input id="${fid}" value="${esc(v)}" placeholder="${ph}" onchange="setListItem('${it.id}','${key}',${k},this.value)">`;
+    return `<div class="li">${input}<button class="x" aria-label="Remove" onclick="removeListItem('${it.id}','${key}',${k})">✕</button></div>`;
+  }).join('');
+  return `<label class="f">${label}</label>${rows}<button class="add" onclick="addListItem('${it.id}','${key}')">+ ${addLabel}</button>`;
 }
+function setListItem(id, key, k, v) { const next = [...itemById(id)[key]]; next[k] = v; queueSave(id, { [key]: next }); }
+function removeListItem(id, key, k) { const next = itemById(id)[key].filter((_, j) => j !== k); saveItem(id, { [key]: next }); }
+function addListItem(id, key) { const it = itemById(id); it[key] = [...it[key], '']; S.ui.focus = `${id}-${key}-${it[key].length - 1}`; render(); } // saved on first blur
+function addSkill(input) { const v = input.value.trim(); if (!v) return; saveItem('skills', { items: [...S.cv.skills.items, v] }); S.ui.focus = 'skill-new'; }
+
+function addItem(sec) { // server creates the item (new id, rev 1); a hand-added item is an Edited item from birth
+  const id = 'n' + seq++;
+  const blank = sec === 'experience' ? { title: '', org: '', dates: '', bullets: [''] } : { degree: '', school: '', dates: '' };
+  S.cv[sec].push({ id, rev: 1, edited: true, ...blank });
+  S.ui.focus = `${id}-first`; render();
+  document.getElementById('edit-' + id)?.scrollIntoView({ block: 'center' });
+}
+function removeItem(sec, id) {
+  const it = itemById(id), name = it.title || it.degree || 'this entry';
+  if (!confirm(`Remove “${name}” from the CV?`)) return;
+  S.cv[sec] = S.cv[sec].filter(x => x.id !== id);
+  S.questions.forEach(q => { if (q.anchor.item === id && (q.status === 'open' || q.status === 'pending')) q.status = 'obsolete'; });
+  render();
+}
+function cardFoot(it) {
+  const qs = qFor(it.id);
+  return `<div class="row" style="margin-top:8px">${qs.length ? `<button class="link" style="padding:0" onclick="S.ui.cTab='questions';render()"><span class="chip warn">❓ ${qs.length} question${qs.length > 1 ? 's' : ''}</span></button>` : ''}${it.review ? `<button class="link" style="padding:0" onclick="S.ui.cTab='preview';rSelect('${it.id}')"><span class="chip ok">✨ AI change, review</span></button>` : ''}${it.edited ? '<span class="edited">✎ edited by you</span>' : ''}<span class="grow"></span>${saveLabel(it.id)}</div>`;
+}
+function card(it, body, head = '') { return `<div class="card ${inScope(it.id) ? 'shimmer' : ''}" id="edit-${it.id}">${head}${body}${cardFoot(it)}</div>`; }
+function removeHead(sec, it, n) { return `<div class="chead"><b>${sec === 'experience' ? 'Experience' : 'Education'} ${n}</b><button class="link" style="color:var(--err-ink)" onclick="removeItem('${sec}','${it.id}')">Remove</button></div>`; }
 function cEditTab() {
-  const c = S.cv;
+  const c = S.cv, ct = c.contact;
+  const exp = c.experience.map((e, k) => card(e,
+    field(e, 'title', 'Title', 'e.g. Backend Engineer').replace('<input ', `<input id="${e.id}-first" `) + field(e, 'org', 'Organisation', 'Company, client or project') + field(e, 'dates', 'Dates', 'e.g. 2021 – present')
+    + listEditor(e, 'bullets', 'Bullets', 'Add bullet', 'One concise achievement', true), removeHead('experience', e, k + 1))).join('');
+  const edu = c.education.map((e, k) => card(e,
+    field(e, 'degree', 'Degree', 'e.g. BSc Computer Science').replace('<input ', `<input id="${e.id}-first" `) + field(e, 'school', 'School') + field(e, 'dates', 'Year(s)', 'e.g. 2014 – 2018'),
+    removeHead('education', e, k + 1))).join('');
+  const skills = card(c.skills, `<div class="chips">${c.skills.items.map((v, k) => `<span>${esc(v)}<button aria-label="Remove ${esc(v)}" onclick="removeListItem('skills','items',${k})">✕</button></span>`).join('')}</div>
+    <div class="li"><input id="skill-new" placeholder="Add a skill" enterkeyhint="done" onkeydown="if(event.key==='Enter'){addSkill(this)}"><button class="x" onclick="addSkill(document.getElementById('skill-new'))">Add</button></div>`);
   return `<div class="pad">
-    <p class="muted">Changes save automatically. Items you edit are never overwritten by the AI.</p>
-    <h2 class="sec" id="edit-sec-contact">Contact</h2>${cEditItem(c.contact, 'contact')}
-    <h2 class="sec" id="edit-sec-summary">Summary</h2>${cEditItem(c.summary, 'summary')}
-    <h2 class="sec" id="edit-sec-experience">Experience</h2>${c.experience.map(e => cEditItem(e, 'experience')).join('')}
-    <h2 class="sec" id="edit-sec-education">Education</h2>${c.education.map(e => cEditItem(e, 'education')).join('')}
-    <h2 class="sec" id="edit-sec-skills">Skills</h2>${cEditItem(c.skills, 'skills')}
+    <p class="muted">Changes save automatically. The AI never rewrites anything you edited or added.</p>
+    <h2 class="sec" id="edit-sec-contact">Contact</h2>${card(ct, field(ct, 'name', 'Full name') + field(ct, 'email', 'Email') + field(ct, 'phone', 'Phone') + field(ct, 'location', 'Location', 'City, country')
+      + listEditor(ct, 'links', 'Links', 'Add link', 'https://linkedin.com/in/…', false) + `<div class="muted">Only https:// and http:// links become clickable in the PDF.</div>`)}
+    <h2 class="sec" id="edit-sec-summary">Summary</h2>${card(c.summary, `<textarea rows="5" onchange="queueSave('summary', { text: this.value })">${esc(c.summary.text)}</textarea>`)}
+    <h2 class="sec" id="edit-sec-experience">Experience</h2>${exp}<button class="add" onclick="addItem('experience')">+ Add experience</button>
+    <h2 class="sec" id="edit-sec-education">Education</h2>${edu}<button class="add" onclick="addItem('education')">+ Add education</button>
+    <h2 class="sec" id="edit-sec-skills">Skills</h2>${skills}
   </div>`;
 }
 function cGoEdit(sec) { S.ui.cTab = 'edit'; render(); document.getElementById('edit-sec-' + sec)?.scrollIntoView(); window.scrollBy(0, -70); }
-function variantC() {
+function editorScreen() {
   const t = S.ui.cTab, n = openCount();
   const cs = changes(); if (cs.length && !cs.includes(S.ui.rSel)) S.ui.rSel = cs[0]; // select before the paper renders
   const tab = (key, label) => `<button class="${t === key ? 'on' : ''}" onclick="S.ui.cTab='${key}';S.ui.hl=null;window.scrollTo(0,0);render()">${label}</button>`;
@@ -490,14 +427,11 @@ function variantC() {
 }
 
 // ---------- prototype chrome ----------
-function go(screen) { S.screen = screen; if (screen !== 'generating') { /* leave background run alone */ } render(); }
-function retrySave(id) { const it = itemById(id); saveItem(id, {}); }
-function setVariant(v) { variant = v; params.set('variant', v); try { history.replaceState(null, '', '?' + params); } catch {} render(); }
-function cycle(d) { const ks = Object.keys(VARIANTS); setVariant(ks[(ks.indexOf(variant) + d + ks.length) % ks.length]); }
-document.addEventListener('keydown', e => { if (e.target.closest('input,textarea,[contenteditable]')) return; if (e.key === 'ArrowLeft') cycle(-1); if (e.key === 'ArrowRight') cycle(1); });
+function go(screen) { S.screen = screen; render(); }
+function retrySave(id) { saveItem(id, {}); }
 function simPanel() {
   const s = S.sim;
-  const snap = { variant, screen: S.screen, generation: S.generation, saves: S.saves, questions: S.questions.map(q => `${q.id}:${q.status}`), revs: Object.fromEntries(['contact','summary','e1','e2','e3','ed1','skills'].map(id => [id, `${itemById(id).rev}${itemById(id).edited ? '✎' : ''}`])) };
+  const snap = { screen: S.screen, tab: S.ui.cTab, generation: S.generation, saves: S.saves, questions: S.questions.map(q => `${q.id}:${q.status}`), revs: Object.fromEntries(ITEM_IDS().map(id => [id, `${itemById(id).rev}${itemById(id).edited ? '✎' : ''}${itemById(id).review ? '✨' : ''}`])) };
   return `<button onclick="S.sim.open=!S.sim.open;render()">Sim ${s.open ? '▴' : '▾'}</button>${s.open ? `<div class="panel">
     <div>Screens: <button onclick="go('list')">CV list</button><button onclick="go('new')">New CV</button><button onclick="startInitial()">Generating</button><button onclick="go('failed')">Failed</button><button onclick="go('editor')">Editor</button></div>
     <label><input type="checkbox" style="width:auto" ${s.saveFails ? 'checked' : ''} onchange="S.sim.saveFails=this.checked;render()"> Saves fail (network/409)</label>
@@ -509,11 +443,10 @@ function simPanel() {
 function render() {
   const app = document.getElementById('app');
   const scroll = window.scrollY;
-  app.innerHTML = S.screen === 'list' ? screenList() : S.screen === 'new' ? screenNew() : S.screen === 'generating' ? screenGenerating() : S.screen === 'failed' ? screenFailed()
-    : variant === 'A' ? variantA() : variant === 'B' ? variantB() : variantC();
+  app.innerHTML = S.screen === 'list' ? screenList() : S.screen === 'new' ? screenNew() : S.screen === 'generating' ? screenGenerating() : S.screen === 'failed' ? screenFailed() : editorScreen();
   window.scrollTo(0, scroll);
+  if (S.ui.focus) { document.getElementById(S.ui.focus)?.focus(); S.ui.focus = null; }
   document.getElementById('sim').innerHTML = simPanel();
-  document.getElementById('switcher').innerHTML = `<button onclick="cycle(-1)" aria-label="Previous variant">←</button><span class="lbl">${variant} (${VARIANTS[variant]})</span><button onclick="cycle(1)" aria-label="Next variant">→</button>`;
 }
 render();
 </script>
