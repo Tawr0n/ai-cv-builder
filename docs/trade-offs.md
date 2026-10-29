@@ -11,7 +11,6 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 **What limits the damage:**
 
 - Log-in does _not_ leak it: unknown email and wrong password return the same `401 Invalid email or password`, with a dummy password hash checked for unknown emails so response time doesn't differ either.
-- `/api/auth/signup` and `/api/auth/login` are rate-limited per IP, so bulk enumeration is slow.
 
 **What would remove it:** Adding email verification. Sign-up then always responds "check your inbox", and the inbox receives either a confirmation link or an "you already have an account" notice.
 
@@ -62,8 +61,26 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 
 ## No daily quota or spend cap on Generations
 
-**What:** A User can start as many Generations per day as they like. The only cost fuse is the limit of 3 active Generations per User at once (and the per-IP rate limit on sign-up and log-in, which slows down creating many accounts).
+**What:** A User can start as many Generations per day as they like. The only cost fuse is the limit of 3 active Generations per User at once.
 
 **Why we accept it:** The app runs locally via `docker compose up` for one reviewer using their own API key. A daily quota would protect a budget nobody else can reach and could cut the review short in the middle of testing.
 
 **What would remove it:** A deployment. Then: a rolling per-User quota counted from Generation rows (checked in the same locked transaction as the active limit, `429 quota_exceeded` with `Retry-After`), and an installation-wide spend limit with alerts rather than a hard ceiling that would block every User at once.
+
+## No rate limiting on sign-up and log-in
+
+**What:** `/api/auth/signup` and `/api/auth/login` accept any number of requests. Nothing slows down guessing a User's password or checking many emails for an account (see "Sign-up reveals whether an email is registered").
+
+**Why we accept it:** The app runs locally for one person, and the only port it publishes is the web app's. A per-IP limit would also not work as is: Next.js `rewrites` do not add `X-Forwarded-For` when proxying to the API, so the API sees every request as coming from the `web` container and a per-IP limit would block everyone at once, while a client-supplied `X-Forwarded-For` passes through unchanged and could be forged.
+
+**What would remove it:** A deployment. Then: log-in limited per email (e.g. 10 attempts per 15 minutes) and sign-up limited installation-wide, which needs no client IP; or a reverse proxy in front of both apps that sets `X-Forwarded-For` itself, with the API trusting exactly that one hop, if per-IP limits are wanted.
+
+## Chromium renders PDFs without its sandbox
+
+**What:** The API runs Chromium with Playwright's default `chromiumSandbox: false`. A Chromium exploit would land directly in the API container's process space instead of a sandboxed renderer.
+
+**Why we accept it:** Chromium only ever receives HTML we rendered ourselves with every piece of user text escaped, with JavaScript disabled and every network request aborted, so there is no script and no remote content to carry an exploit. Enabling the sandbox inside Docker needs Playwright's seccomp profile (or `SYS_ADMIN`) wired into the compose file, which adds setup for a threat those measures already close.
+
+**What limits the damage:** The API container runs as a non-root user and publishes no port to the host.
+
+**What would remove it:** `chromiumSandbox: true` plus `security_opt: seccomp=<Playwright's seccomp_profile.json>` on the `api` service.
