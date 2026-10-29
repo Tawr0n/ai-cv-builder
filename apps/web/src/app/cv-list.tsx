@@ -1,10 +1,18 @@
 'use client';
 
+import type { CvStatus } from '@ai-cv-builder/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { logoutMutation, meQuery } from '@/lib/auth';
 import { cvsQuery } from '@/lib/cvs-query';
 import { useSignedOutRedirect } from '@/lib/use-signed-out-redirect';
+
+const STATUS_LABELS: Record<CvStatus, string> = {
+  generating: 'Generating…',
+  ready: 'Ready',
+  failed: 'Failed',
+};
 
 /** The signed-in User's CVs; sends visitors without a session to the log-in page. */
 export function CvList() {
@@ -43,16 +51,26 @@ export function CvList() {
           Log out
         </button>
       </header>
-      <h1>Your CVs</h1>
+      <div className="bar">
+        <h1>Your CVs</h1>
+        <Link href="/cvs/new" className="button">
+          + New CV
+        </Link>
+      </div>
       {logout.isError && <p role="alert">Could not log out. Try again.</p>}
       {cvs.isError && <p role="alert">Could not load your CVs.</p>}
       {cvs.isSuccess &&
         (cvs.data.items.length === 0 ? (
           <p>You have no CVs yet.</p>
         ) : (
-          <ul>
+          <ul className="cv-list">
             {cvs.data.items.map((cv) => (
-              <li key={cv.id}>{cv.id}</li>
+              <li key={cv.id}>
+                <Link href={`/cvs/${cv.id}`}>{cv.targetRole}</Link>
+                <span className={`badge badge-${cv.status}`}>
+                  {STATUS_LABELS[cv.status]}
+                </span>
+              </li>
             ))}
           </ul>
         ))}
