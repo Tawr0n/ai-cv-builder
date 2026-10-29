@@ -1,0 +1,436 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway. Answers wayfinder ticket "Mobile-friendly CV editor UX" (#11).
+  Three structurally different CV editor variants, switchable via ?variant=A|B|C and the
+  floating bottom bar (← / → keys). Shared screens: CV list, New CV, Generating, Failed.
+  No backend: all state is in memory; the "Sim" panel forces states (save error, failures).
+  Open on a phone or in a 375px viewport. Never merge into main.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CV Editor Prototype</title>
+<style>
+  :root {
+    --bg: #f6f6f4; --card: #fff; --ink: #1c1c1e; --muted: #6b6b70; --line: #e3e3e0;
+    --accent: #2f5bea; --accent-ink: #fff; --warn-bg: #fff6dc; --warn-line: #f0c94a; --warn-ink: #6b5200;
+    --err-bg: #fde8e8; --err-ink: #9b1c1c; --ok: #1d7a46; --pending-bg: #e8efff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #d9d9d6; font: 15px/1.45 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
+  .phone { max-width: 420px; min-height: 100vh; margin: 0 auto; background: var(--bg); position: relative; padding-bottom: 140px; }
+  header.top { position: sticky; top: 0; z-index: 5; background: var(--card); border-bottom: 1px solid var(--line); padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+  header.top h1 { font-size: 16px; margin: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header.top .sub { font-size: 12px; color: var(--muted); font-weight: normal; display: block; }
+  button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); padding: 9px 14px; min-height: 40px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.link { border: 0; background: none; color: var(--accent); padding: 4px 6px; min-height: 0; }
+  button.icon { padding: 6px 10px; }
+  button:disabled { opacity: .5; cursor: default; }
+  input, textarea { font: inherit; width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; background: #fff; }
+  textarea { resize: vertical; min-height: 64px; }
+  label.f { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  .pad { padding: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 10px 0; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .grow { flex: 1; }
+  .chip { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; background: #eee; color: var(--muted); }
+  .chip.warn { background: var(--warn-bg); color: var(--warn-ink); }
+  .chip.err { background: var(--err-bg); color: var(--err-ink); }
+  .chip.ok { background: #e3f4ea; color: var(--ok); }
+  .chip.run { background: var(--pending-bg); color: var(--accent); }
+  .q { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: 10px 12px; margin: 8px 0; font-size: 14px; }
+  .q.pending { background: var(--pending-bg); border-color: #b9cbff; }
+  .q .qt { font-weight: 600; color: var(--warn-ink); }
+  .q.pending .qt { color: var(--accent); }
+  .banner { padding: 10px 14px; font-size: 14px; border-bottom: 1px solid var(--line); }
+  .banner.err { background: var(--err-bg); color: var(--err-ink); }
+  .banner.run { background: var(--pending-bg); color: var(--accent); }
+  .shimmer { position: relative; opacity: .55; pointer-events: none; }
+  .shimmer::after { content: "Updating…"; position: absolute; top: 6px; right: 8px; font-size: 11px; color: var(--accent); background: var(--pending-bg); padding: 1px 6px; border-radius: 99px; }
+  .edited { font-size: 11px; color: var(--muted); }
+  .bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 64px; width: min(420px, 100%); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--line); display: flex; gap: 8px; z-index: 6; }
+  .bar button { flex: 1; }
+  h2.sec { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+  ul.b { margin: 6px 0 0; padding-left: 18px; }
+  ul.b li { margin: 2px 0; }
+  .save { font-size: 12px; }
+  .save.err { color: var(--err-ink); }
+  .save.ok { color: var(--ok); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button { flex: 1; border: 0; border-radius: 0; }
+  .seg button.on { background: var(--ink); color: #fff; }
+  .steps li { margin: 6px 0; list-style: none; }
+  .steps { padding: 0; }
+  /* B */
+  .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 10px 14px; background: var(--card); border-bottom: 1px solid var(--line); position: sticky; top: 61px; z-index: 4; }
+  .tabs button { white-space: nowrap; border-radius: 99px; padding: 6px 12px; min-height: 34px; }
+  .tabs button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .dot { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 99px; background: var(--warn-line); color: #000; font-size: 11px; margin-left: 4px; }
+  .sheet { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
+  .sheet .in { background: var(--bg); width: min(420px,100%); max-height: 92vh; overflow: auto; border-radius: 16px 16px 0 0; }
+  .sheet header { position: sticky; top: 0; background: var(--card); display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .fab { position: fixed; bottom: 80px; right: max(14px, calc(50% - 196px)); z-index: 7; border-radius: 99px; padding: 12px 18px; box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+  /* C */
+  .paper { background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.12); padding: 22px 20px; margin: 12px; font-family: Georgia, serif; font-size: 13px; }
+  .paper h3 { font: 600 11px/1 -apple-system, system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin: 16px 0 6px; display: flex; justify-content: space-between; align-items: center; }
+  .paper .pen { font: 12px -apple-system, system-ui, sans-serif; letter-spacing: 0; text-transform: none; color: var(--accent); border: 0; background: none; padding: 0 4px; min-height: 0; }
+  .hl { background: #fff1b8; outline: 2px solid var(--warn-line); border-radius: 3px; }
+  .qmark { display: inline-block; font: 600 10px -apple-system, system-ui, sans-serif; color: var(--warn-ink); background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 99px; padding: 0 5px; margin-left: 4px; cursor: pointer; }
+  .bnav { position: fixed; bottom: 64px; left: 50%; transform: translateX(-50%); width: min(420px,100%); background: var(--card); border-top: 1px solid var(--line); display: flex; z-index: 6; }
+  .bnav button { flex: 1; border: 0; border-radius: 0; padding: 10px 0; font-size: 13px; }
+  .bnav button.on { color: var(--accent); font-weight: 600; }
+  /* prototype chrome (not part of the design) */
+  #switcher { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 50; background: #111; color: #fff; border-radius: 99px; display: flex; align-items: center; gap: 4px; padding: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.4); font-size: 13px; }
+  #switcher button { background: transparent; color: #fff; border: 0; min-height: 34px; padding: 4px 12px; }
+  #switcher .lbl { padding: 0 6px; white-space: nowrap; }
+  #sim { position: fixed; top: 120px; right: 8px; z-index: 51; font-size: 12px; }
+  #sim > button { background: #111; color: #fff; border: 0; border-radius: 99px; min-height: 30px; padding: 4px 12px; }
+  #sim .panel { background: #111; color: #eee; border-radius: 12px; padding: 10px; margin-top: 6px; width: 290px; max-height: 70vh; overflow: auto; }
+  #sim .panel button { background: #333; color: #fff; border: 0; min-height: 28px; padding: 3px 8px; margin: 2px; font-size: 12px; border-radius: 6px; }
+  #sim pre { white-space: pre-wrap; font-size: 10.5px; color: #9fe39f; margin: 8px 0 0; }
+  #sim label { display: block; margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="phone" id="app"></div>
+<div id="sim"></div>
+<div id="switcher"></div>
+<script>
+// ---------- in-memory state ----------
+const VARIANTS = { A: 'Inline document', B: 'Section tabs + sheets', C: 'Preview + Questions inbox' };
+const params = new URLSearchParams(location.search);
+let variant = VARIANTS[params.get('variant')] ? params.get('variant') : 'A';
+
+const initialCv = () => ({
+  contact: { id: 'contact', rev: 1, edited: false, name: 'Olena Kovalenko', email: 'olena.k@example.com', phone: '+380 67 123 4567', location: 'Lviv, Ukraine', links: 'github.com/olenak' },
+  summary: { id: 'summary', rev: 1, edited: false, text: 'Backend engineer with 6 years of Node.js and PostgreSQL experience, focused on payment systems and high-load APIs. Targeting a Senior Backend Engineer role.' },
+  experience: [
+    { id: 'e1', rev: 1, edited: false, title: 'Backend Engineer', org: 'PayFlow', dates: '2021 – present', bullets: ['Built the payment authorisation service in NestJS and PostgreSQL', 'Cut p95 latency of the checkout API by moving reads to a replica', 'Mentored two junior engineers'] },
+    { id: 'e2', rev: 1, edited: false, title: 'Freelance Node.js developer', org: null, dates: null, bullets: ['Delivered REST APIs for small e-commerce clients'] },
+    { id: 'e3', rev: 1, edited: false, title: 'Junior Developer', org: 'SoftServe', dates: '2018 – 2020', bullets: ['Maintained internal reporting tools in Express'] },
+  ],
+  education: [ { id: 'ed1', rev: 1, edited: false, degree: 'BSc Computer Science', school: 'Lviv Polytechnic', dates: null } ],
+  skills: { id: 'skills', rev: 1, edited: false, list: 'Node.js, TypeScript, NestJS, PostgreSQL, Redis, Docker' },
+});
+const initialQuestions = () => ([
+  { id: 'q1', anchor: { section: 'experience', item: 'e1', field: 'bullets' }, text: 'How much did the p95 latency of the checkout API drop?', status: 'open', answer: '' },
+  { id: 'q2', anchor: { section: 'experience', item: 'e2', field: 'dates' }, text: 'When did you freelance, and for which clients or platform?', status: 'open', answer: '' },
+  { id: 'q3', anchor: { section: 'education', item: 'ed1', field: 'dates' }, text: 'Did you complete the degree? In which year?', status: 'open', answer: '' },
+  { id: 'q4', anchor: { section: 'skills' }, text: 'Do you have hands-on experience with any message queue (Kafka, RabbitMQ, SQS)?', status: 'open', answer: '' },
+]);
+
+let S = {
+  screen: 'editor',            // list | new | generating | failed | editor
+  newSource: 'pdf',
+  generation: null,            // { kind: 'initial'|'answer', step, status, errorCode, scope: [itemIds] }
+  cv: initialCv(),
+  questions: initialQuestions(),
+  saves: {},                   // itemId -> 'saving' | 'saved' | 'error'
+  sim: { saveFails: false, answerRunFails: false, initialFails: false, open: false },
+  ui: { aOpen: null, bTab: 'experience', bSheet: null, bDraft: null, cTab: 'preview', cEdit: null, cDraft: null, hl: null },
+};
+
+// ---------- helpers ----------
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const itemById = id => {
+  const c = S.cv;
+  if (id === 'contact') return c.contact; if (id === 'summary') return c.summary; if (id === 'skills') return c.skills;
+  return c.experience.find(x => x.id === id) || c.education.find(x => x.id === id);
+};
+const qFor = (id) => S.questions.filter(q => (q.anchor.item || q.anchor.section) === id && (q.status === 'open' || q.status === 'pending'));
+const qForSection = (sec) => S.questions.filter(q => q.anchor.section === sec && (q.status === 'open' || q.status === 'pending'));
+const pendingCount = () => S.questions.filter(q => q.status === 'pending').length;
+const openCount = () => S.questions.filter(q => q.status === 'open' || q.status === 'pending').length;
+const running = () => S.generation && (S.generation.status === 'queued' || S.generation.status === 'running');
+const inScope = id => running() && S.generation.kind === 'answer' && S.generation.scope.includes(id);
+const anchorLabel = a => {
+  if (a.item) { const it = itemById(a.item); const name = it.title ? `${it.title}${it.org ? ' @ ' + it.org : ''}` : it.degree || a.section; return `${cap(a.section)} › ${name}${a.field ? ' › ' + a.field : ''}`; }
+  return cap(a.section);
+};
+const cap = s => s[0].toUpperCase() + s.slice(1);
+
+// Simulated item operation: one item, base rev, may fail.
+function saveItem(id, patch) {
+  const it = itemById(id); Object.assign(it, patch); // optimistic: keep the user's text on screen
+  S.saves[id] = 'saving'; render();
+  setTimeout(() => {
+    if (S.sim.saveFails) { S.saves[id] = 'error'; render(); return; }
+    it.rev++; it.edited = true;
+    S.saves[id] = 'saved'; render();
+  }, 700);
+}
+function setAnswer(qid, text) { const q = S.questions.find(x => x.id === qid); q.answer = text; q.status = text.trim() ? 'pending' : 'open'; render(); }
+function dismissQ(qid) { S.questions.find(x => x.id === qid).status = 'dismissed'; render(); }
+
+function startAnswerRun() {
+  const pend = S.questions.filter(q => q.status === 'pending');
+  const scope = [...new Set(pend.map(q => q.anchor.item || q.anchor.section))].filter(id => !itemById(id)?.edited);
+  S.generation = { kind: 'answer', status: 'running', step: 'compose', scope };
+  render();
+  setTimeout(() => { if (S.generation) { S.generation.step = 'judge'; render(); } }, 1500);
+  setTimeout(() => {
+    if (S.sim.answerRunFails) { S.generation = { ...S.generation, status: 'failed', errorCode: 'llm_unavailable' }; render(); return; }
+    for (const q of pend) {
+      q.status = 'answered';
+      const it = itemById(q.anchor.item || q.anchor.section);
+      if (q.id === 'q1') it.bullets[1] = 'Cut p95 latency of the checkout API from 800 ms to 250 ms by moving reads to a replica';
+      if (q.id === 'q2') { it.dates = q.answer.match(/\d{4}.*\d{4}/)?.[0] || '2020 – 2021'; it.org = 'Upwork'; }
+      if (q.id === 'q3') it.dates = q.answer.match(/\d{4}/)?.[0] || '2018';
+      if (q.id === 'q4') it.list += ', RabbitMQ';
+      it.rev++;
+    }
+    S.generation = { ...S.generation, status: 'succeeded' };
+    render();
+    setTimeout(() => { if (S.generation?.status === 'succeeded') { S.generation = null; render(); } }, 2500);
+  }, 3500);
+}
+function startInitial() {
+  S.screen = 'generating'; S.generation = { kind: 'initial', status: 'queued', step: null, started: Date.now() }; render();
+  const steps = [['running','extract',1200],['running','compose',3000],['running','judge',5000]];
+  for (const [st, step, t] of steps) setTimeout(() => { if (S.screen === 'generating') { S.generation.status = st; S.generation.step = step; render(); } }, t);
+  setTimeout(() => {
+    if (S.screen !== 'generating') return;
+    if (S.sim.initialFails) { S.generation = { kind: 'initial', status: 'failed', errorCode: 'llm_unavailable' }; S.screen = 'failed'; }
+    else { S.generation = null; S.cv = initialCv(); S.questions = initialQuestions(); S.screen = 'editor'; }
+    render();
+  }, 7000);
+}
+
+// ---------- shared screens ----------
+function topBar(title, sub, right = '') {
+  return `<header class="top"><button class="icon" onclick="go('list')" aria-label="Back">‹</button><h1>${esc(title)}<span class="sub">${sub}</span></h1>${right}</header>`;
+}
+function saveLabel(id) {
+  const s = S.saves[id];
+  if (s === 'saving') return `<span class="save">Saving…</span>`;
+  if (s === 'error') return `<span class="save err">Couldn't save. <button class="link" onclick="retrySave('${id}')">Retry</button></span>`;
+  if (s === 'saved') return `<span class="save ok">Saved</span>`;
+  return '';
+}
+function errorText(code) {
+  return { llm_unavailable: 'The AI service is not responding right now. Your source is saved, so trying again is safe.' }[code] || 'Something went wrong.';
+}
+function screenList() {
+  return `<header class="top"><h1>My CVs<span class="sub">olena.k@example.com</span></h1><button class="primary" onclick="go('new')">+ New</button></header>
+  <div class="pad">
+    <div class="card" onclick="go('editor')" style="cursor:pointer"><div class="row"><b class="grow">Senior Backend Engineer</b><span class="chip warn">${openCount()} questions</span></div><div class="muted">From PDF · edited today</div></div>
+    <div class="card"><div class="row"><b class="grow">Tech Lead</b><span class="chip run">Generating… 40%</span></div><div class="muted">From text · started 1 min ago</div></div>
+    <div class="card"><div class="row"><b class="grow">Platform Engineer</b><span class="chip err">Failed</span></div><div class="muted">From PDF · <button class="link" onclick="go('failed')">Try again</button></div></div>
+  </div>`;
+}
+function screenNew() {
+  const pdf = S.newSource === 'pdf';
+  return `${topBar('New CV', 'Step 1 of 1')}
+  <div class="pad">
+    <label class="f">Target role</label><input placeholder="e.g. Senior Backend Engineer" value="Senior Backend Engineer">
+    <label class="f">Your background</label>
+    <div class="seg"><button class="${pdf ? 'on' : ''}" onclick="S.newSource='pdf';render()">Upload PDF</button><button class="${pdf ? '' : 'on'}" onclick="S.newSource='text';render()">Describe in text</button></div>
+    ${pdf ? `<div class="card" style="text-align:center;border-style:dashed"><div style="font-size:28px">📄</div><button>Choose PDF</button><div class="muted" style="margin-top:6px">Up to 5 MB and 5 pages. Scans are fine.</div></div>`
+          : `<textarea rows="8" placeholder="Where you worked, what you did, education, skills… Plain sentences are fine."></textarea><div class="muted">0 / 20 000 characters</div>`}
+    <p class="muted">We only use what you give us. Anything missing becomes a question, never a guess.</p>
+    <button class="primary" style="width:100%" onclick="startInitial()">Generate CV</button>
+  </div>`;
+}
+function screenGenerating() {
+  const g = S.generation, order = ['extract','compose','judge'];
+  const labels = { extract: 'Reading your background', compose: 'Writing the CV for the role', judge: 'Checking every line against your facts' };
+  const idx = g.step ? order.indexOf(g.step) : -1;
+  return `${topBar('Senior Backend Engineer', g.status === 'queued' ? 'Queued' : 'Generating…')}
+  <div class="pad">
+    <div class="card"><b>Generating your CV</b><p class="muted">Usually under a minute. You can close this page or reload; the CV keeps generating and will be here when you're back, on any device.</p>
+    <ul class="steps">${order.map((s, i) => `<li>${i < idx ? '✅' : i === idx ? '⏳' : '◻️'} ${labels[s]}</li>`).join('')}</ul></div>
+    <button style="width:100%" onclick="go('list')">Back to my CVs</button>
+  </div>`;
+}
+function screenFailed() {
+  return `${topBar('Platform Engineer', 'Generation failed')}
+  <div class="pad"><div class="card"><b>We couldn't generate this CV</b><p class="muted">${errorText('llm_unavailable')}</p><div class="muted">Error code: llm_unavailable</div></div>
+  <button class="primary" style="width:100%" onclick="startInitial()">Try again</button>
+  <button style="width:100%;margin-top:8px" onclick="go('list')">Back to my CVs</button></div>`;
+}
+function runBanner() {
+  const g = S.generation; if (!g || g.kind !== 'answer') return '';
+  if (running()) return `<div class="banner run">Updating ${g.scope.length} part${g.scope.length === 1 ? '' : 's'} with your answers (${g.step === 'judge' ? 'checking facts' : 'writing'})… You can keep editing other parts.</div>`;
+  if (g.status === 'failed') return `<div class="banner err">Couldn't apply your answers: ${errorText(g.errorCode)} Your answers are kept. <button class="link" onclick="startAnswerRun()">Try again</button></div>`;
+  if (g.status === 'succeeded') return `<div class="banner run">✅ CV updated with your answers.</div>`;
+  return '';
+}
+function questionBox(q, compact) {
+  if (q.status === 'pending') return `<div class="q pending"><div class="qt">Answer saved · not applied yet</div><div>${esc(q.text)}</div><textarea onchange="setAnswer('${q.id}', this.value)">${esc(q.answer)}</textarea><div class="muted">Applied when you tap “Update CV”.</div></div>`;
+  return `<div class="q"><div class="qt">❓ ${compact ? '' : 'Question'}</div><div>${esc(q.text)}</div><textarea placeholder="Your answer" onchange="setAnswer('${q.id}', this.value)"></textarea><div class="row"><span class="grow"></span><button class="link" onclick="dismissQ('${q.id}')">Not relevant</button></div></div>`;
+}
+function updateBtn(extraClass = '') {
+  const n = pendingCount();
+  return `<button class="primary ${extraClass}" ${n === 0 || running() ? 'disabled' : ''} onclick="startAnswerRun()">Update CV${n ? ` (${n})` : ''}</button>`;
+}
+function downloadBtn(label = '⬇ PDF') { return `<button onclick="alert('GET /api/cvs/:id/pdf → A4 PDF download')">${label}</button>`; }
+
+// ---------- Variant A: inline document ----------
+function fieldsFor(it, sec) {
+  if (sec === 'contact') return ['name','email','phone','location','links'];
+  if (sec === 'summary') return ['text'];
+  if (sec === 'skills') return ['list'];
+  if (sec === 'experience') return ['title','org','dates','bullets'];
+  return ['degree','school','dates'];
+}
+function inputFor(it, f, onchange) {
+  const v = f === 'bullets' ? it.bullets.join('\n') : it[f];
+  const big = f === 'bullets' || f === 'text' || f === 'list';
+  const ph = v === null ? 'Unknown, see the question' : '';
+  return `<label class="f">${f === 'bullets' ? 'Bullets (one per line)' : cap(f)}</label>${big ? `<textarea rows="${f === 'bullets' ? 4 : 3}" placeholder="${ph}" onchange="${onchange}">${esc(v)}</textarea>` : `<input placeholder="${ph}" value="${esc(v)}" onchange="${onchange}">`}`;
+}
+function readItem(it, sec) {
+  if (sec === 'contact') return `<b>${esc(it.name)}</b><div class="muted">${esc(it.email)} · ${esc(it.phone)} · ${esc(it.location)} · ${esc(it.links)}</div>`;
+  if (sec === 'summary') return esc(it.text);
+  if (sec === 'skills') return esc(it.list);
+  if (sec === 'experience') return `<b>${esc(it.title)}</b>${it.org ? ` · ${esc(it.org)}` : ` · <span class="chip warn">organisation?</span>`}<div class="muted">${it.dates ? esc(it.dates) : '<span class="chip warn">dates?</span>'}</div><ul class="b">${it.bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul>`;
+  return `<b>${esc(it.degree)}</b> · ${esc(it.school)}<div class="muted">${it.dates ? esc(it.dates) : '<span class="chip warn">year?</span>'}</div>`;
+}
+function aItem(it, sec) {
+  const open = S.ui.aOpen === it.id, qs = qFor(it.id);
+  const body = open
+    ? fieldsFor(it, sec).map(f => inputFor(it, f, `aField('${it.id}','${f}',this.value)`)).join('') + `<div class="row" style="margin-top:8px"><span class="grow">${saveLabel(it.id)}</span><button class="link" onclick="S.ui.aOpen=null;render()">Done</button></div>`
+    : `<div onclick="S.ui.aOpen='${it.id}';render()" style="cursor:text">${readItem(it, sec)}</div><div class="row"><span class="grow">${it.edited ? '<span class="edited">✎ edited by you</span>' : ''}</span>${saveLabel(it.id)}</div>`;
+  return `<div class="card ${inScope(it.id) ? 'shimmer' : ''}">${body}${qs.map(q => questionBox(q)).join('')}</div>`;
+}
+function variantA() {
+  const c = S.cv;
+  return `${topBar('Senior Backend Engineer', `${openCount()} open questions · tap any text to edit`, downloadBtn())}${runBanner()}
+  <div class="pad">
+    <h2 class="sec">Contact</h2>${aItem(c.contact, 'contact')}
+    <h2 class="sec">Summary</h2>${aItem(c.summary, 'summary')}
+    <h2 class="sec">Experience</h2>${c.experience.map(e => aItem(e, 'experience')).join('')}
+    <h2 class="sec">Education</h2>${c.education.map(e => aItem(e, 'education')).join('')}
+    <h2 class="sec">Skills</h2>${aItem(c.skills, 'skills')}
+  </div>
+  <div class="bar">${updateBtn()}${downloadBtn('Download PDF')}</div>`;
+}
+let aTimers = {};
+function aField(id, f, v) { // autosave: debounce per item, one item operation
+  const patch = f === 'bullets' ? { bullets: v.split('\n').filter(Boolean) } : { [f]: v };
+  clearTimeout(aTimers[id]); aTimers[id] = setTimeout(() => saveItem(id, patch), 300);
+}
+
+// ---------- Variant B: tabs + bottom sheets with explicit save ----------
+const B_TABS = ['contact','summary','experience','education','skills'];
+function bCard(it, sec) {
+  const qs = qFor(it.id);
+  return `<div class="card ${inScope(it.id) ? 'shimmer' : ''}" onclick="bOpen('${it.id}','${sec}')" style="cursor:pointer">
+    <div class="row"><div class="grow">${readItem(it, sec)}</div><span>›</span></div>
+    <div class="row" style="margin-top:6px">${qs.length ? `<span class="chip ${qs.every(q => q.status === 'pending') ? 'run' : 'warn'}">${qs.length} question${qs.length > 1 ? 's' : ''}</span>` : ''}${it.edited ? '<span class="edited">✎ edited</span>' : ''}<span class="grow"></span>${S.saves[it.id] === 'saved' ? '<span class="save ok">Saved</span>' : ''}</div></div>`;
+}
+function bOpen(id, sec) { const it = itemById(id); S.ui.bSheet = { id, sec }; S.ui.bDraft = JSON.parse(JSON.stringify(it)); delete S.saves[id]; render(); }
+function bSheet() {
+  const sh = S.ui.bSheet; if (!sh) return '';
+  const d = S.ui.bDraft, qs = qFor(sh.id), saving = S.saves[sh.id] === 'saving';
+  return `<div class="sheet"><div class="in">
+    <header><button class="link" onclick="S.ui.bSheet=null;render()">Cancel</button><b class="grow" style="text-align:center">${cap(sh.sec)}</b><button class="primary" ${saving ? 'disabled' : ''} onclick="bSave()">${saving ? 'Saving…' : 'Save'}</button></header>
+    ${S.saves[sh.id] === 'error' ? `<div class="banner err">Couldn't save, your changes are still here. Check your connection and tap Save again.</div>` : ''}
+    <div class="pad">${qs.map(q => questionBox(q)).join('')}
+    ${fieldsFor(d, sh.sec).map(f => inputFor(d, f, `bField('${f}',this.value)`)).join('')}</div></div></div>`;
+}
+function bField(f, v) { if (f === 'bullets') S.ui.bDraft.bullets = v.split('\n').filter(Boolean); else S.ui.bDraft[f] = v; }
+function bSave() {
+  const id = S.ui.bSheet.id, d = S.ui.bDraft;
+  S.saves[id] = 'saving'; render();
+  setTimeout(() => {
+    if (S.sim.saveFails) { S.saves[id] = 'error'; render(); return; }
+    const it = itemById(id); const { rev, edited, id: _i, ...rest } = d; Object.assign(it, rest); it.rev++; it.edited = true;
+    S.saves[id] = 'saved'; S.ui.bSheet = null; render();
+  }, 700);
+}
+function variantB() {
+  const c = S.cv, t = S.ui.bTab;
+  const items = t === 'experience' ? c.experience : t === 'education' ? c.education : [c[t]];
+  return `${topBar('Senior Backend Engineer', 'Ready', downloadBtn())}
+  <div class="tabs">${B_TABS.map(s => { const n = qForSection(s).length; return `<button class="${s === t ? 'on' : ''}" onclick="S.ui.bTab='${s}';render()">${cap(s)}${n ? `<span class="dot">${n}</span>` : ''}</button>`; }).join('')}</div>
+  ${runBanner()}
+  <div class="pad">${items.map(it => bCard(it, t)).join('')}
+  ${t === 'experience' ? `<p class="muted">Ordered by relevance to the role.</p>` : ''}</div>
+  ${pendingCount() || running() ? updateBtn('fab') : ''}
+  ${bSheet()}`;
+}
+
+// ---------- Variant C: paper preview + questions inbox ----------
+function cMark(id) { const qs = qFor(id); return qs.length ? `<span class="qmark" onclick="S.ui.cTab='questions';render()">?${qs.length}</span>` : ''; }
+function cPaper() {
+  const c = S.cv, hl = S.ui.hl, h = id => (hl === id ? 'hl' : '') + (inScope(id) ? ' shimmer' : '');
+  const pen = sec => `<button class="pen" onclick="cEdit('${sec}')">✎ Edit</button>`;
+  return `<div class="paper">
+    <div class="${h('contact')}"><div style="font-size:20px;font-weight:600">${esc(c.contact.name)}</div><div style="font-size:11px">${esc(c.contact.email)} · ${esc(c.contact.phone)} · ${esc(c.contact.location)} · ${esc(c.contact.links)}</div></div>
+    <h3>Summary ${pen('summary')}</h3><div class="${h('summary')}">${esc(c.summary.text)}</div>
+    <h3>Experience ${pen('experience')}</h3>${c.experience.map(e => `<div class="${h(e.id)}" style="margin-bottom:8px"><b>${esc(e.title)}</b>${e.org ? ', ' + esc(e.org) : ''} ${cMark(e.id)}<div style="font-size:11px;color:#666">${esc(e.dates || '')}</div><ul class="b">${e.bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}
+    <h3>Education ${pen('education')}</h3>${c.education.map(e => `<div class="${h(e.id)}"><b>${esc(e.degree)}</b>, ${esc(e.school)} ${esc(e.dates || '')} ${cMark(e.id)}</div>`).join('')}
+    <h3>Skills ${pen('skills')}</h3><div class="${h('skills')}">${esc(c.skills.list)} ${cMark('skills')}</div>
+    <p style="font:11px -apple-system,sans-serif;color:#999;margin-top:14px">This is exactly what the PDF will look like.</p>
+  </div>`;
+}
+function cEdit(sec) { S.ui.cEdit = sec; const items = sec === 'experience' || sec === 'education' ? S.cv[sec] : [S.cv[sec]]; S.ui.cDraft = JSON.parse(JSON.stringify(items)); render(); }
+function cEditScreen() {
+  const sec = S.ui.cEdit, d = S.ui.cDraft, anyErr = d.some(it => S.saves[it.id] === 'error'), saving = d.some(it => S.saves[it.id] === 'saving');
+  return `<header class="top"><button class="link" onclick="S.ui.cEdit=null;render()">Cancel</button><h1 style="text-align:center">Edit ${sec}</h1><button class="primary" ${saving ? 'disabled' : ''} onclick="cSave()">${saving ? 'Saving…' : 'Save'}</button></header>
+  ${anyErr ? `<div class="banner err">Some changes couldn't be saved. They're still here; tap Save to retry.</div>` : ''}
+  <div class="pad">${d.map((it, i) => `<div class="card">${it.edited ? '<span class="edited">✎ edited by you</span>' : ''}${fieldsFor(it, sec).map(f => inputFor(it, f, `cField(${i},'${f}',this.value)`)).join('')}</div>`).join('')}</div>`;
+}
+function cField(i, f, v) { const it = S.ui.cDraft[i]; if (f === 'bullets') it.bullets = v.split('\n').filter(Boolean); else it[f] = v; }
+function cSave() { // one item operation per changed item
+  const changed = S.ui.cDraft.filter(d => JSON.stringify(d) !== JSON.stringify(itemById(d.id)));
+  if (!changed.length) { S.ui.cEdit = null; render(); return; }
+  changed.forEach(d => S.saves[d.id] = 'saving'); render();
+  setTimeout(() => {
+    if (S.sim.saveFails) { changed.forEach(d => S.saves[d.id] = 'error'); render(); return; }
+    changed.forEach(d => { const it = itemById(d.id); const { rev, edited, id, ...rest } = d; Object.assign(it, rest); it.rev++; it.edited = true; S.saves[d.id] = 'saved'; });
+    S.ui.cEdit = null; render();
+  }, 700);
+}
+function cInbox() {
+  const qs = S.questions.filter(q => q.status === 'open' || q.status === 'pending');
+  const done = S.questions.filter(q => q.status === 'answered' || q.status === 'dismissed');
+  return `<div class="pad">
+    <p class="muted">The AI didn't guess these. Answer what you can; nothing changes until you tap “Update CV”.</p>
+    ${qs.map(q => `<div class="card"><div class="row"><button class="link" style="padding:0;font-size:12px" onclick="S.ui.hl='${q.anchor.item || q.anchor.section}';S.ui.cTab='preview';render()">📍 ${esc(anchorLabel(q.anchor))}</button></div>${questionBox(q, true)}</div>`).join('') || '<p class="muted">No open questions 🎉</p>'}
+    ${done.length ? `<h2 class="sec">Done</h2>${done.map(q => `<div class="muted">✓ ${esc(q.text)} <i>(${q.status})</i></div>`).join('')}` : ''}
+    <div style="margin-top:12px">${updateBtn()}</div>
+  </div>`;
+}
+function variantC() {
+  if (S.ui.cEdit) return cEditScreen();
+  const t = S.ui.cTab, n = openCount();
+  return `${topBar('Senior Backend Engineer', 'Ready')}${runBanner()}
+  ${t === 'preview' ? cPaper() : cInbox()}
+  <nav class="bnav"><button class="${t === 'preview' ? 'on' : ''}" onclick="S.ui.cTab='preview';S.ui.hl=null;render()">📄 CV</button><button class="${t === 'questions' ? 'on' : ''}" onclick="S.ui.cTab='questions';render()">❓ Questions${n ? ` (${n})` : ''}</button><button onclick="alert('GET /api/cvs/:id/pdf → A4 PDF download')">⬇ Download</button></nav>`;
+}
+
+// ---------- prototype chrome ----------
+function go(screen) { S.screen = screen; if (screen !== 'generating') { /* leave background run alone */ } render(); }
+function retrySave(id) { const it = itemById(id); saveItem(id, {}); }
+function setVariant(v) { variant = v; params.set('variant', v); try { history.replaceState(null, '', '?' + params); } catch {} render(); }
+function cycle(d) { const ks = Object.keys(VARIANTS); setVariant(ks[(ks.indexOf(variant) + d + ks.length) % ks.length]); }
+document.addEventListener('keydown', e => { if (e.target.closest('input,textarea,[contenteditable]')) return; if (e.key === 'ArrowLeft') cycle(-1); if (e.key === 'ArrowRight') cycle(1); });
+function simPanel() {
+  const s = S.sim;
+  const snap = { variant, screen: S.screen, generation: S.generation, saves: S.saves, questions: S.questions.map(q => `${q.id}:${q.status}`), revs: Object.fromEntries(['contact','summary','e1','e2','e3','ed1','skills'].map(id => [id, `${itemById(id).rev}${itemById(id).edited ? '✎' : ''}`])) };
+  return `<button onclick="S.sim.open=!S.sim.open;render()">Sim ${s.open ? '▴' : '▾'}</button>${s.open ? `<div class="panel">
+    <div>Screens: <button onclick="go('list')">CV list</button><button onclick="go('new')">New CV</button><button onclick="startInitial()">Generating</button><button onclick="go('failed')">Failed</button><button onclick="go('editor')">Editor</button></div>
+    <label><input type="checkbox" style="width:auto" ${s.saveFails ? 'checked' : ''} onchange="S.sim.saveFails=this.checked;render()"> Saves fail (network/409)</label>
+    <label><input type="checkbox" style="width:auto" ${s.answerRunFails ? 'checked' : ''} onchange="S.sim.answerRunFails=this.checked;render()"> “Update CV” run fails</label>
+    <label><input type="checkbox" style="width:auto" ${s.initialFails ? 'checked' : ''} onchange="S.sim.initialFails=this.checked;render()"> Initial generation fails</label>
+    <button onclick="S.cv=initialCv();S.questions=initialQuestions();S.saves={};S.generation=null;render()">Reset data</button>
+    <pre>${esc(JSON.stringify(snap, null, 1))}</pre></div>` : ''}`;
+}
+function render() {
+  const app = document.getElementById('app');
+  const scroll = window.scrollY;
+  app.innerHTML = S.screen === 'list' ? screenList() : S.screen === 'new' ? screenNew() : S.screen === 'generating' ? screenGenerating() : S.screen === 'failed' ? screenFailed()
+    : variant === 'A' ? variantA() : variant === 'B' ? variantB() : variantC();
+  window.scrollTo(0, scroll);
+  document.getElementById('sim').innerHTML = simPanel();
+  document.getElementById('switcher').innerHTML = `<button onclick="cycle(-1)" aria-label="Previous variant">←</button><span class="lbl">${variant} (${VARIANTS[variant]})</span><button onclick="cycle(1)" aria-label="Next variant">→</button>`;
+}
+render();
+</script>
+</body>
+</html>
