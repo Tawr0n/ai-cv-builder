@@ -10,8 +10,9 @@ export type CvTemplateMode = 'preview' | 'pdf';
 /**
  * The CV as it prints: template B (sans, label gutter), sections in the order
  * Profile → Skills → Experience → Education. One component for the on-screen
- * preview and the PDF; `mode` decides which editor hooks are emitted at all
- * (in `pdf` mode none are, rather than hidden with CSS). Unknown (`null`)
+ * preview and the PDF. `mode` is where editor hooks (Question markers, review
+ * diff, highlights) will be emitted in `preview` and left out of `pdf` rather
+ * than hidden with CSS; there are none yet, so it changes nothing today. Unknown (`null`)
  * fields are left out. Every value is rendered as text by React, so nothing in
  * the content can become markup.
  */

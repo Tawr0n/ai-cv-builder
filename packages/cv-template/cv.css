@@ -1,7 +1,8 @@
 /*
  * CV template B: Inter sans, labels in a 30 mm gutter, one reading column.
  * Always a white sheet, whatever the page's colour scheme. Shared by the
- * on-screen preview and the PDF; the PDF adds only `@page` (see render-cv-html).
+ * on-screen preview and the PDF; the PDF adds only `@page` (see `renderCvHtml` in src/server.ts, which also sets the page margins the
+ * preview's page-break estimate in apps/web assumes: 14/15/16 mm, 180 mm wide).
  */
 
 .cv {

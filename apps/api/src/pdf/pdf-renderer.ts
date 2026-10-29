@@ -7,7 +7,7 @@ import {
   Logger,
   type OnModuleDestroy,
 } from '@nestjs/common';
-import { type Browser, chromium } from 'playwright';
+import { type Browser, type BrowserContext, chromium } from 'playwright';
 import { ENV, type Env } from '../env/env.js';
 import { ApiException } from '../http/api.exception.js';
 
@@ -72,45 +72,47 @@ export class PdfRenderer implements OnModuleDestroy {
 
   private async print(html: string): Promise<Buffer> {
     const timeout = this.env.PDF_RENDER_TIMEOUT_MS;
-    let timer: NodeJS.Timeout | undefined;
-    const timedOut = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error(`PDF render timed out after ${timeout} ms`)),
-        timeout,
-      );
-    });
-
-    const work = (async () => {
-      const browser = await this.launched();
-      const context = await browser.newContext({ javaScriptEnabled: false });
-      try {
-        await context.route('**/*', (route) => route.abort());
-        const page = await context.newPage();
-        // The document goes in as a string: Chromium never navigates anywhere.
-        await page.setContent(html, { waitUntil: 'load', timeout });
-        return await page.pdf({
-          format: 'A4',
-          preferCSSPageSize: true,
-          printBackground: true,
-        });
-      } finally {
-        await context.close().catch(() => undefined);
-      }
-    })();
-    // If the timeout wins, `work` may still fail later: nobody is listening any more.
-    work.catch(() => undefined);
+    let context: BrowserContext | undefined;
+    let timedOut = false;
+    // Closing the context fails whatever Chromium is doing for it, so the slot
+    // is only freed once the work has really stopped.
+    const timer = setTimeout(() => {
+      timedOut = true;
+      void context?.close().catch(() => undefined);
+    }, timeout);
 
     try {
-      return await Promise.race([work, timedOut]);
+      const browser = await this.launched();
+      context = await browser.newContext({ javaScriptEnabled: false });
+      await context.route('**/*', (route) => route.abort());
+      const page = await context.newPage();
+      // The document goes in as a string: Chromium never navigates anywhere.
+      await page.setContent(html, { waitUntil: 'load', timeout });
+      return await page.pdf({
+        format: 'A4',
+        preferCSSPageSize: true,
+        printBackground: true,
+      });
+    } catch (error) {
+      if (timedOut) {
+        throw new Error(`PDF render timed out after ${timeout} ms`, {
+          cause: error,
+        });
+      }
+      throw error;
     } finally {
       clearTimeout(timer);
+      await context?.close().catch(() => undefined);
     }
   }
 
   /** The shared browser, started on first use and again after it has died. */
   private launched(): Promise<Browser> {
     this.browser ??= chromium
-      .launch({ executablePath: this.env.CHROMIUM_EXECUTABLE_PATH })
+      .launch({
+        executablePath: this.env.CHROMIUM_EXECUTABLE_PATH,
+        timeout: this.env.PDF_RENDER_TIMEOUT_MS,
+      })
       .then((browser) => {
         browser.on('disconnected', () => {
           this.browser = undefined;

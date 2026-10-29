@@ -4,7 +4,11 @@ import { CvTemplate } from '@ai-cv-builder/cv-template';
 import type { CvContent } from '@ai-cv-builder/shared';
 import { useEffect, useRef, useState } from 'react';
 
-/** What fits on an A4 page between the 14 mm top and 16 mm bottom margins, in CSS px (96 per inch). */
+/**
+ * What fits on an A4 page between the 14 mm top and 16 mm bottom margins, in
+ * CSS px (96 per inch). Mirrors `@page` in cv-template's server.ts; the 180 mm
+ * measuring width in globals.css is the same page's content width.
+ */
 const PAGE_CONTENT_PX = ((297 - 14 - 16) * 96) / 25.4;
 
 /**
