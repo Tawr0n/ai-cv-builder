@@ -4,6 +4,8 @@ import {
   cvContentSchema,
   type CvView,
   type Generation as GenerationView,
+  anchorSchema,
+  type QuestionList,
 } from '@ai-cv-builder/shared';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service.js';
@@ -144,6 +146,24 @@ export class CvsService {
     });
     if (!generation) throw cvNotFound();
     return toGenerationView(generation);
+  }
+
+  /** The CV's Questions, most important first. */
+  async questions(userId: string, cvId: string): Promise<QuestionList> {
+    const cv = await this.prisma.cv.findFirst({
+      where: { id: cvId, ownerId: userId },
+      select: { questions: { orderBy: { position: 'asc' } } },
+    });
+    if (!cv) throw cvNotFound();
+    return {
+      items: cv.questions.map((question) => ({
+        id: question.id,
+        anchor: anchorSchema.parse(question.anchor),
+        text: question.text,
+        status: question.status,
+        createdAt: question.createdAt.toISOString(),
+      })),
+    };
   }
 
   /** Try again: a new Generation with the same Source and Target role, only after a failure. */

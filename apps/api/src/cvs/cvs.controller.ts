@@ -7,6 +7,7 @@ import {
   type CvView,
   type Generation,
   idempotencyKeySchema,
+  type QuestionList,
   type User,
 } from '@ai-cv-builder/shared';
 import {
@@ -103,6 +104,14 @@ export class CvsController {
     @Param('cvId', cvIdPipe) cvId: string,
   ): Promise<Generation> {
     return this.cvs.latestGeneration(user.id, cvId);
+  }
+
+  @Get(':cvId/questions')
+  questions(
+    @CurrentUser() user: User,
+    @Param('cvId', cvIdPipe) cvId: string,
+  ): Promise<QuestionList> {
+    return this.cvs.questions(user.id, cvId);
   }
 
   @Post(':cvId/generations')

@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-smoke",
+    "incremental": false
+  },
+  "include": ["src", "smoke"],
+  "exclude": ["src/**/*.spec.ts"]
+}

@@ -4,6 +4,7 @@ import {
   cvViewSchema,
   type Generation,
   generationSchema,
+  questionListSchema,
 } from '@ai-cv-builder/shared';
 import { mutationOptions, queryOptions } from '@tanstack/react-query';
 import { apiDownload, apiGet, apiPost, apiPostForm } from './api';
@@ -42,6 +43,13 @@ export const generationQuery = (cvId: string) =>
       const generation = query.state.data;
       return generation && isFinished(generation) ? false : POLL_MS;
     },
+  });
+
+/** The CV's Questions, most important first; they exist once a Generation succeeds. */
+export const questionsQuery = (cvId: string) =>
+  queryOptions({
+    queryKey: queryKeys.questions(cvId),
+    queryFn: () => apiGet(`/api/cvs/${cvId}/questions`, questionListSchema),
   });
 
 export interface CreateCvInput {

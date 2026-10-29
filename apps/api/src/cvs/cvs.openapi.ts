@@ -6,6 +6,7 @@ import {
   cvViewSchema,
   generationSchema,
   idempotencyKeySchema,
+  questionListSchema,
 } from '@ai-cv-builder/shared';
 import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
@@ -118,6 +119,22 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
     request: { params: cvIdParams },
     responses: {
       200: { description: 'The latest Generation', ...json(generationSchema) },
+      401: errorResponse('`unauthenticated`'),
+      404: errorResponse('`not_found`: missing or another User’s'),
+    },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: '/api/cvs/{cvId}/questions',
+    tags: ['cvs'],
+    summary:
+      'The CV’s Questions about missing or vague things, most important first',
+    description:
+      'Each Question carries an Anchor: the section, item and field of the CV content it is about. Empty until a Generation succeeds.',
+    request: { params: cvIdParams },
+    responses: {
+      200: { description: 'The Questions', ...json(questionListSchema) },
       401: errorResponse('`unauthenticated`'),
       404: errorResponse('`not_found`: missing or another User’s'),
     },

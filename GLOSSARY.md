@@ -36,6 +36,10 @@ _Avoid_: Point, description, line item
 A single statement about the user, taken from the Source or from an Answer, that CV content may rest on. Anything in the CV content that no Fact supports is invented.
 _Avoid_: Claim, data point, evidence
 
+**Assertion**:
+One field of one item of CV content, as the judge checks it against the Facts that item cites. An Assertion no Fact supports is repaired, then softened into a Question.
+_Avoid_: Claim, statement
+
 **Question**:
 A request to the user about something missing or vague in the CV content.
 _Avoid_: Prompt, gap, clarification
