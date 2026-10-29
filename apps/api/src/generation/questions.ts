@@ -35,7 +35,7 @@ export function questionText(
 }
 
 /** The fields an Anchor may name, per section; a bullet's only field is `text`. */
-const ANCHOR_FIELDS: Record<CvSection, readonly CvField[]> = {
+export const ANCHOR_FIELDS: Record<CvSection, readonly CvField[]> = {
   contact: ['fullName', 'email', 'phone', 'location', 'links'],
   summary: ['text'],
   experience: [

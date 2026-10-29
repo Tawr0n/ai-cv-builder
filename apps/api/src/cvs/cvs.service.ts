@@ -4,9 +4,11 @@ import {
   cvContentSchema,
   type CvView,
   type Generation as GenerationView,
+  type GenerationKind,
 } from '@ai-cv-builder/shared';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { ENV, type Env } from '../env/env.js';
 import {
   GenerationsService,
@@ -147,31 +149,88 @@ export class CvsService {
     return toGenerationView(generation);
   }
 
-  /** Try again: a new Generation with the same Source and Target role, only after a failure. */
-  async retry(userId: string, cvId: string): Promise<GenerationView> {
-    const generation = await this.prisma.$transaction(async (tx) => {
-      const latest = await tx.generation.findFirst({
-        where: { cvId, cv: { ownerId: userId } },
-        orderBy: { createdAt: 'desc' },
-        select: { status: true },
-      });
-      if (!latest) throw cvNotFound();
-      // A concurrent Try again passes this check too, then meets the one-active index: 409.
-      if (latest.status !== 'failed') {
-        throw new ApiException(
-          HttpStatus.CONFLICT,
-          'generation_not_failed',
-          'Only a CV whose generation failed can be tried again',
-        );
-      }
-      const started = await this.generations.start(tx, { userId, cvId });
-      await tx.cv.update({
-        where: { id: cvId },
-        data: { status: 'generating' },
-      });
-      return started;
-    });
+  /** Starts a Generation of `kind`: Try again after a failed first one, or Update CV. */
+  async startGeneration(
+    userId: string,
+    cvId: string,
+    kind: GenerationKind,
+  ): Promise<GenerationView> {
+    const generation = await this.prisma.$transaction((tx) =>
+      kind === 'initial'
+        ? this.retry(tx, userId, cvId)
+        : this.updateCv(tx, userId, cvId),
+    );
     return toGenerationView(generation);
+  }
+
+  /** Try again: a new Generation with the same Source and Target role, only after a failed first one. */
+  private async retry(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    cvId: string,
+  ) {
+    const latest = await tx.generation.findFirst({
+      where: { cvId, cv: { ownerId: userId } },
+      orderBy: { createdAt: 'desc' },
+      select: { status: true, kind: true },
+    });
+    if (!latest) throw cvNotFound();
+    // A concurrent Try again passes this check too, then meets the one-active index: 409.
+    if (latest.status !== 'failed' || latest.kind !== 'initial') {
+      throw new ApiException(
+        HttpStatus.CONFLICT,
+        'generation_not_failed',
+        'Only a CV whose generation failed can be tried again',
+      );
+    }
+    const started = await this.generations.start(tx, { userId, cvId });
+    await tx.cv.update({
+      where: { id: cvId },
+      data: { status: 'generating' },
+    });
+    return started;
+  }
+
+  /**
+   * Update CV: one answer Generation takes every pending Answer of the CV.
+   * The CV stays `ready` meanwhile; a second press while it runs meets the
+   * one-active index: 409.
+   */
+  private async updateCv(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    cvId: string,
+  ) {
+    const cv = await tx.cv.findFirst({
+      where: { id: cvId, ownerId: userId },
+      select: { status: true },
+    });
+    if (!cv) throw cvNotFound();
+    if (cv.status !== 'ready') {
+      throw new ApiException(
+        HttpStatus.CONFLICT,
+        'cv_not_ready',
+        'The CV has no content to update yet',
+      );
+    }
+    const pending = { cvId, status: 'answered', appliedAt: null } as const;
+    if ((await tx.question.count({ where: pending })) === 0) {
+      throw new ApiException(
+        HttpStatus.CONFLICT,
+        'no_pending_answers',
+        'There are no answers to apply',
+      );
+    }
+    const started = await this.generations.start(tx, {
+      userId,
+      cvId,
+      kind: 'answer',
+    });
+    await tx.question.updateMany({
+      where: pending,
+      data: { generationId: started.id },
+    });
+    return started;
   }
 
   private async toSource(

@@ -60,9 +60,12 @@ export const generationSchema = z
   })
   .meta({ id: 'Generation' });
 
-/** `POST /api/cvs/:cvId/generations`: `initial` is Try again after a failed Generation. */
+/**
+ * `POST /api/cvs/:cvId/generations`: `initial` is Try again after a failed
+ * first Generation; `answer` is Update CV, which applies every pending Answer.
+ */
 export const createGenerationSchema = z
-  .strictObject({ kind: z.literal('initial') })
+  .strictObject({ kind: z.enum(GENERATION_KINDS) })
   .meta({ id: 'CreateGeneration' });
 
 export const cvListItemSchema = z

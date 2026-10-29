@@ -309,9 +309,9 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
     method: 'post',
     path: '/api/cvs/{cvId}/generations',
     tags: ['cvs'],
-    summary: 'Try again after a failed Generation',
+    summary: 'Try again after a failed first Generation, or Update CV',
     description:
-      'A new Generation with the same Source and Target role; Facts from the failed one are reused.',
+      '`kind: initial` is Try again: a new Generation with the same Source and Target role, reusing the Facts of the failed one. `kind: answer` is Update CV: one Generation applies every pending Answer (each becomes a Fact), rewrites only the anchored items or sections (never an Edited item), and leaves every changed item under review. The CV stays `ready` while it runs and if it fails; its Answers then stay pending.',
     request: {
       params: cvIdParams,
       body: json(createGenerationSchema),
@@ -325,7 +325,9 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
       401: errorResponse('`unauthenticated`'),
       403: errorResponse('`forbidden_origin`'),
       404: errorResponse('`not_found`: missing or another User’s'),
-      409: errorResponse('`generation_not_failed` | `generation_active`'),
+      409: errorResponse(
+        '`generation_not_failed` | `generation_active` | `cv_not_ready` | `no_pending_answers`',
+      ),
       429: errorResponse('`too_many_active_generations`'),
     },
   });

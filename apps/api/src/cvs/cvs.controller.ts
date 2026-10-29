@@ -2,6 +2,7 @@ import {
   type CreateCvFields,
   createCvFieldsSchema,
   type CreateCvResponse,
+  type CreateGeneration,
   createGenerationSchema,
   type CvList,
   type CvView,
@@ -105,12 +106,14 @@ export class CvsController {
     return this.cvs.latestGeneration(user.id, cvId);
   }
 
+  /** `initial`: Try again after a failed first Generation; `answer`: Update CV. */
   @Post(':cvId/generations')
-  retry(
+  startGeneration(
     @CurrentUser() user: User,
     @Param('cvId', cvIdPipe) cvId: string,
-    @Body(new ZodValidationPipe(createGenerationSchema)) _body: unknown,
+    @Body(new ZodValidationPipe(createGenerationSchema))
+    { kind }: CreateGeneration,
   ): Promise<Generation> {
-    return this.cvs.retry(user.id, cvId);
+    return this.cvs.startGeneration(user.id, cvId, kind);
   }
 }
