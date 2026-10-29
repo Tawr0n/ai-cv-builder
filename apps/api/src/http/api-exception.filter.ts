@@ -31,10 +31,12 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
   private toEnvelope(exception: unknown): { status: number; body: ApiError } {
     if (exception instanceof ApiException) {
-      const { code, message, issues } = exception;
+      const { code, message, issues, extra } = exception;
       return {
         status: exception.getStatus(),
-        body: { error: { code, message, ...(issues && { issues }) } },
+        body: {
+          error: { code, message, ...(issues && { issues }), ...extra },
+        },
       };
     }
     if (exception instanceof HttpException) {

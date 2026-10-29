@@ -8,6 +8,8 @@ export class ApiException extends HttpException {
     readonly code: string,
     message: string,
     readonly issues?: ValidationIssue[],
+    /** Extra members of the `error` object (`current`, `order`, `version`), for conflicts. */
+    readonly extra?: Record<string, unknown>,
   ) {
     super(message, status);
   }

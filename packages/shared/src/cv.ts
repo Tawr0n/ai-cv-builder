@@ -83,6 +83,8 @@ export const cvViewSchema = z
     id: z.uuid(),
     targetRole: z.string(),
     status: cvStatusSchema,
+    /** Guards order-sensitive operations (move, remove); item edits use each item's `rev`. */
+    version: z.int().positive(),
     content: cvContentSchema.nullable(),
     latestGeneration: generationSchema,
   })

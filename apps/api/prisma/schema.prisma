@@ -47,6 +47,8 @@ model Cv {
   status         CvStatus
   /// CV content (zod `CvContent`); NULL until a Generation succeeds. See ADR 0001.
   content        Json?
+  /// Guards order-sensitive operations on `content` (move, remove); item edits use each item's own `rev`.
+  version        Int          @default(1)
   /// Facts extracted from the Source: the checkpoint a re-run resumes from.
   facts          Json?
   /// Minted by the create form; a repeat with the same key returns this CV.
