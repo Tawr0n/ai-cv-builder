@@ -5,18 +5,21 @@ import type {
 } from '@ai-cv-builder/shared';
 import type { ReactNode } from 'react';
 
+export type CvTemplateMode = 'preview' | 'pdf';
+
 /**
  * The CV as it prints: template B (sans, label gutter), sections in the order
  * Profile → Skills → Experience → Education. One component for the on-screen
- * preview and the PDF; `mode` will decide which editor hooks are emitted at
- * all. Unknown (`null`) fields are left out. Every value is rendered as text
- * by React, so nothing in the content can become markup.
+ * preview and the PDF; `mode` decides which editor hooks are emitted at all
+ * (in `pdf` mode none are, rather than hidden with CSS). Unknown (`null`)
+ * fields are left out. Every value is rendered as text by React, so nothing in
+ * the content can become markup.
  */
 export function CvTemplate({
   content,
 }: {
   content: CvContent;
-  mode: 'preview' | 'pdf';
+  mode: CvTemplateMode;
 }) {
   const { contact, summary, experience, education, skills } = content;
   const contactParts: ReactNode[] = [
@@ -40,33 +43,41 @@ export function CvTemplate({
       </header>
 
       {summary.text && (
-        <CvSection label="Profile">
-          <p className="cv-summary">{summary.text}</p>
+        <CvSection>
+          <CvRow label="Profile">
+            <p className="cv-summary">{summary.text}</p>
+          </CvRow>
         </CvSection>
       )}
 
       {skills.length > 0 && (
-        <CvSection label="Skills">
-          <ul className="cv-skills">
-            {skills.map((skill) => (
-              <li key={skill.id}>{skill.name}</li>
-            ))}
-          </ul>
+        <CvSection>
+          <CvRow label="Skills">
+            <ul className="cv-skills">
+              {skills.map((skill) => (
+                <li key={skill.id}>{skill.name}</li>
+              ))}
+            </ul>
+          </CvRow>
         </CvSection>
       )}
 
       {experience.length > 0 && (
-        <CvSection label="Experience">
-          {experience.map((item) => (
-            <ExperienceItem key={item.id} item={item} />
+        <CvSection>
+          {experience.map((item, index) => (
+            <CvRow key={item.id} label={index === 0 ? 'Experience' : undefined}>
+              <ExperienceItem item={item} />
+            </CvRow>
           ))}
         </CvSection>
       )}
 
       {education.length > 0 && (
-        <CvSection label="Education">
-          {education.map((item) => (
-            <EducationItem key={item.id} item={item} />
+        <CvSection>
+          {education.map((item, index) => (
+            <CvRow key={item.id} label={index === 0 ? 'Education' : undefined}>
+              <EducationItem item={item} />
+            </CvRow>
           ))}
         </CvSection>
       )}
@@ -74,18 +85,21 @@ export function CvTemplate({
   );
 }
 
-function CvSection({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function CvSection({ children }: { children: ReactNode }) {
+  return <section className="cv-section">{children}</section>;
+}
+
+/**
+ * One row per item; the first row of a section carries its label in the
+ * gutter. A row never splits across pages, so a heading always stays with its
+ * first item.
+ */
+function CvRow({ label, children }: { label?: string; children: ReactNode }) {
   return (
-    <section className="cv-section">
-      <h2 className="cv-label">{label}</h2>
+    <div className="cv-row">
+      {label && <h2 className="cv-label">{label}</h2>}
       <div className="cv-body">{children}</div>
-    </section>
+    </div>
   );
 }
 
