@@ -7,13 +7,13 @@ export function registerHealthDocs(registry: OpenAPIRegistry) {
     method: 'get',
     path: '/api/health',
     tags: ['health'],
-    summary: 'Check that the API and its database are up',
+    summary: 'Check that the API, its database and its job queue are up',
     responses: {
       200: {
         description: 'The API and the database answer',
         content: { 'application/json': { schema: healthSchema } },
       },
-      503: errorResponse('`database_unavailable`'),
+      503: errorResponse('`database_unavailable` | `queue_unavailable`'),
     },
   });
 }

@@ -1,3 +1,4 @@
+import { PDF_LIMITS } from '@ai-cv-builder/shared';
 import { z } from 'zod';
 
 const envSchema = z.object({
@@ -10,6 +11,35 @@ const envSchema = z.object({
     .transform((list) => list.split(',').map((origin) => origin.trim()))
     .pipe(z.array(z.url()).min(1)),
   PORT: z.coerce.number().int().positive().default(3001),
+
+  // Every limit below has a default; env only overrides it.
+  PDF_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(PDF_LIMITS.maxBytes),
+  PDF_MAX_PAGES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(PDF_LIMITS.maxPages),
+  /** Queued or running Generations one User may have at once: a cost fuse. */
+  MAX_ACTIVE_GENERATIONS: z.coerce.number().int().positive().default(3),
+  ANTHROPIC_MODEL_EXTRACT: z.string().min(1).default('claude-sonnet-5-5'),
+  ANTHROPIC_MODEL_COMPOSE: z.string().min(1).default('claude-sonnet-5-5'),
+  /** Per Anthropic call, SDK retries excluded. */
+  AI_CALL_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
+  /** Per Generation attempt: the job's `expireInSeconds`. */
+  GENERATION_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(120),
+  /** A dead worker's job is noticed after this long without a heartbeat (pg-boss minimum 10). */
+  GENERATION_HEARTBEAT_SECONDS: z.coerce.number().int().min(10).default(30),
+  /** Job retries, for transient failures only. */
+  GENERATION_RETRY_LIMIT: z.coerce.number().int().min(0).default(1),
+  /** `false` starts the API without taking Generation jobs (tests drive the handler directly). */
+  GENERATION_WORKER: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
 });
 
 export type Env = z.infer<typeof envSchema>;

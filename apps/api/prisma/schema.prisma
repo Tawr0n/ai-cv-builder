@@ -15,6 +15,8 @@ model User {
   passwordHash String
   createdAt    DateTime  @default(now())
   sessions     Session[]
+  cvs          Cv[]
+  generations  Generation[]
 }
 
 /// A logged-in browser. Only the SHA-256 hash of the cookie token is stored.
@@ -27,4 +29,95 @@ model Session {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+enum CvStatus {
+  generating
+  ready
+  failed
+}
+
+/// One User's document targeted at one Target role, created from exactly one Source.
+model Cv {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  ownerId        String       @db.Uuid
+  owner          User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  targetRole     String
+  /// Summary of the latest Generation, for the CV list.
+  status         CvStatus
+  /// CV content (zod `CvContent`); NULL until a Generation succeeds. See ADR 0001.
+  content        Json?
+  /// Facts extracted from the Source: the checkpoint a re-run resumes from.
+  facts          Json?
+  /// Minted by the create form; a repeat with the same key returns this CV.
+  idempotencyKey String       @db.Uuid
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  source         Source?
+  generations    Generation[]
+
+  @@unique([ownerId, idempotencyKey])
+}
+
+enum SourceKind {
+  pdf
+  text
+}
+
+/// What the User provided to create a CV. Never changes. Exactly one of `bytes` / `text` (CHECK in SQL).
+model Source {
+  id        String     @id @default(uuid(7)) @db.Uuid
+  cvId      String     @unique @db.Uuid
+  cv        Cv         @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  kind      SourceKind
+  fileName  String?
+  bytes     Bytes?
+  text      String?
+  createdAt DateTime   @default(now())
+}
+
+enum GenerationKind {
+  initial
+}
+
+enum GenerationStatus {
+  queued
+  running
+  succeeded
+  failed
+}
+
+enum GenerationStep {
+  extract
+  compose
+}
+
+enum GenerationErrorCode {
+  ai_unavailable
+  invalid_ai_output
+  unreadable_source
+  timed_out
+  worker_lost
+  internal
+}
+
+/// One run of the AI producing CV content. At most one per CV is queued or running (partial unique index in SQL).
+model Generation {
+  id         String               @id @default(uuid(7)) @db.Uuid
+  cvId       String               @db.Uuid
+  cv         Cv                   @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  userId     String               @db.Uuid
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind       GenerationKind
+  status     GenerationStatus     @default(queued)
+  step       GenerationStep?
+  /// Job attempts that started running this Generation.
+  attempt    Int                  @default(0)
+  errorCode  GenerationErrorCode?
+  createdAt  DateTime             @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([cvId, createdAt])
+  @@index([userId, status])
 }

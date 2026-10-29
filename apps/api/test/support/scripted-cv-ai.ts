@@ -7,7 +7,8 @@ import {
 
 type Outcome<S extends CvAiStep> =
   | { kind: 'returns'; value: CvAiOutput<S> }
-  | { kind: 'throws'; error: unknown };
+  | { kind: 'throws'; error: unknown }
+  | { kind: 'runs'; run: (input: CvAiInput<S>) => Promise<CvAiOutput<S>> };
 
 type PerStep<T extends Record<CvAiStep, unknown>> = { [S in CvAiStep]: T[S] };
 
@@ -41,6 +42,24 @@ export class ScriptedCvAi extends CvAi {
     const queue: Outcome<S>[] = this.scripts[step];
     queue.push({ kind: 'throws', error });
     return this;
+  }
+
+  /** Answers one call with whatever `run` does: for side effects in the middle of a step. */
+  runs<S extends CvAiStep>(
+    step: S,
+    run: (input: CvAiInput<S>) => Promise<CvAiOutput<S>>,
+  ): this {
+    const queue: Outcome<S>[] = this.scripts[step];
+    queue.push({ kind: 'runs', run });
+    return this;
+  }
+
+  /** Forgets every script and recorded call: for a test app shared by a whole file. */
+  reset(): void {
+    for (const step of Object.keys(this.scripts) as CvAiStep[]) {
+      this.scripts[step].length = 0;
+      this.calls[step].length = 0;
+    }
   }
 
   /** Fails when a scripted result was never used: the code took a shorter path than the test expected. */
@@ -82,7 +101,13 @@ export class ScriptedCvAi extends CvAi {
     if (!outcome) {
       throw new Error(`ScriptedCvAi: unexpected call to ${step}`);
     }
-    if (outcome.kind === 'throws') throw outcome.error;
-    return outcome.value;
+    switch (outcome.kind) {
+      case 'returns':
+        return outcome.value;
+      case 'throws':
+        throw outcome.error;
+      case 'runs':
+        return outcome.run(input);
+    }
   }
 }
