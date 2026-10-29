@@ -360,7 +360,7 @@ function cPaper() {
   const c = S.cv, hl = S.ui.hl, h = id => (hl === id ? 'hl' : '') + (inScope(id) ? ' shimmer' : '');
   const pen = sec => `<button class="pen" onclick="cEdit('${sec}')">✎ Edit</button>`;
   return `<div class="paper">
-    <div class="${h('contact')}"><div style="font-size:20px;font-weight:600">${esc(c.contact.name)}</div><div style="font-size:11px">${esc(c.contact.email)} · ${esc(c.contact.phone)} · ${esc(c.contact.location)} · ${esc(c.contact.links)}</div></div>
+    <div class="${h('contact')}"><div class="row"><div class="grow" style="font-size:20px;font-weight:600">${esc(c.contact.name)}</div>${pen('contact')}</div><div style="font-size:11px">${esc(c.contact.email)} · ${esc(c.contact.phone)} · ${esc(c.contact.location)} · ${esc(c.contact.links)}</div></div>
     <h3>Summary ${pen('summary')}</h3><div class="${h('summary')}">${esc(c.summary.text)}</div>
     <h3>Experience ${pen('experience')}</h3>${c.experience.map(e => `<div class="${h(e.id)}" style="margin-bottom:8px"><b>${esc(e.title)}</b>${e.org ? ', ' + esc(e.org) : ''} ${cMark(e.id)}<div style="font-size:11px;color:#666">${esc(e.dates || '')}</div><ul class="b">${e.bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}
     <h3>Education ${pen('education')}</h3>${c.education.map(e => `<div class="${h(e.id)}"><b>${esc(e.degree)}</b>, ${esc(e.school)} ${esc(e.dates || '')} ${cMark(e.id)}</div>`).join('')}
