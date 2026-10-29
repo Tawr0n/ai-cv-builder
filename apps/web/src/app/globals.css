@@ -935,8 +935,7 @@ main.workspace {
   font-weight: 600;
 }
 
-.count,
-.dot {
+.count {
   display: inline-block;
   padding: 0 7px;
   border-radius: 999px;
@@ -946,32 +945,6 @@ main.workspace {
   color: var(--warn-ink);
   background: var(--warn-bg);
   border: 1px solid var(--warn-line);
-}
-
-.variant-switcher {
-  position: fixed;
-  left: 50%;
-  bottom: 14px;
-  z-index: 60;
-  display: none;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 8px;
-  transform: translateX(-50%);
-  border-radius: 999px;
-  color: #fff;
-  background: #111;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.35);
-  font-size: 0.8125rem;
-}
-
-.variant-switcher button {
-  min-height: 30px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 999px;
-  color: #fff;
-  background: #333;
 }
 
 @media (min-width: 900px) {
@@ -984,10 +957,6 @@ main.workspace {
 
   main.workspace > .dw {
     margin: 0;
-  }
-
-  .variant-switcher {
-    display: flex;
   }
 
   .ws-head {
@@ -1008,6 +977,7 @@ main.workspace {
     flex: 1;
     min-height: 0;
     display: grid;
+    grid-template-columns: minmax(420px, 520px) 1fr;
   }
 
   .dw-pane {
@@ -1047,211 +1017,8 @@ main.workspace {
   }
 
   /* A: split editor */
-  .dw-a {
-    grid-template-columns: minmax(420px, 520px) 1fr;
-  }
-
   .dw-form {
     background: var(--bg);
     border-right: 1px solid var(--line);
-  }
-
-  /* B: outline | canvas | inspector, on a dark canvas */
-  .dw-b {
-    --accent: #6d5ef5;
-    --accent-soft: #ece9ff;
-    grid-template-columns: 260px 1fr 400px;
-  }
-
-  .dw-rail {
-    padding: 8px 10px 72px;
-    color: #e8e9f0;
-    background: #171923;
-  }
-
-  .dw-rail h2 {
-    margin: 16px 6px 4px;
-    font-size: 0.6875rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #8d92a6;
-  }
-
-  .outline-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    width: 100%;
-    min-height: 0;
-    padding: 8px 10px;
-    border: 0;
-    border-radius: 8px;
-    color: #cfd2e0;
-    background: none;
-    text-align: left;
-  }
-
-  .outline-item:hover:not(:disabled) {
-    background: #222637;
-  }
-
-  .outline-item[aria-pressed='true'] {
-    color: #fff;
-    background: var(--accent);
-  }
-
-  .outline-text {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .outline-text strong,
-  .outline-text small {
-    display: block;
-  }
-
-  .outline-text small {
-    color: #8d92a6;
-    font-size: 0.75rem;
-  }
-
-  .outline-item[aria-pressed='true'] small {
-    color: #ddd8ff;
-  }
-
-  .dot-ai {
-    color: var(--ok-ink);
-    background: var(--ok-bg);
-    border-color: transparent;
-  }
-
-  .dot-edit {
-    color: #9aa0b8;
-    background: #2c3145;
-    border-color: transparent;
-  }
-
-  .outline-add {
-    width: 100%;
-    min-height: 36px;
-    margin-top: 4px;
-    border: 1px dashed #3a3f55;
-    color: #a79dff;
-    background: none;
-    font-size: 0.8125rem;
-  }
-
-  .dw-canvas {
-    background: #2a2e3d;
-  }
-
-  .dw-b .dw-canvas .cv,
-  .dw-c .dw-canvas .cv {
-    box-shadow: 0 10px 40px rgb(0 0 0 / 0.35);
-  }
-
-  .dw-inspector {
-    background: var(--bg);
-    border-left: 1px solid var(--line);
-  }
-
-  .inspector-hint {
-    padding: 12px 16px 0;
-  }
-
-  /* C: paper + assistant, editing in a dialog */
-  .dw-c {
-    --accent: #0f7b6c;
-    --accent-soft: #dff3ee;
-    grid-template-columns: 1fr 410px;
-  }
-
-  .dw-c .dw-canvas {
-    background: var(--paper-bg);
-  }
-
-  .dw-copilot {
-    padding: 0 16px 72px;
-    background: var(--card);
-    border-left: 1px solid var(--line);
-  }
-
-  .copilot-head {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 0 10px;
-    background: var(--card);
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 12px;
-  }
-
-  .copilot-avatar {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    color: #fff;
-    background: var(--accent);
-  }
-
-  .copilot-changes h2 {
-    margin: 0 0 8px;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .copilot-changes ul {
-    list-style: none;
-    margin: 8px 0 12px;
-    padding: 0;
-  }
-
-  .copilot-changes button[aria-pressed='true'] {
-    font-weight: 700;
-  }
-
-  .dw-copilot .editor,
-  .dw-copilot .inbox {
-    padding: 0;
-  }
-
-  .edit-dialog {
-    width: min(580px, 92vw);
-    max-height: 84vh;
-    padding: 0 18px 18px;
-    border: 0;
-    border-radius: 18px;
-    color: var(--ink);
-    background: var(--bg);
-    box-shadow: 0 24px 70px rgb(0 0 0 / 0.35);
-  }
-
-  .edit-dialog::backdrop {
-    background: rgb(20 20 25 / 0.5);
-  }
-
-  .edit-dialog-head {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 0;
-    background: var(--bg);
-    border-bottom: 1px solid var(--line);
-  }
-
-  .edit-dialog-head h2 {
-    margin: 0;
-    font-size: 1.0625rem;
   }
 }

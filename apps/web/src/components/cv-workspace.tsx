@@ -14,14 +14,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   type MouseEvent,
   useEffect,
-  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
 import { cardId, CvEditor } from '@/components/cv-editor';
 import { PagedCvPreview } from '@/components/paged-cv-preview';
 import { QuestionsInbox, type UpdateCv } from '@/components/questions-inbox';
-import { anchorElementIds, anchorItemId, reviewedItems } from '@/lib/anchors';
+import { anchorElementIds } from '@/lib/anchors';
 import {
   isFinished,
   reviewDecisionMutation,
@@ -47,7 +46,7 @@ const UPDATE_STEPS: Partial<Record<GenerationStep, string>> = {
   judge: 'Double-checking every line against your answers…',
 };
 
-/** Phones get bottom tabs; from this width the CV and its editor sit side by side. */
+/** Phones get bottom tabs; from this width the editor and the CV sit side by side. */
 const DESKTOP_QUERY = '(min-width: 900px)';
 
 function useDesktop(): boolean {
@@ -59,88 +58,6 @@ function useDesktop(): boolean {
     },
     () => window.matchMedia(DESKTOP_QUERY).matches,
     () => false,
-  );
-}
-
-/**
- * PROTOTYPE: three desktop layouts of the same workspace, picked with
- * `?variant=A|B|C` and switched from a bar that exists only in development.
- */
-const VARIANTS = {
-  A: 'Split editor',
-  B: 'Canvas + inspector',
-  C: 'Copilot',
-} as const;
-type Variant = keyof typeof VARIANTS;
-
-const VARIANT_EVENT = 'cv-variant';
-
-function readVariant(): Variant {
-  const asked = new URLSearchParams(window.location.search)
-    .get('variant')
-    ?.toUpperCase();
-  return asked && asked in VARIANTS ? (asked as Variant) : 'A';
-}
-
-function useVariant(): [Variant, (next: Variant) => void] {
-  const variant = useSyncExternalStore(
-    (notify) => {
-      window.addEventListener(VARIANT_EVENT, notify);
-      window.addEventListener('popstate', notify);
-      return () => {
-        window.removeEventListener(VARIANT_EVENT, notify);
-        window.removeEventListener('popstate', notify);
-      };
-    },
-    readVariant,
-    () => 'A' as Variant,
-  );
-  const set = (next: Variant) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('variant', next);
-    window.history.replaceState(null, '', url);
-    window.dispatchEvent(new Event(VARIANT_EVENT));
-  };
-  return [variant, set];
-}
-
-function VariantSwitcher({
-  variant,
-  onChange,
-}: {
-  variant: Variant;
-  onChange: (next: Variant) => void;
-}) {
-  const keys = Object.keys(VARIANTS) as Variant[];
-  const cycle = (by: number) =>
-    onChange(keys[(keys.indexOf(variant) + by + keys.length) % keys.length]!);
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-      if ((event.target as HTMLElement).closest('input, textarea, select')) {
-        return;
-      }
-      cycle(event.key === 'ArrowRight' ? 1 : -1);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
-  return (
-    <div className="variant-switcher" role="group" aria-label="Layout variant">
-      <button
-        type="button"
-        aria-label="Previous variant"
-        onClick={() => cycle(-1)}
-      >
-        ‹
-      </button>
-      <span>
-        <strong>{variant}</strong> · {VARIANTS[variant]}
-      </span>
-      <button type="button" aria-label="Next variant" onClick={() => cycle(1)}>
-        ›
-      </button>
-    </div>
   );
 }
 
@@ -170,7 +87,7 @@ const isActive = (question: Question) =>
 
 /**
  * The ready CV. On a phone: the CV, Edit and Questions as bottom tabs. On a
- * desktop the same pieces sit side by side in the layout `?variant=` names.
+ * desktop the editor and Questions sit beside the live paper.
  * The 📍 links of Questions lead back into the preview and the Answers are
  * applied by Update CV.
  */
@@ -189,13 +106,10 @@ export function CvWorkspace({
 }) {
   const queryClient = useQueryClient();
   const desktop = useDesktop();
-  const [variant, setVariant] = useVariant();
   const [tab, setTab] = useState<Tab>('cv');
   const [pane, setPane] = useState<Pane>('edit');
   const [located, setLocated] = useState<Anchor | null>(null);
   const [reviewing, setReviewing] = useState<string | null>(null);
-  // The part being edited next to (B) or over (C) the preview.
-  const [picked, setPicked] = useState<string | null>(null);
   const [scrollToCard, setScrollToCard] = useState<{ id: string } | null>(null);
   const open = questions.filter(isActive).length;
 
@@ -249,7 +163,7 @@ export function CvWorkspace({
     };
   }, [previewShown, located]);
 
-  // Variant A: a click on the preview scrolls the editor to that card.
+  // A click on the preview scrolls the editor to that card.
   useEffect(() => {
     if (!scrollToCard || pane !== 'edit') return;
     document
@@ -311,14 +225,13 @@ export function CvWorkspace({
       />
     </div>
   );
-  const editor = (only?: string) => (
+  const editor = () => (
     <CvEditor
       cvId={cvId}
       content={content}
       version={version}
       questions={questions}
       onReview={review}
-      only={only}
     />
   );
   const inbox = (
@@ -388,249 +301,28 @@ export function CvWorkspace({
     );
   }
 
-  let layout;
-  if (variant === 'A') {
-    // Split editor: the form on the left, the live paper on the right.
-    layout = (
-      <div className="dw dw-a">
-        <section className="dw-pane dw-form">
-          {paneTabs}
-          {pane === 'edit' ? editor() : inbox}
-        </section>
-        <section className="dw-pane dw-paper">
-          {notice}
-          {reviewBar}
-          {preview((event) => {
-            const target = editTarget(event.target as HTMLElement, content);
-            if (!target || (event.target as HTMLElement).closest('a')) return;
-            setPane('edit');
-            const id =
-              target === 'experience' || target === 'education'
-                ? content[target][0]?.id
-                : target;
-            if (id) setScrollToCard({ id });
-          })}
-        </section>
-      </div>
-    );
-  } else if (variant === 'B') {
-    // Canvas + inspector: an outline, the paper, and the part you picked.
-    const count = (id: string, section?: Anchor['section']) =>
-      questions.filter(
-        (question) =>
-          isActive(question) &&
-          (anchorItemId(question.anchor, content) ??
-            question.anchor.section) === (id ?? section),
-      ).length;
-    const entry = (
-      id: string,
-      title: string,
-      sub: string | null,
-      under: boolean,
-      edited: boolean,
-    ) => (
-      <button
-        key={id}
-        type="button"
-        className="outline-item"
-        aria-pressed={picked === id}
-        onClick={() => {
-          setPicked(id);
+  // Split editor: the form on the left, the live paper on the right.
+  return (
+    <div className="dw">
+      <section className="dw-pane dw-form">
+        {paneTabs}
+        {pane === 'edit' ? editor() : inbox}
+      </section>
+      <section className="dw-pane dw-paper">
+        {notice}
+        {reviewBar}
+        {preview((event) => {
+          const target = editTarget(event.target as HTMLElement, content);
+          if (!target || (event.target as HTMLElement).closest('a')) return;
           setPane('edit');
-          if (under) setReviewing(id);
-        }}
-      >
-        <span className="outline-text">
-          <strong>{title}</strong>
-          {sub && <small>{sub}</small>}
-        </span>
-        {count(id) > 0 && <span className="dot dot-q">❓{count(id)}</span>}
-        {under && <span className="dot dot-ai">✨</span>}
-        {edited && <span className="dot dot-edit">✎</span>}
-      </button>
-    );
-    layout = (
-      <div className="dw dw-b">
-        <nav className="dw-pane dw-rail" aria-label="CV outline">
-          <h2>Basics</h2>
-          {entry(
-            'contact',
-            'Contact',
-            content.contact.fullName,
-            Boolean(content.contact.review),
-            content.contact.edited,
-          )}
-          {entry(
-            'summary',
-            'Summary',
-            null,
-            Boolean(content.summary.review),
-            content.summary.edited,
-          )}
-          <h2>Experience</h2>
-          {content.experience.map((item) =>
-            entry(
-              item.id,
-              item.title ?? 'New experience',
-              item.organization,
-              Boolean(item.review),
-              item.edited,
-            ),
-          )}
-          <button
-            type="button"
-            className="outline-add"
-            onClick={() => setPicked('experience')}
-          >
-            + Add or reorder
-          </button>
-          <h2>Education</h2>
-          {content.education.map((item) =>
-            entry(
-              item.id,
-              item.degree ?? item.institution ?? 'New education',
-              item.institution,
-              Boolean(item.review),
-              item.edited,
-            ),
-          )}
-          <button
-            type="button"
-            className="outline-add"
-            onClick={() => setPicked('education')}
-          >
-            + Add or reorder
-          </button>
-          <h2>Skills</h2>
-          {entry(
-            'skills',
-            'Skills',
-            `${content.skills.length} skills`,
-            false,
-            false,
-          )}
-        </nav>
-        <section className="dw-pane dw-paper dw-canvas">
-          {notice}
-          {reviewBar}
-          {preview((event) => {
-            const target = editTarget(event.target as HTMLElement, content);
-            if (!target || (event.target as HTMLElement).closest('a')) return;
-            setPicked(target);
-            setPane('edit');
-          })}
-        </section>
-        <aside className="dw-pane dw-inspector">
-          {paneTabs}
-          {pane === 'questions' || !picked ? (
-            <>
-              {!picked && pane === 'edit' && (
-                <p className="hint inspector-hint">
-                  Click any part of the CV, or an entry on the left, to edit it
-                  here.
-                </p>
-              )}
-              {inbox}
-            </>
-          ) : (
-            editor(picked)
-          )}
-        </aside>
-      </div>
-    );
-  } else {
-    // Copilot: the paper, and an assistant that asks and shows what it changed.
-    const items = reviewedItems(content);
-    layout = (
-      <div className="dw dw-c">
-        <section className="dw-pane dw-paper dw-canvas">
-          {preview((event) => {
-            const element = event.target as HTMLElement;
-            if (element.closest('a, [data-review-id]')) return;
-            setPicked(editTarget(element, content));
-          })}
-        </section>
-        <aside className="dw-pane dw-copilot">
-          <div className="copilot-head">
-            <span className="copilot-avatar" aria-hidden="true">
-              ✨
-            </span>
-            <div>
-              <strong>CV assistant</strong>
-              <p className="hint">
-                I only use facts from you. Gaps become questions.
-              </p>
-            </div>
-          </div>
-          {notice}
-          {items.length > 0 && (
-            <div className="copilot-changes">
-              <h2>Review my changes ({items.length})</h2>
-              {reviewBar}
-            </div>
-          )}
-          {inbox}
-        </aside>
-        <EditDialog
-          title={
-            picked === 'experience' || picked === 'education'
-              ? `Edit ${picked}`
-              : 'Edit'
-          }
-          open={picked !== null}
-          onClose={() => setPicked(null)}
-        >
-          {picked && editor(picked)}
-        </EditDialog>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {layout}
-      {process.env.NODE_ENV !== 'production' && (
-        <VariantSwitcher variant={variant} onChange={setVariant} />
-      )}
-    </>
-  );
-}
-
-function EditDialog({
-  title,
-  open,
-  onClose,
-  children,
-}: {
-  title: string;
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
-  return (
-    <dialog
-      ref={ref}
-      className="edit-dialog"
-      onClose={onClose}
-      onClick={(event) => {
-        if (event.target === ref.current) onClose();
-      }}
-    >
-      <div className="edit-dialog-head">
-        <h2>{title}</h2>
-        <button type="button" className="primary" onClick={onClose}>
-          Done
-        </button>
-      </div>
-      {children}
-    </dialog>
+          const id =
+            target === 'experience' || target === 'education'
+              ? content[target][0]?.id
+              : target;
+          if (id) setScrollToCard({ id });
+        })}
+      </section>
+    </div>
   );
 }
 

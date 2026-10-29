@@ -48,7 +48,6 @@ export function CvEditor({
   version,
   questions,
   onReview,
-  only,
 }: {
   cvId: string;
   content: CvContent;
@@ -57,15 +56,8 @@ export function CvEditor({
   questions: Question[];
   /** Opens the review of the AI change to this item. */
   onReview: (itemId: string) => void;
-  /**
-   * Show just one part: `contact`, `summary`, `skills`, a section (`experience`
-   * or `education`) or the id of one entry. Every card when left out.
-   */
-  only?: string;
 }) {
   const edits = useStructuralEdits(cvId);
-  const showing = (...ids: string[]) =>
-    only === undefined || ids.includes(only);
   // A card that was just added or moved is scrolled into view (and focused when new).
   const [reveal, setReveal] = useState<{ id: string; focus: boolean }>();
   useEffect(() => {
@@ -90,74 +82,62 @@ export function CvEditor({
             {STRUCTURAL_MESSAGES[edits.error]}
           </p>
         )}
-        {showing('contact') && (
-          <ContactCard cvId={cvId} contact={content.contact} />
-        )}
-        {showing('summary') && (
-          <SummaryCard cvId={cvId} summary={content.summary} />
-        )}
+        <ContactCard cvId={cvId} contact={content.contact} />
+        <SummaryCard cvId={cvId} summary={content.summary} />
 
-        {showing('experience') && <h2 id="edit-experience">Experience</h2>}
-        {content.experience.map((item, index) =>
-          showing('experience', item.id) ? (
-            <ExperienceCard
-              key={item.id}
-              cvId={cvId}
-              item={item}
-              index={index}
-              count={content.experience.length}
-              version={version}
-              edits={edits}
-              onMoved={() => setReveal({ id: item.id, focus: false })}
-            />
-          ) : null,
-        )}
-        {showing('experience') && (
-          <AddButton
-            label="Add experience"
-            disabled={
-              edits.busy || content.experience.length >= CV_LIMITS.experience
-            }
-            onClick={() =>
-              edits.addItem.mutate(
-                { section: 'experience' },
-                { onSuccess: (next) => revealLast(next.content?.experience) },
-              )
-            }
+        <h2>Experience</h2>
+        {content.experience.map((item, index) => (
+          <ExperienceCard
+            key={item.id}
+            cvId={cvId}
+            item={item}
+            index={index}
+            count={content.experience.length}
+            version={version}
+            edits={edits}
+            onMoved={() => setReveal({ id: item.id, focus: false })}
           />
-        )}
+        ))}
+        <AddButton
+          label="Add experience"
+          disabled={
+            edits.busy || content.experience.length >= CV_LIMITS.experience
+          }
+          onClick={() =>
+            edits.addItem.mutate(
+              { section: 'experience' },
+              { onSuccess: (next) => revealLast(next.content?.experience) },
+            )
+          }
+        />
 
-        {showing('education') && <h2 id="edit-education">Education</h2>}
-        {content.education.map((item, index) =>
-          showing('education', item.id) ? (
-            <EducationCard
-              key={item.id}
-              cvId={cvId}
-              item={item}
-              index={index}
-              count={content.education.length}
-              version={version}
-              edits={edits}
-              onMoved={() => setReveal({ id: item.id, focus: false })}
-            />
-          ) : null,
-        )}
-        {showing('education') && (
-          <AddButton
-            label="Add education"
-            disabled={
-              edits.busy || content.education.length >= CV_LIMITS.education
-            }
-            onClick={() =>
-              edits.addItem.mutate(
-                { section: 'education' },
-                { onSuccess: (next) => revealLast(next.content?.education) },
-              )
-            }
+        <h2>Education</h2>
+        {content.education.map((item, index) => (
+          <EducationCard
+            key={item.id}
+            cvId={cvId}
+            item={item}
+            index={index}
+            count={content.education.length}
+            version={version}
+            edits={edits}
+            onMoved={() => setReveal({ id: item.id, focus: false })}
           />
-        )}
+        ))}
+        <AddButton
+          label="Add education"
+          disabled={
+            edits.busy || content.education.length >= CV_LIMITS.education
+          }
+          onClick={() =>
+            edits.addItem.mutate(
+              { section: 'education' },
+              { onSuccess: (next) => revealLast(next.content?.education) },
+            )
+          }
+        />
 
-        {showing('skills') && <SkillsCard content={content} edits={edits} />}
+        <SkillsCard content={content} edits={edits} />
       </div>
     </ReviewNotesContext>
   );
