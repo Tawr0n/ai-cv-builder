@@ -1,18 +1,24 @@
 'use client';
 
 import type {
+  Anchor,
+  CvContent,
   Generation,
   GenerationErrorCode,
   GenerationStep,
+  Question,
 } from '@ai-cv-builder/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { CvTemplate } from '@/components/cv-template';
+import { QuestionsInbox } from '@/components/questions-inbox';
+import { anchorElementIds } from '@/lib/anchors';
 import {
   cvQuery,
   generationQuery,
   isFinished,
+  questionsQuery,
   retryGenerationMutation,
 } from '@/lib/cvs-query';
 import { queryKeys } from '@/lib/query-keys';
@@ -21,6 +27,7 @@ import { useSignedOutRedirect } from '@/lib/use-signed-out-redirect';
 const STEPS: { step: GenerationStep; label: string }[] = [
   { step: 'extract', label: 'Reading your background' },
   { step: 'compose', label: 'Writing the CV for the role' },
+  { step: 'judge', label: 'Checking every line against your facts' },
 ];
 
 const FAILURE_MESSAGES: Record<GenerationErrorCode, string> = {
@@ -44,7 +51,13 @@ export function CvPage({ cvId }: { cvId: string }) {
   const generation = useQuery(generationQuery(cvId));
   const succeeded = generation.data?.status === 'succeeded';
   const cv = useQuery({ ...cvQuery(cvId), enabled: succeeded });
-  const signedOut = useSignedOutRedirect(generation.error ?? cv.error);
+  const questions = useQuery({
+    ...questionsQuery(cvId),
+    enabled: succeeded,
+  });
+  const signedOut = useSignedOutRedirect(
+    generation.error ?? cv.error ?? questions.error,
+  );
 
   // The CV view (and the list's badge) change once, when the Generation ends.
   const finished = generation.data ? isFinished(generation.data) : false;
@@ -58,6 +71,9 @@ export function CvPage({ cvId }: { cvId: string }) {
         queryKey: queryKeys.cv(cvId),
         exact: true,
       });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.questions(cvId),
+      });
     }
   }, [finished, cvId, queryClient]);
 
@@ -68,7 +84,7 @@ export function CvPage({ cvId }: { cvId: string }) {
     </p>
   );
 
-  if (generation.isError || cv.isError) {
+  if (generation.isError || cv.isError || questions.isError) {
     return (
       <main>
         {back}
@@ -98,14 +114,85 @@ export function CvPage({ cvId }: { cvId: string }) {
       </main>
     );
   }
-  if (!cv.data?.content) return <p role="status">Loading…</p>;
+  if (!cv.data?.content || !questions.data) {
+    return <p role="status">Loading…</p>;
+  }
 
   return (
     <main className="wide">
       {back}
       {title && <p className="hint">CV for {title}</p>}
-      <CvTemplate content={cv.data.content} mode="preview" />
+      <CvTabs content={cv.data.content} questions={questions.data.items} />
     </main>
+  );
+}
+
+type Tab = 'cv' | 'questions';
+
+/** The ready CV: the preview, and the Questions whose 📍 links lead back into it. */
+function CvTabs({
+  content,
+  questions,
+}: {
+  content: CvContent;
+  questions: Question[];
+}) {
+  const [tab, setTab] = useState<Tab>('cv');
+  const [located, setLocated] = useState<Anchor | null>(null);
+  const open = questions.filter((q) => q.status === 'open').length;
+
+  // Runs once the CV tab has rendered the preview the link points into.
+  useEffect(() => {
+    if (tab !== 'cv' || !located) return;
+    const element = anchorElementIds(located)
+      .map((id) => document.getElementById(id))
+      .find(Boolean);
+    if (!element) return;
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    element.classList.add('cv-located');
+    const timer = setTimeout(
+      () => element.classList.remove('cv-located'),
+      2000,
+    );
+    return () => {
+      clearTimeout(timer);
+      element.classList.remove('cv-located');
+    };
+  }, [tab, located]);
+
+  return (
+    <>
+      <div className="tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'cv'}
+          onClick={() => setTab('cv')}
+        >
+          CV
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'questions'}
+          onClick={() => setTab('questions')}
+        >
+          Questions ({open})
+        </button>
+      </div>
+      {tab === 'cv' ? (
+        <CvTemplate content={content} mode="preview" />
+      ) : (
+        <QuestionsInbox
+          questions={questions}
+          content={content}
+          onLocate={(anchor) => {
+            setLocated(anchor);
+            setTab('cv');
+          }}
+        />
+      )}
+    </>
   );
 }
 

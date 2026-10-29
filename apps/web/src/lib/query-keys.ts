@@ -6,4 +6,5 @@ export const queryKeys = {
   cvs: () => ['cvs'] as const,
   cv: (cvId: string) => [...queryKeys.cvs(), cvId] as const,
   generation: (cvId: string) => [...queryKeys.cv(cvId), 'generation'] as const,
+  questions: (cvId: string) => [...queryKeys.cv(cvId), 'questions'] as const,
 };

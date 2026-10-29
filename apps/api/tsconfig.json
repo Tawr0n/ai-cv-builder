@@ -9,5 +9,5 @@
     "strictPropertyInitialization": false,
     "incremental": true
   },
-  "include": ["src", "test", "prisma.config.ts", "vitest.config.ts"]
+  "include": ["src", "test", "smoke", "prisma.config.ts", "vitest.config.ts"]
 }

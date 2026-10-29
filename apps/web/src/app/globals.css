@@ -137,6 +137,49 @@ textarea {
   content: '✓  ';
 }
 
+/* Ready CV: tabs and the Questions inbox */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: inherit;
+}
+
+.tabs button[aria-selected='true'] {
+  border-bottom-color: currentColor;
+  font-weight: 600;
+}
+
+.questions {
+  padding-left: 1.25rem;
+}
+
+.question + .question {
+  margin-top: 12px;
+}
+
+.question-text {
+  margin: 0;
+}
+
+.link-button {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  text-align: left;
+}
+
 /*
  * CV template B: Inter-style sans, labels in a 30 mm gutter, one reading
  * column. Always a white sheet, whatever the page's colour scheme.
@@ -244,6 +287,14 @@ textarea {
 .cv-bullets {
   margin: 4px 0 0;
   padding-left: 1.1em;
+}
+
+/* Where a 📍 link landed, for a moment. */
+.cv .cv-located {
+  outline: 2px solid var(--cv-accent);
+  outline-offset: 3px;
+  background: #fef9c3;
+  transition: background 0.3s;
 }
 
 /* Phone: reflow instead of a scaled-down A4; the gutter becomes a heading. */

@@ -6,6 +6,7 @@ import type {
 import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
+  type Claim,
   CvAi,
   type Fact,
   factSchema,
@@ -15,13 +16,25 @@ import { PrismaService } from '../database/prisma.service.js';
 import { type GenerationStatus, Prisma } from '../generated/prisma/client.js';
 import { SourceStorage } from '../source/source-storage.js';
 import { classifyFailure, UnreadableSourceError } from './classify-failure.js';
-import { checkComposeOutput } from './compose-check.js';
+import { listClaims } from './claims.js';
+import {
+  anchorComposeQuestions,
+  checkComposeOutput,
+  missingInfoQuestions,
+  reanchor,
+} from './compose-check.js';
+import {
+  applyRepair,
+  checkJudgeOutput,
+  type DraftQuestion,
+  soften,
+} from './judge-check.js';
 import { ACTIVE_GENERATION_STATUSES } from './generations.service.js';
 
 const ACTIVE: readonly GenerationStatus[] = ACTIVE_GENERATION_STATUSES;
 
 /**
- * The Generation job handler: extract → compose, each step retried once on a
+ * The Generation job handler: extract → compose → judge (with repair), each call retried once on a
  * structural failure. Idempotent, because pg-boss re-runs a job after a crash:
  * Facts are a checkpoint a re-run resumes from, and the final write is guarded
  * so a late or duplicate worker writes nothing.
@@ -57,14 +70,36 @@ export class GenerationRunner {
 
       step = 'compose';
       await this.setStep(generationId, step);
-      const content = await retryOnceIfInvalid(async () =>
-        checkComposeOutput(
-          await this.cvAi.compose({ facts, targetRole: cv.targetRole, signal }),
+      const composed = await retryOnceIfInvalid(async () => {
+        const output = await this.cvAi.compose({
           facts,
-        ),
+          targetRole: cv.targetRole,
+          signal,
+        });
+        const content = checkComposeOutput(output, facts);
+        return {
+          content,
+          questions: anchorComposeQuestions(output.questions, content),
+        };
+      });
+
+      step = 'judge';
+      await this.setStep(generationId, step);
+      const judged = await this.judgeAndRepair(
+        facts,
+        cv.targetRole,
+        composed.content,
+        signal,
       );
 
-      await this.succeed(generationId, cv.id, content);
+      const asked = reanchor(
+        [...composed.questions, ...judged.questions],
+        judged.content,
+      );
+      await this.succeed(generationId, cv.id, {
+        content: judged.content,
+        questions: [...asked, ...missingInfoQuestions(judged.content, asked)],
+      });
     } catch (error) {
       const failure = classifyFailure(error, step);
       this.logger.warn({
@@ -142,6 +177,51 @@ export class GenerationRunner {
     return cv?.facts ? z.array(factSchema).parse(cv.facts) : facts;
   }
 
+  /**
+   * The judge checks every Claim; one repair call rewrites the flagged ones;
+   * the judge checks only those again, and whatever it still flags is softened
+   * into a Question. Each call is retried once on a structural failure.
+   */
+  private async judgeAndRepair(
+    facts: Fact[],
+    targetRole: string,
+    content: CvContent,
+    signal?: AbortSignal,
+  ): Promise<{ content: CvContent; questions: DraftQuestion[] }> {
+    const judge = (claims: Claim[]) =>
+      retryOnceIfInvalid(async () =>
+        checkJudgeOutput(
+          await this.cvAi.judge({ facts, claims, signal }),
+          claims,
+        ),
+      );
+
+    const findings = await judge(listClaims(content));
+    if (findings.length === 0) return { content, questions: [] };
+
+    const repaired = await retryOnceIfInvalid(async () =>
+      applyRepair(
+        content,
+        findings,
+        await this.cvAi.repair({
+          facts,
+          targetRole,
+          flagged: findings.map(({ claim, problem }) => ({ claim, problem })),
+          signal,
+        }),
+        facts,
+      ),
+    );
+
+    const flagged = listClaims(repaired).filter((claim) =>
+      findings.some(
+        (f) => f.claim.itemId === claim.itemId && f.claim.field === claim.field,
+      ),
+    );
+    const surviving = flagged.length > 0 ? await judge(flagged) : [];
+    return soften(repaired, surviving);
+  }
+
   private async setStep(generationId: string, step: GenerationStep) {
     await this.prisma.generation.updateMany({
       where: { id: generationId, status: 'running' },
@@ -153,7 +233,7 @@ export class GenerationRunner {
   private async succeed(
     generationId: string,
     cvId: string,
-    content: CvContent,
+    { content, questions }: { content: CvContent; questions: DraftQuestion[] },
   ) {
     const written = await this.prisma.$transaction(async (tx) => {
       const { count } = await tx.generation.updateMany({
@@ -164,6 +244,14 @@ export class GenerationRunner {
       await tx.cv.update({
         where: { id: cvId },
         data: { content, status: 'ready' },
+      });
+      await tx.question.createMany({
+        data: questions.map(({ anchor, text }, position) => ({
+          cvId,
+          anchor,
+          text,
+          position,
+        })),
       });
       return true;
     });

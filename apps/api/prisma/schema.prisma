@@ -55,6 +55,7 @@ model Cv {
   updatedAt      DateTime     @updatedAt
   source         Source?
   generations    Generation[]
+  questions      Question[]
 
   @@unique([ownerId, idempotencyKey])
 }
@@ -90,6 +91,7 @@ enum GenerationStatus {
 enum GenerationStep {
   extract
   compose
+  judge
 }
 
 enum GenerationErrorCode {
@@ -120,4 +122,27 @@ model Generation {
 
   @@index([cvId, createdAt])
   @@index([userId, status])
+}
+
+enum QuestionStatus {
+  open
+  answered
+  dismissed
+  obsolete
+}
+
+/// A request to the User about something missing or vague in the CV content.
+model Question {
+  id        String         @id @default(uuid(7)) @db.Uuid
+  cvId      String         @db.Uuid
+  cv        Cv             @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  /// Where in the CV content it belongs (zod `Anchor`).
+  anchor    Json
+  text      String
+  status    QuestionStatus @default(open)
+  /// Most important first, within the CV.
+  position  Int
+  createdAt DateTime       @default(now())
+
+  @@index([cvId, status])
 }

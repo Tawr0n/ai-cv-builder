@@ -16,7 +16,8 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "oxlint --type-aware && prettier --check .",
     "format": "prettier --write .",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "smoke:live": "pnpm --filter @ai-cv-builder/api smoke:live"
   },
   "devDependencies": {
     "oxlint": "^1.90.0",

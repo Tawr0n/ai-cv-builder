@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "smoke:live": "tsc -p tsconfig.smoke.json && node --env-file-if-exists=../../.env dist-smoke/smoke/live.js"
   },
   "dependencies": {
     "@ai-cv-builder/shared": "workspace:*",

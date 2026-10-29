@@ -26,7 +26,10 @@ const envSchema = z.object({
   /** Queued or running Generations one User may have at once: a cost fuse. */
   MAX_ACTIVE_GENERATIONS: z.coerce.number().int().positive().default(3),
   ANTHROPIC_MODEL_EXTRACT: z.string().min(1).default('claude-sonnet-5-5'),
+  /** Compose's model also runs repair. */
   ANTHROPIC_MODEL_COMPOSE: z.string().min(1).default('claude-sonnet-5-5'),
+  /** The last line of defence against invented facts: the strongest model. */
+  ANTHROPIC_MODEL_JUDGE: z.string().min(1).default('claude-opus-5-5'),
   /** Per Anthropic call, SDK retries excluded. */
   AI_CALL_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   /** Per Generation attempt: the job's `expireInSeconds`. */

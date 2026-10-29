@@ -60,5 +60,11 @@ export function composeOutput(): ComposeOutput {
     ],
     education: [],
     skills: [{ name: 'Node.js', sourceFactIds: ['f4'] }],
+    questions: [],
   };
+}
+
+/** A judge that finds every Claim supported. */
+export function noFindings(): CvAiOutput<'judge'> {
+  return { findings: [] };
 }

@@ -7,5 +7,6 @@ GLOSSARY.md
 CLAUDE.md
 **/generated/
 **/dist/
+**/dist-smoke/
 **/.next/
 **/next-env.d.ts

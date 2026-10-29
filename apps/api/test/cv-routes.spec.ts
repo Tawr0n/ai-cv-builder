@@ -7,7 +7,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { PrismaService } from '../src/database/prisma.service.js';
 import { GenerationRunner } from '../src/generation/generation-runner.js';
-import { composeOutput, extractOutput } from './support/cv-ai-fixtures.js';
+import {
+  composeOutput,
+  extractOutput,
+  noFindings,
+} from './support/cv-ai-fixtures.js';
 import { postCv, SAMPLE_TEXT_SOURCE } from './support/create-cv.js';
 import { givenUser } from './support/given-user.js';
 import { registeredRoutes } from './support/registered-routes.js';
@@ -85,7 +89,9 @@ describe('/api/cvs/:cvId routes', () => {
         });
         return extractOutput();
       });
-      testApp.cvAi.returns('compose', composeOutput());
+      testApp.cvAi
+        .returns('compose', composeOutput())
+        .returns('judge', noFindings());
 
       await runner().run(generationId);
 
@@ -129,7 +135,9 @@ describe('/api/cvs/:cvId routes', () => {
         latestGeneration: { id: retry.id },
       });
 
-      testApp.cvAi.returns('compose', composeOutput());
+      testApp.cvAi
+        .returns('compose', composeOutput())
+        .returns('judge', noFindings());
       await runner().run(retry.id);
 
       expect(testApp.cvAi.calls.extract).toHaveLength(1);
@@ -170,6 +178,7 @@ describe('/api/cvs/:cvId routes', () => {
     const CV_ROUTES: Record<string, { body?: object }> = {
       'GET /api/cvs/:cvId': {},
       'GET /api/cvs/:cvId/generation': {},
+      'GET /api/cvs/:cvId/questions': {},
       'POST /api/cvs/:cvId/generations': { body: { kind: 'initial' } },
     };
 

@@ -2,7 +2,11 @@ import { generationSchema } from '@ai-cv-builder/shared';
 import Anthropic from '@anthropic-ai/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { postCv, SAMPLE_TEXT_SOURCE } from './support/create-cv.js';
-import { composeOutput, extractOutput } from './support/cv-ai-fixtures.js';
+import {
+  composeOutput,
+  extractOutput,
+  noFindings,
+} from './support/cv-ai-fixtures.js';
 import { givenUser } from './support/given-user.js';
 import { createTestApp, type TestApp } from './support/test-app.js';
 
@@ -76,7 +80,8 @@ describe('Generation queue (real pg-boss)', () => {
     testApp.cvAi
       .runs('extract', waitForTheOther)
       .runs('extract', waitForTheOther)
-      .returns('compose', composeOutput(), composeOutput());
+      .returns('compose', composeOutput(), composeOutput())
+      .returns('judge', noFindings(), noFindings());
 
     const created = await Promise.all([
       postCv(agent, { text: SAMPLE_TEXT_SOURCE }).expect(201),

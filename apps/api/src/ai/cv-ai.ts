@@ -1,3 +1,9 @@
+import {
+  CV_FIELDS,
+  CV_SECTIONS,
+  type CvField,
+  type CvSection,
+} from '@ai-cv-builder/shared';
 import { z } from 'zod';
 import type { Source } from '../source/source-storage.js';
 
@@ -25,6 +31,12 @@ export const extractOutputSchema = z.object({
     }),
   ),
 });
+
+const questionText = z
+  .string()
+  .describe(
+    'A short question to the person, in the language of the quotes of the facts',
+  );
 
 const cited = {
   sourceFactIds: z
@@ -88,9 +100,85 @@ export const composeOutputSchema = z.object({
     }),
   ),
   skills: z.array(z.object({ name: z.string(), ...cited })),
+  questions: z
+    .array(
+      z.object({
+        section: z.enum(CV_SECTIONS),
+        itemIndex: z
+          .number()
+          .int()
+          .nullable()
+          .describe(
+            '0-based index of the item in its section; null for contact, summary or the section as a whole',
+          ),
+        bulletIndex: z
+          .number()
+          .int()
+          .nullable()
+          .describe('0-based index of the bullet in the experience, or null'),
+        field: z.enum(CV_FIELDS).nullable().describe('The field, or null'),
+        text: questionText,
+      }),
+    )
+    .describe(
+      'One question per missing or vague thing, most important first; no limit',
+    ),
 });
 
 export type ComposeOutput = z.infer<typeof composeOutputSchema>;
+
+/**
+ * One statement in CV content the judge checks: one field of one item, with
+ * the Facts the item cites. `itemId` is the item's id, or `contact` / `summary`.
+ */
+export interface Claim {
+  itemId: string;
+  section: CvSection;
+  field: CvField;
+  value: string;
+  sourceFactIds: string[];
+}
+
+/** What the judge returns: only the Claims its cited Facts do not support. */
+export const judgeOutputSchema = z.object({
+  findings: z.array(
+    z.object({
+      itemId: z.string(),
+      field: z.enum(CV_FIELDS),
+      problem: z
+        .string()
+        .describe('What the claim says that its cited facts do not'),
+      softened: z
+        .string()
+        .nullable()
+        .describe(
+          'The claim cut back to exactly what the cited facts state; null when nothing of it is supported',
+        ),
+      question: questionText.describe(
+        'A question that would get the missing fact from the person, in the language of the quotes of the facts',
+      ),
+    }),
+  ),
+});
+
+export type JudgeFinding = z.infer<
+  typeof judgeOutputSchema
+>['findings'][number];
+
+/** What repair returns: a replacement for each flagged Claim. */
+export const repairOutputSchema = z.object({
+  fixes: z.array(
+    z.object({
+      itemId: z.string(),
+      field: z.enum(CV_FIELDS),
+      value: z
+        .string()
+        .nullable()
+        .describe('The new value; null when no fact supports any of it'),
+      ...cited,
+    }),
+  ),
+});
 
 export type ExtractSource =
   { kind: 'pdf'; bytes: Uint8Array } | { kind: 'text'; text: string };
@@ -100,10 +188,7 @@ interface Abortable {
   signal?: AbortSignal;
 }
 
-/**
- * Input and output of each pipeline step: parsed domain types, never raw SDK
- * messages. Judge and repair get their types with the slice that builds them.
- */
+/** Input and output of each pipeline step: parsed domain types, never raw SDK messages. */
 export interface CvAiSteps {
   extract: {
     input: { source: Source } & Abortable;
@@ -114,8 +199,20 @@ export interface CvAiSteps {
     input: { facts: Fact[]; targetRole: string } & Abortable;
     output: ComposeOutput;
   };
-  judge: { input: unknown; output: unknown };
-  repair: { input: unknown; output: unknown };
+  /** Judge audits each Claim against the Facts it cites. */
+  judge: {
+    input: { facts: Fact[]; claims: Claim[] } & Abortable;
+    output: z.infer<typeof judgeOutputSchema>;
+  };
+  /** Repair rewrites only the Claims the judge flagged. */
+  repair: {
+    input: {
+      facts: Fact[];
+      targetRole: string;
+      flagged: { claim: Claim; problem: string }[];
+    } & Abortable;
+    output: z.infer<typeof repairOutputSchema>;
+  };
 }
 
 export type CvAiStep = keyof CvAiSteps;
