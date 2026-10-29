@@ -2,8 +2,8 @@ import {
   type AddBullet,
   addBulletSchema,
   type CvItem,
-  type CvSection,
-  cvSectionSchema,
+  type ItemSection,
+  itemSectionSchema,
   type CvView,
   itemIdSchema,
   type MoveItem,
@@ -54,8 +54,8 @@ export class CvItemsController {
   add(
     @CurrentUser() user: User,
     @Param('cvId', cvIdPipe) cvId: string,
-    @Param('section', new ZodValidationPipe(cvSectionSchema))
-    section: CvSection,
+    @Param('section', new ZodValidationPipe(itemSectionSchema))
+    section: ItemSection,
     @Body() body: unknown,
   ): Promise<CvView> {
     return this.items.add(user.id, cvId, section, body);

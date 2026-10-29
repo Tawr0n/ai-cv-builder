@@ -2,22 +2,32 @@ import type {
   CvContent,
   CvEducation,
   CvExperience,
+  CvSection as Section,
 } from '@ai-cv-builder/shared';
 import type { ReactNode } from 'react';
+import { itemElementId, sectionElementId } from './element-ids.js';
+
+export type CvTemplateMode = 'preview' | 'pdf';
 
 /**
  * The CV as it prints: template B (sans, label gutter), sections in the order
  * Profile → Skills → Experience → Education. One component for the on-screen
- * preview and the PDF; `mode` will decide which editor hooks are emitted at
- * all. Unknown (`null`) fields are left out. Every value is rendered as text
+ * preview and the PDF; only the preview emits element ids, which the 📍 links
+ * of Questions scroll to, so the PDF and its off-screen measuring copy carry
+ * none. Unknown (`null`) fields are left out. Every value is rendered as text
  * by React, so nothing in the content can become markup.
  */
 export function CvTemplate({
   content,
+  mode,
 }: {
   content: CvContent;
-  mode: 'preview' | 'pdf';
+  mode: CvTemplateMode;
 }) {
+  const preview = mode === 'preview';
+  const sectionId = (section: Section) =>
+    preview ? sectionElementId(section) : undefined;
+  const itemId = (id: string) => (preview ? itemElementId(id) : undefined);
   const { contact, summary, skills } = content;
   // A card the User just added is empty until they fill it in: it prints nothing.
   const experience = content.experience.filter(
@@ -46,7 +56,7 @@ export function CvTemplate({
 
   return (
     <article className="cv">
-      <header className="cv-header">
+      <header className="cv-header" id={sectionId('contact')}>
         {contact.fullName && <h1 className="cv-name">{contact.fullName}</h1>}
         {contactParts.length > 0 && (
           <p className="cv-contact">
@@ -58,33 +68,43 @@ export function CvTemplate({
       </header>
 
       {summary.text && (
-        <CvSection label="Profile">
-          <p className="cv-summary">{summary.text}</p>
+        <CvSection id={sectionId('summary')}>
+          <CvRow label="Profile">
+            <p className="cv-summary">{summary.text}</p>
+          </CvRow>
         </CvSection>
       )}
 
       {skills.length > 0 && (
-        <CvSection label="Skills">
-          <ul className="cv-skills">
-            {skills.map((skill) => (
-              <li key={skill.id}>{skill.name}</li>
-            ))}
-          </ul>
+        <CvSection id={sectionId('skills')}>
+          <CvRow label="Skills">
+            <ul className="cv-skills">
+              {skills.map((skill) => (
+                <li key={skill.id} id={itemId(skill.id)}>
+                  {skill.name}
+                </li>
+              ))}
+            </ul>
+          </CvRow>
         </CvSection>
       )}
 
       {experience.length > 0 && (
-        <CvSection label="Experience">
-          {experience.map((item) => (
-            <ExperienceItem key={item.id} item={item} />
+        <CvSection id={sectionId('experience')}>
+          {experience.map((item, index) => (
+            <CvRow key={item.id} label={index === 0 ? 'Experience' : undefined}>
+              <ExperienceItem item={item} itemId={itemId} />
+            </CvRow>
           ))}
         </CvSection>
       )}
 
       {education.length > 0 && (
-        <CvSection label="Education">
-          {education.map((item) => (
-            <EducationItem key={item.id} item={item} />
+        <CvSection id={sectionId('education')}>
+          {education.map((item, index) => (
+            <CvRow key={item.id} label={index === 0 ? 'Education' : undefined}>
+              <EducationItem item={item} itemId={itemId} />
+            </CvRow>
           ))}
         </CvSection>
       )}
@@ -92,22 +112,43 @@ export function CvTemplate({
   );
 }
 
+type ItemId = (id: string) => string | undefined;
+
 function CvSection({
-  label,
+  id,
   children,
 }: {
-  label: string;
+  id: string | undefined;
   children: ReactNode;
 }) {
   return (
-    <section className="cv-section">
-      <h2 className="cv-label">{label}</h2>
-      <div className="cv-body">{children}</div>
+    <section className="cv-section" id={id}>
+      {children}
     </section>
   );
 }
 
-function ExperienceItem({ item }: { item: CvExperience }) {
+/**
+ * One row per item; the first row of a section carries its label in the
+ * gutter. A row never splits across pages, so a heading always stays with its
+ * first item.
+ */
+function CvRow({ label, children }: { label?: string; children: ReactNode }) {
+  return (
+    <div className="cv-row">
+      {label && <h2 className="cv-label">{label}</h2>}
+      <div className="cv-body">{children}</div>
+    </div>
+  );
+}
+
+function ExperienceItem({
+  item,
+  itemId,
+}: {
+  item: CvExperience;
+  itemId: ItemId;
+}) {
   const meta = [
     item.organization,
     dateRange(item.startDate, item.endDate),
@@ -116,13 +157,15 @@ function ExperienceItem({ item }: { item: CvExperience }) {
     .filter(Boolean)
     .join(' · ');
   return (
-    <div className="cv-item">
+    <div className="cv-item" id={itemId(item.id)}>
       {item.title && <h3 className="cv-title">{item.title}</h3>}
       {meta && <p className="cv-meta">{meta}</p>}
       {item.bullets.length > 0 && (
         <ul className="cv-bullets">
           {item.bullets.map((bullet) => (
-            <li key={bullet.id}>{bullet.text}</li>
+            <li key={bullet.id} id={itemId(bullet.id)}>
+              {bullet.text}
+            </li>
           ))}
         </ul>
       )}
@@ -130,13 +173,19 @@ function ExperienceItem({ item }: { item: CvExperience }) {
   );
 }
 
-function EducationItem({ item }: { item: CvEducation }) {
+function EducationItem({
+  item,
+  itemId,
+}: {
+  item: CvEducation;
+  itemId: ItemId;
+}) {
   const title = [item.degree, item.field].filter(Boolean).join(', ');
   const meta = [item.institution, dateRange(item.startDate, item.endDate)]
     .filter(Boolean)
     .join(' · ');
   return (
-    <div className="cv-item">
+    <div className="cv-item" id={itemId(item.id)}>
       {title && <h3 className="cv-title">{title}</h3>}
       {meta && <p className="cv-meta">{meta}</p>}
     </div>

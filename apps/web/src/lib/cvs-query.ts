@@ -4,9 +4,10 @@ import {
   cvViewSchema,
   type Generation,
   generationSchema,
+  questionListSchema,
 } from '@ai-cv-builder/shared';
 import { mutationOptions, queryOptions } from '@tanstack/react-query';
-import { apiGet, apiPost, apiPostForm } from './api';
+import { apiDownload, apiGet, apiPost, apiPostForm } from './api';
 import { queryKeys } from './query-keys';
 
 /** How often a page polls while something generates (the API suggests 1–2 s). */
@@ -44,6 +45,13 @@ export const generationQuery = (cvId: string) =>
     },
   });
 
+/** The CV's Questions, most important first; they exist once a Generation succeeds. */
+export const questionsQuery = (cvId: string) =>
+  queryOptions({
+    queryKey: queryKeys.questions(cvId),
+    queryFn: () => apiGet(`/api/cvs/${cvId}/questions`, questionListSchema),
+  });
+
 export interface CreateCvInput {
   targetRole: string;
   source: { kind: 'pdf'; file: File } | { kind: 'text'; text: string };
@@ -64,6 +72,24 @@ export const createCvMutation = () =>
         { 'idempotency-key': idempotencyKey },
         createCvResponseSchema,
       );
+    },
+  });
+
+/** Renders the CV on the server and hands the browser the PDF to save. */
+export const downloadPdfMutation = (cvId: string) =>
+  mutationOptions({
+    mutationFn: async () => {
+      const { blob, fileName } = await apiDownload(
+        `/api/cvs/${cvId}/pdf`,
+        'cv.pdf',
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      // Revoked at once, the browser may not have started reading the blob yet.
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
     },
   });
 

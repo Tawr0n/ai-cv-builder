@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+dist-smoke/
 .next/
 *.tsbuildinfo
 next-env.d.ts

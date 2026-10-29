@@ -15,8 +15,8 @@ export const GENERATION_STATUSES = [
   'succeeded',
   'failed',
 ] as const;
-/** The step a `running` Generation is on. */
-export const GENERATION_STEPS = ['extract', 'compose'] as const;
+/** The step a `running` Generation is on; `judge` covers its repair too. */
+export const GENERATION_STEPS = ['extract', 'compose', 'judge'] as const;
 /** Why a Generation failed; stable, so the UI picks its message by it. */
 export const GENERATION_ERROR_CODES = [
   'ai_unavailable',

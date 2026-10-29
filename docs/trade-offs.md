@@ -81,7 +81,7 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 
 **Why we accept it:** Chromium only ever receives HTML we rendered ourselves with every piece of user text escaped, with JavaScript disabled and every network request aborted, so there is no script and no remote content to carry an exploit. Enabling the sandbox inside Docker needs Playwright's seccomp profile (or `SYS_ADMIN`) wired into the compose file, which adds setup for a threat those measures already close.
 
-**What limits the damage:** The API container runs as a non-root user and publishes no port to the host.
+**What limits the damage:** The API container runs as a non-root user and publishes no port to the host. `CHROMIUM_EXECUTABLE_PATH` is an operator-set override for development; it is unset in the Docker image.
 
 **What would remove it:** `chromiumSandbox: true` plus `security_opt: seccomp=<Playwright's seccomp_profile.json>` on the `api` service.
 

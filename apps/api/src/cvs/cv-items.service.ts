@@ -5,7 +5,7 @@ import {
   type CvContent,
   cvContentSchema,
   type CvItem,
-  type CvSection,
+  type ItemSection,
   type CvView,
   type MoveItem,
   type PatchItem,
@@ -78,7 +78,7 @@ export class CvItemsService {
   async add(
     userId: string,
     cvId: string,
-    section: CvSection,
+    section: ItemSection,
     body: unknown,
   ): Promise<CvView> {
     await this.prisma.$transaction(async (tx) => {

@@ -5,7 +5,6 @@ import {
   type CvContent,
   type CvEducation,
   type CvExperience,
-  type CvView,
 } from '@ai-cv-builder/shared';
 import {
   type ReactNode,
@@ -32,12 +31,14 @@ type Saver = ReturnType<typeof useItemSaver>;
  */
 export function CvEditor({
   cvId,
-  view,
+  content,
+  version,
 }: {
   cvId: string;
-  view: CvView & { content: CvContent };
+  content: CvContent;
+  /** The CV's `version`: what a move names as the order it saw. */
+  version: number;
 }) {
-  const { content, version } = view;
   const edits = useStructuralEdits(cvId);
   // A card that was just added or moved is scrolled into view (and focused when new).
   const [reveal, setReveal] = useState<{ id: string; focus: boolean }>();

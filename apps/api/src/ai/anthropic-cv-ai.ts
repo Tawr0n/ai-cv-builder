@@ -4,16 +4,24 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { z } from 'zod';
 import { ENV, type Env } from '../env/env.js';
 import {
+  type Assertion,
   composeOutputSchema,
   CvAi,
   type CvAiInput,
-  type CvAiOutput,
   type CvAiStep,
   extractOutputSchema,
+  type Fact,
   InvalidAiOutputError,
+  judgeOutputSchema,
+  repairOutputSchema,
 } from './cv-ai.js';
 import type { Source } from '../source/source-storage.js';
-import { COMPOSE_SYSTEM, EXTRACT_SYSTEM } from './prompts.js';
+import {
+  COMPOSE_SYSTEM,
+  EXTRACT_SYSTEM,
+  JUDGE_SYSTEM,
+  REPAIR_SYSTEM,
+} from './prompts.js';
 
 /** Output ceiling per call (thinking included): with the timeouts, the cost ceiling of a Generation. */
 const MAX_TOKENS = 16_000;
@@ -52,7 +60,6 @@ export class AnthropicCvAi extends CvAi {
   }
 
   compose({ facts, targetRole, signal }: CvAiInput<'compose'>) {
-    const factLines = facts.map(({ id, text }) => ({ id, text }));
     return this.call(
       'compose',
       this.env.ANTHROPIC_MODEL_COMPOSE,
@@ -62,7 +69,7 @@ export class AnthropicCvAi extends CvAi {
           type: 'text',
           text: [
             `<target_role>${targetRole}</target_role>`,
-            `<facts>${JSON.stringify(factLines)}</facts>`,
+            `<facts>${JSON.stringify(factLines(facts))}</facts>`,
             'Write the CV for the target role from these facts only.',
           ].join('\n'),
         },
@@ -72,12 +79,50 @@ export class AnthropicCvAi extends CvAi {
     );
   }
 
-  judge(): Promise<CvAiOutput<'judge'>> {
-    return notBuiltYet('judge');
+  judge({ facts, assertions, signal }: CvAiInput<'judge'>) {
+    return this.call(
+      'judge',
+      this.env.ANTHROPIC_MODEL_JUDGE,
+      JUDGE_SYSTEM,
+      [
+        {
+          type: 'text',
+          text: [
+            `<facts>${JSON.stringify(factLines(facts))}</facts>`,
+            `<assertions>${JSON.stringify(assertions.map(assertionLine))}</assertions>`,
+            'Check every assertion against the facts it cites.',
+          ].join('\n'),
+        },
+      ],
+      judgeOutputSchema,
+      signal,
+    );
   }
 
-  repair(): Promise<CvAiOutput<'repair'>> {
-    return notBuiltYet('repair');
+  repair({ facts, targetRole, flagged, signal }: CvAiInput<'repair'>) {
+    return this.call(
+      'repair',
+      this.env.ANTHROPIC_MODEL_COMPOSE,
+      REPAIR_SYSTEM,
+      [
+        {
+          type: 'text',
+          text: [
+            `<target_role>${targetRole}</target_role>`,
+            `<facts>${JSON.stringify(factLines(facts))}</facts>`,
+            `<flagged>${JSON.stringify(
+              flagged.map(({ assertion, problem }) => ({
+                ...assertionLine(assertion),
+                problem,
+              })),
+            )}</flagged>`,
+            'Fix each flagged assertion using these facts only.',
+          ].join('\n'),
+        },
+      ],
+      repairOutputSchema,
+      signal,
+    );
   }
 
   /**
@@ -146,6 +191,17 @@ function sourceBlock(source: Source): Anthropic.ContentBlockParam {
   return { type: 'text', text: `<source>\n${source.text}\n</source>` };
 }
 
-function notBuiltYet(step: CvAiStep): Promise<never> {
-  return Promise.reject(new Error(`CvAi.${step} is not implemented yet`));
+/** Facts as the model sees them; the quote carries the person's own language for Questions. */
+function factLines(facts: Fact[]) {
+  return facts.map(({ id, text, quote }) => ({ id, text, quote }));
+}
+
+function assertionLine({
+  itemId,
+  section,
+  field,
+  value,
+  sourceFactIds,
+}: Assertion) {
+  return { itemId, section, field, value, sourceFactIds };
 }

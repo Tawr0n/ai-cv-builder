@@ -4,6 +4,8 @@ import {
   cvContentSchema,
   type CvView,
   type Generation as GenerationView,
+  anchorSchema,
+  type QuestionList,
 } from '@ai-cv-builder/shared';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service.js';
@@ -14,12 +16,19 @@ import {
   toGenerationView,
 } from '../generation/generations.service.js';
 import { ApiException } from '../http/api.exception.js';
+import { PdfRenderer } from '../pdf/pdf-renderer.js';
 import { type Source, SourceStorage } from '../source/source-storage.js';
 import { assertReadablePdf } from './pdf-check.js';
 
 export interface UploadedPdf {
   originalname: string;
   buffer: Buffer;
+}
+
+export interface CvPdf {
+  bytes: Buffer;
+  /** Human-readable, may be non-ASCII; the controller encodes it for the header. */
+  fileName: string;
 }
 
 export interface CreatedCv {
@@ -40,6 +49,7 @@ export class CvsService {
     private readonly prisma: PrismaService,
     private readonly generations: GenerationsService,
     private readonly sources: SourceStorage,
+    private readonly pdfs: PdfRenderer,
   ) {}
 
   async list(userId: string): Promise<CvList> {
@@ -110,6 +120,22 @@ export class CvsService {
     };
   }
 
+  /** The CV printed as an A4 PDF, rendered on demand; only a `ready` CV has content to print. */
+  async pdf(userId: string, cvId: string): Promise<CvPdf> {
+    const { status, content, targetRole } = await this.view(userId, cvId);
+    if (status !== 'ready' || !content) {
+      throw new ApiException(
+        HttpStatus.CONFLICT,
+        'cv_not_ready',
+        'The CV has no content to print yet',
+      );
+    }
+    return {
+      bytes: await this.pdfs.render(content),
+      fileName: `${content.contact.fullName || targetRole} - CV.pdf`,
+    };
+  }
+
   /** The CV's most recent Generation of any kind. */
   async latestGeneration(
     userId: string,
@@ -121,6 +147,24 @@ export class CvsService {
     });
     if (!generation) throw cvNotFound();
     return toGenerationView(generation);
+  }
+
+  /** The CV's Questions, most important first. */
+  async questions(userId: string, cvId: string): Promise<QuestionList> {
+    const cv = await this.prisma.cv.findFirst({
+      where: { id: cvId, ownerId: userId },
+      select: { questions: { orderBy: { position: 'asc' } } },
+    });
+    if (!cv) throw cvNotFound();
+    return {
+      items: cv.questions.map((question) => ({
+        id: question.id,
+        anchor: anchorSchema.parse(question.anchor),
+        text: question.text,
+        status: question.status,
+        createdAt: question.createdAt.toISOString(),
+      })),
+    };
   }
 
   /** Try again: a new Generation with the same Source and Target role, only after a failure. */

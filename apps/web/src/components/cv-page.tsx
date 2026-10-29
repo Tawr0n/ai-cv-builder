@@ -1,19 +1,26 @@
 'use client';
 
 import type {
+  Anchor,
+  CvContent,
   Generation,
   GenerationErrorCode,
   GenerationStep,
+  Question,
 } from '@ai-cv-builder/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { CvEditor } from '@/components/cv-editor';
-import { CvTemplate } from '@/components/cv-template';
+import { PagedCvPreview } from '@/components/paged-cv-preview';
+import { QuestionsInbox } from '@/components/questions-inbox';
+import { anchorElementIds } from '@/lib/anchors';
 import {
   cvQuery,
+  downloadPdfMutation,
   generationQuery,
   isFinished,
+  questionsQuery,
   retryGenerationMutation,
 } from '@/lib/cvs-query';
 import { queryKeys } from '@/lib/query-keys';
@@ -22,6 +29,7 @@ import { useSignedOutRedirect } from '@/lib/use-signed-out-redirect';
 const STEPS: { step: GenerationStep; label: string }[] = [
   { step: 'extract', label: 'Reading your background' },
   { step: 'compose', label: 'Writing the CV for the role' },
+  { step: 'judge', label: 'Checking every line against your facts' },
 ];
 
 const FAILURE_MESSAGES: Record<GenerationErrorCode, string> = {
@@ -37,16 +45,21 @@ const FAILURE_MESSAGES: Record<GenerationErrorCode, string> = {
 
 /**
  * One CV: the step-driven loader while it generates, the failure with Try
- * again, then the preview (CV tab) and the editor (Edit tab). Everything comes from the server, so a
+ * again, then the preview, the editor and the Questions. Everything comes from the server, so a
  * reload or another device picks up exactly where the Generation is.
  */
 export function CvPage({ cvId }: { cvId: string }) {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('cv');
   const generation = useQuery(generationQuery(cvId));
   const succeeded = generation.data?.status === 'succeeded';
   const cv = useQuery({ ...cvQuery(cvId), enabled: succeeded });
-  const signedOut = useSignedOutRedirect(generation.error ?? cv.error);
+  const questions = useQuery({
+    ...questionsQuery(cvId),
+    enabled: succeeded,
+  });
+  const signedOut = useSignedOutRedirect(
+    generation.error ?? cv.error ?? questions.error,
+  );
 
   // The CV view (and the list's badge) change once, when the Generation ends.
   const finished = generation.data ? isFinished(generation.data) : false;
@@ -60,6 +73,9 @@ export function CvPage({ cvId }: { cvId: string }) {
         queryKey: queryKeys.cv(cvId),
         exact: true,
       });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.questions(cvId),
+      });
     }
   }, [finished, cvId, queryClient]);
 
@@ -70,7 +86,7 @@ export function CvPage({ cvId }: { cvId: string }) {
     </p>
   );
 
-  if (generation.isError || cv.isError) {
+  if (generation.isError || cv.isError || questions.isError) {
     return (
       <main>
         {back}
@@ -100,43 +116,130 @@ export function CvPage({ cvId }: { cvId: string }) {
       </main>
     );
   }
-  if (!cv.data?.content) return <p role="status">Loading…</p>;
+  if (!cv.data?.content || !questions.data) {
+    return <p role="status">Loading…</p>;
+  }
 
-  const view = { ...cv.data, content: cv.data.content };
   return (
-    <main className="wide has-tabs">
-      {back}
-      {title && <p className="hint">CV for {title}</p>}
-      <div role="tabpanel" id="cv-panel" aria-labelledby={`tab-${tab}`}>
-        {tab === 'cv' ? (
-          <CvTemplate content={view.content} mode="preview" />
-        ) : (
-          <CvEditor cvId={cvId} view={view} />
-        )}
+    <main className="wide">
+      <div className="bar">
+        {back}
+        <DownloadPdfButton cvId={cvId} />
       </div>
-      <nav className="tabs" role="tablist" aria-label="CV">
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            id={`tab-${id}`}
-            aria-selected={tab === id}
-            aria-controls="cv-panel"
-            onClick={() => setTab(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+      {title && <p className="hint">CV for {title}</p>}
+      <CvTabs
+        cvId={cvId}
+        version={cv.data.version}
+        content={cv.data.content}
+        questions={questions.data.items}
+      />
     </main>
   );
 }
 
-const TABS = [
-  { id: 'cv', label: 'CV' },
-  { id: 'edit', label: 'Edit' },
-] as const;
+type Tab = 'cv' | 'edit' | 'questions';
+
+/** The ready CV: the preview, and the Questions whose 📍 links lead back into it. */
+function CvTabs({
+  cvId,
+  version,
+  content,
+  questions,
+}: {
+  cvId: string;
+  version: number;
+  content: CvContent;
+  questions: Question[];
+}) {
+  const [tab, setTab] = useState<Tab>('cv');
+  const [located, setLocated] = useState<Anchor | null>(null);
+  const open = questions.filter((q) => q.status === 'open').length;
+
+  // Runs once the CV tab has rendered the preview the link points into.
+  useEffect(() => {
+    if (tab !== 'cv' || !located) return;
+    const element = anchorElementIds(located)
+      .map((id) => document.getElementById(id))
+      .find(Boolean);
+    if (!element) return;
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    element.classList.add('cv-located');
+    const timer = setTimeout(
+      () => element.classList.remove('cv-located'),
+      2000,
+    );
+    return () => {
+      clearTimeout(timer);
+      element.classList.remove('cv-located');
+    };
+  }, [tab, located]);
+
+  return (
+    <>
+      <div className="tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'cv'}
+          onClick={() => setTab('cv')}
+        >
+          CV
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'edit'}
+          onClick={() => setTab('edit')}
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'questions'}
+          onClick={() => setTab('questions')}
+        >
+          Questions ({open})
+        </button>
+      </div>
+      {tab === 'cv' ? (
+        <PagedCvPreview content={content} />
+      ) : tab === 'edit' ? (
+        <CvEditor cvId={cvId} content={content} version={version} />
+      ) : (
+        <QuestionsInbox
+          questions={questions}
+          content={content}
+          onLocate={(anchor) => {
+            setLocated(anchor);
+            setTab('cv');
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function DownloadPdfButton({ cvId }: { cvId: string }) {
+  const download = useMutation(downloadPdfMutation(cvId));
+  return (
+    <div className="stack">
+      <button
+        type="button"
+        onClick={() => download.mutate()}
+        disabled={download.isPending}
+        aria-label="Download PDF"
+      >
+        {download.isPending ? 'Preparing…' : '⬇ PDF'}
+      </button>
+      {download.isError && (
+        <p role="alert" className="hint">
+          Could not make the PDF. Try again.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function GenerationProgress({ generation }: { generation: Generation }) {
   const current = STEPS.findIndex(({ step }) => step === generation.step);

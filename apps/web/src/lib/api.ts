@@ -33,16 +33,35 @@ async function apiRequest(
   });
   const payload: unknown = await response.json().catch(() => undefined);
 
-  if (!response.ok) {
-    const parsed = apiErrorSchema.safeParse(payload);
-    throw new ApiRequestError(
-      response.status,
-      parsed.success
-        ? parsed.data.error
-        : { code: 'unexpected_response', message: response.statusText },
-    );
-  }
+  if (!response.ok) throw requestError(response, payload);
   return payload;
+}
+
+function requestError(response: Response, payload: unknown) {
+  const parsed = apiErrorSchema.safeParse(payload);
+  return new ApiRequestError(
+    response.status,
+    parsed.success
+      ? parsed.data.error
+      : { code: 'unexpected_response', message: response.statusText },
+  );
+}
+
+/** GETs a file (e.g. the CV's PDF) with its suggested name from `Content-Disposition`. */
+export async function apiDownload(
+  path: ApiPath,
+  fallbackName: string,
+): Promise<{ blob: Blob; fileName: string }> {
+  const response = await fetch(path);
+  if (!response.ok) {
+    throw requestError(response, await response.json().catch(() => undefined));
+  }
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+  return {
+    blob: await response.blob(),
+    fileName: encoded ? decodeURIComponent(encoded) : fallbackName,
+  };
 }
 
 /** Calls the API through the Next.js `/api/*` rewrite and parses the answer with a shared schema. */

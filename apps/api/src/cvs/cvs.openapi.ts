@@ -7,7 +7,7 @@ import {
   createGenerationSchema,
   cvItemSchema,
   cvListSchema,
-  cvSectionSchema,
+  itemSectionSchema,
   cvViewSchema,
   generationSchema,
   idempotencyKeySchema,
@@ -15,6 +15,7 @@ import {
   moveItemSchema,
   patchItemSchema,
   removeItemQuerySchema,
+  questionListSchema,
 } from '@ai-cv-builder/shared';
 import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
@@ -94,6 +95,28 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
       200: { description: 'The CV', ...json(cvViewSchema) },
       401: errorResponse('`unauthenticated`'),
       404: errorResponse('`not_found`: missing or another User’s'),
+    },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: '/api/cvs/{cvId}/pdf',
+    tags: ['cvs'],
+    summary: 'The CV as an A4 PDF with selectable text',
+    description:
+      'Rendered on demand from the stored content, never cached; at most 2 renders run at once and a render is cut off after 15 s.',
+    request: { params: cvIdParams },
+    responses: {
+      200: {
+        description: 'The PDF, as an attachment',
+        content: {
+          'application/pdf': { schema: z.string().meta({ format: 'binary' }) },
+        },
+      },
+      401: errorResponse('`unauthenticated`'),
+      404: errorResponse('`not_found`: missing or another User’s'),
+      409: errorResponse('`cv_not_ready`: no content yet'),
+      503: errorResponse('`pdf_render_failed`'),
     },
   });
 
@@ -185,7 +208,7 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
     description:
       'Experience and education are added empty (send `{}`); a skill needs its `name`. No `rev` is needed: appending does not conflict with other edits.',
     request: {
-      params: cvIdParams.extend({ section: cvSectionSchema }),
+      params: cvIdParams.extend({ section: itemSectionSchema }),
       body: json(z.union([addEmptyItemSchema, addSkillSchema])),
     },
     responses: {
@@ -217,6 +240,22 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
       404: notFound,
       409: notReady,
       422: errorResponse('`limit_reached`: the experience is full'),
+    },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: '/api/cvs/{cvId}/questions',
+    tags: ['cvs'],
+    summary:
+      'The CV’s Questions about missing or vague things, most important first',
+    description:
+      'Each Question carries an Anchor: the section, item and field of the CV content it is about. Empty until a Generation succeeds.',
+    request: { params: cvIdParams },
+    responses: {
+      200: { description: 'The Questions', ...json(questionListSchema) },
+      401: errorResponse('`unauthenticated`'),
+      404: errorResponse('`not_found`: missing or another User’s'),
     },
   });
 

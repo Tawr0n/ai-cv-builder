@@ -26,7 +26,10 @@ const envSchema = z.object({
   /** Queued or running Generations one User may have at once: a cost fuse. */
   MAX_ACTIVE_GENERATIONS: z.coerce.number().int().positive().default(3),
   ANTHROPIC_MODEL_EXTRACT: z.string().min(1).default('claude-sonnet-5-5'),
+  /** Compose's model also runs repair. */
   ANTHROPIC_MODEL_COMPOSE: z.string().min(1).default('claude-sonnet-5-5'),
+  /** The last line of defence against invented facts: the strongest model. */
+  ANTHROPIC_MODEL_JUDGE: z.string().min(1).default('claude-opus-5-5'),
   /** Per Anthropic call, SDK retries excluded. */
   AI_CALL_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   /** Per Generation attempt: the job's `expireInSeconds`. */
@@ -37,6 +40,12 @@ const envSchema = z.object({
   GENERATION_CONCURRENCY: z.coerce.number().int().positive().default(3),
   /** Job retries, for transient failures only. */
   GENERATION_RETRY_LIMIT: z.coerce.number().int().min(0).default(1),
+  /** PDF renders running at once; the others wait. Each one is a Chromium page. */
+  PDF_RENDER_CONCURRENCY: z.coerce.number().int().positive().default(2),
+  /** One render, from launch to bytes; over it the request is `503 pdf_render_failed`. */
+  PDF_RENDER_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
+  /** Chromium to use instead of the one Playwright installed (e.g. a different revision on a dev machine). */
+  CHROMIUM_EXECUTABLE_PATH: z.string().min(1).optional(),
   /** `false` starts the API without taking Generation jobs (tests drive the handler directly). */
   GENERATION_WORKER: z
     .enum(['true', 'false'])

@@ -8,7 +8,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { PrismaService } from '../src/database/prisma.service.js';
 import { GenerationRunner } from '../src/generation/generation-runner.js';
 import { postCv, SAMPLE_TEXT_SOURCE } from './support/create-cv.js';
-import { composeOutput, extractOutput } from './support/cv-ai-fixtures.js';
+import {
+  composeOutput,
+  extractOutput,
+  noFindings,
+} from './support/cv-ai-fixtures.js';
 import { givenUser } from './support/given-user.js';
 import { createTestApp, type TestApp } from './support/test-app.js';
 
@@ -40,7 +44,8 @@ describe('editing CV items', () => {
       .generation.findFirstOrThrow({ where: { cvId } });
     testApp.cvAi
       .returns('extract', extractOutput())
-      .returns('compose', composeOutput());
+      .returns('compose', composeOutput())
+      .returns('judge', noFindings());
     await testApp.app.get(GenerationRunner).run(generationId);
 
     async function view() {

@@ -28,5 +28,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
+      # The PDF tests print with Chromium; poppler-utils (pdftotext) reads the result.
+      - run: pnpm --filter @ai-cv-builder/api exec playwright install --with-deps --only-shell chromium
+      - run: sudo apt-get install -y poppler-utils
       # Testcontainers starts Postgres on the runner's Docker.
       - run: pnpm test

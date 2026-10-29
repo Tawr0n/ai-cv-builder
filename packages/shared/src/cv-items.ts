@@ -12,10 +12,10 @@ import {
 export const RESERVED_ITEM_IDS = ['contact', 'summary'] as const;
 
 /** Sections whose items the User can add, remove and (except skills) move. */
-export const CV_SECTIONS = ['experience', 'education', 'skills'] as const;
+export const ITEM_SECTIONS = ['experience', 'education', 'skills'] as const;
 
 export const itemIdSchema = z.union([z.uuid(), z.enum(RESERVED_ITEM_IDS)]);
-export const cvSectionSchema = z.enum(CV_SECTIONS);
+export const itemSectionSchema = z.enum(ITEM_SECTIONS);
 
 /** Any one item of the CV, as `PATCH` returns it (an experience carries its bullets). */
 export const cvItemSchema = z
@@ -95,6 +95,6 @@ export const moveItemSchema = z
 
 export type CvItem = z.infer<typeof cvItemSchema>;
 export type AddBullet = z.infer<typeof addBulletSchema>;
-export type CvSection = z.infer<typeof cvSectionSchema>;
+export type ItemSection = z.infer<typeof itemSectionSchema>;
 export type PatchItem = z.infer<typeof patchItemSchema>;
 export type MoveItem = z.infer<typeof moveItemSchema>;

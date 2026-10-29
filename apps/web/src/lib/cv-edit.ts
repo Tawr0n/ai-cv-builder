@@ -3,7 +3,7 @@
 import {
   type CvContent,
   type CvItem,
-  type CvSection,
+  type ItemSection,
   cvItemSchema,
   type CvView,
   cvViewSchema,
@@ -244,7 +244,7 @@ export function useStructuralEdits(cvId: string) {
       section,
       body = {},
     }: {
-      section: CvSection;
+      section: ItemSection;
       /** `{ name }` for a skill; experience and education are added empty. */
       body?: { name: string } | Record<string, never>;
     }) =>
