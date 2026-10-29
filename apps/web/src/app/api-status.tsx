@@ -1,41 +1,27 @@
 'use client';
 
-import { healthSchema } from '@ai-cv-builder/shared';
-import { useEffect, useState } from 'react';
-import { apiGet, ApiRequestError } from '@/lib/api';
-
-type Status =
-  { kind: 'checking' } | { kind: 'up' } | { kind: 'down'; reason: string };
+import { useQuery } from '@tanstack/react-query';
+import { ApiRequestError } from '@/lib/api';
+import { healthQuery } from '@/lib/health-query';
 
 /** Asks the API, through the `/api/*` rewrite, whether it and its database are up. */
 export function ApiStatus() {
-  const [status, setStatus] = useState<Status>({ kind: 'checking' });
+  const { status, error } = useQuery(healthQuery());
 
-  useEffect(() => {
-    let active = true;
-    apiGet('/api/health', healthSchema).then(
-      () => active && setStatus({ kind: 'up' }),
-      (error: unknown) =>
-        active &&
-        setStatus({
-          kind: 'down',
-          reason:
-            error instanceof ApiRequestError
-              ? error.error.code
-              : 'api_unreachable',
-        }),
-    );
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  switch (status.kind) {
-    case 'checking':
+  switch (status) {
+    case 'pending':
       return <p role="status">Checking the API…</p>;
-    case 'up':
+    case 'success':
       return <p role="status">API and database are up.</p>;
-    case 'down':
-      return <p role="alert">The API is down ({status.reason}).</p>;
+    case 'error':
+      return (
+        <p role="alert">
+          The API is down (
+          {error instanceof ApiRequestError
+            ? error.error.code
+            : 'api_unreachable'}
+          ).
+        </p>
+      );
   }
 }
