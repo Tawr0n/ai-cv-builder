@@ -1,22 +1,15 @@
 'use client';
 
 import {
-  type Anchor,
-  type CvContent,
-  type CvView,
   type Generation,
-  type GenerationErrorCode,
   type GenerationStep,
   isPendingAnswer,
-  type Question,
 } from '@ai-cv-builder/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { CvEditor } from '@/components/cv-editor';
-import { PagedCvPreview } from '@/components/paged-cv-preview';
-import { QuestionsInbox, type UpdateCv } from '@/components/questions-inbox';
-import { anchorElementIds, reviewedItems } from '@/lib/anchors';
+import { useEffect } from 'react';
+import { CvWorkspace, FAILURE_MESSAGES } from '@/components/cv-workspace';
+import { QuestionsStep } from '@/components/questions-step';
 import {
   cvQuery,
   downloadPdfMutation,
@@ -24,35 +17,15 @@ import {
   isFinished,
   questionsQuery,
   retryGenerationMutation,
-  reviewDecisionMutation,
-  updateCvMutation,
 } from '@/lib/cvs-query';
 import { queryKeys } from '@/lib/query-keys';
 import { useSignedOutRedirect } from '@/lib/use-signed-out-redirect';
-import { wordDiff } from '@/lib/word-diff';
 
 const STEPS: { step: GenerationStep; label: string }[] = [
   { step: 'extract', label: 'Reading your background' },
   { step: 'compose', label: 'Writing the CV for the role' },
   { step: 'judge', label: 'Checking every line against your facts' },
 ];
-
-const FAILURE_MESSAGES: Record<GenerationErrorCode, string> = {
-  ai_unavailable: 'The AI service is not available right now.',
-  invalid_ai_output:
-    'The AI wrote a CV that did not pass our checks, twice in a row.',
-  unreadable_source:
-    'We could not find anything about you in that file or text.',
-  timed_out: 'The AI took too long to answer.',
-  worker_lost: 'Generating stopped unexpectedly.',
-  internal: 'Something went wrong on our side.',
-};
-
-/** What the Update CV loader says on each step of an answer Generation. */
-const UPDATE_STEPS: Partial<Record<GenerationStep, string>> = {
-  compose: 'Working our magic on your CV…',
-  judge: 'Double-checking every line against your answers…',
-};
 
 /**
  * One CV: the step-driven loader while it generates, the failure with Try
@@ -134,346 +107,46 @@ export function CvPage({ cvId }: { cvId: string }) {
     return <p role="status">Loading…</p>;
   }
 
-  const pending = questions.data.items.filter(isPendingAnswer).length;
-  return (
-    <main className="wide">
-      <div className="bar">
+  // Asked once: right after the first Generation, before anyone edits. Update
+  // CV's own follow-up Questions are never shown.
+  const asked = questions.data.items.filter(
+    (question) => question.status === 'open' || isPendingAnswer(question),
+  );
+  if (generation.data.kind === 'initial' && asked.length > 0) {
+    return (
+      <main>
         {back}
-        <DownloadPdfButton cvId={cvId} pending={pending} />
-      </div>
-      {title && <p className="hint">CV for {title}</p>}
-      <CvTabs
+        <QuestionsStep
+          cvId={cvId}
+          questions={asked}
+          content={cv.data.content}
+        />
+      </main>
+    );
+  }
+  return (
+    <main className="workspace">
+      <header className="ws-head">
+        <Link href="/" className="ws-back">
+          ‹ <span>My CVs</span>
+        </Link>
+        <h1>
+          {title ?? 'Your CV'}
+          <small>{cv.data.content.contact.fullName}</small>
+        </h1>
+        <DownloadPdfButton cvId={cvId} />
+      </header>
+      <CvWorkspace
         cvId={cvId}
         version={cv.data.version}
         content={cv.data.content}
-        questions={questions.data.items}
         generation={generation.data}
       />
     </main>
   );
 }
 
-type Tab = 'cv' | 'edit' | 'questions';
-
-/**
- * The ready CV: the preview (with the AI changes to review), the editor, and
- * the Questions whose 📍 links lead back into it and whose Answers Update CV
- * applies.
- */
-function CvTabs({
-  cvId,
-  version,
-  content,
-  questions,
-  generation,
-}: {
-  cvId: string;
-  version: number;
-  content: CvContent;
-  questions: Question[];
-  generation: Generation;
-}) {
-  const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>('cv');
-  const [located, setLocated] = useState<Anchor | null>(null);
-  const [reviewing, setReviewing] = useState<string | null>(null);
-  // Still to do: open Questions and Answers Update CV has not applied yet.
-  const open = questions.filter(
-    (q) => q.status === 'open' || isPendingAnswer(q),
-  ).length;
-
-  const isUpdate = generation.kind === 'answer';
-  const running = isUpdate && !isFinished(generation);
-  // "Updated" is said once, after an Update CV this page watched succeed.
-  const [watched, setWatched] = useState(running);
-  if (running && !watched) setWatched(true);
-  const updated = watched && isUpdate && generation.status === 'succeeded';
-  const failure =
-    isUpdate && generation.status === 'failed'
-      ? FAILURE_MESSAGES[generation.errorCode ?? 'internal']
-      : null;
-  const start = useMutation({
-    ...updateCvMutation(cvId),
-    onSuccess: (next) => {
-      queryClient.setQueryData(queryKeys.generation(cvId), next);
-      // Its Answers are locked now.
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.questions(cvId),
-      });
-      setTab('cv');
-    },
-  });
-  const update: UpdateCv = {
-    running,
-    failure: start.isError
-      ? 'Could not start the update. Check your connection.'
-      : failure,
-    start: () => start.mutate(),
-    starting: start.isPending,
-  };
-
-  // Runs once the CV tab has rendered the preview the link points into.
-  useEffect(() => {
-    if (tab !== 'cv' || !located) return;
-    const element = anchorElementIds(located)
-      .map((id) => document.getElementById(id))
-      .find(Boolean);
-    if (!element) return;
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    element.classList.add('cv-located');
-    const timer = setTimeout(
-      () => element.classList.remove('cv-located'),
-      2000,
-    );
-    return () => {
-      clearTimeout(timer);
-      element.classList.remove('cv-located');
-    };
-  }, [tab, located]);
-
-  return (
-    <>
-      <div className="tabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'cv'}
-          onClick={() => setTab('cv')}
-        >
-          CV
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'edit'}
-          onClick={() => setTab('edit')}
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'questions'}
-          onClick={() => setTab('questions')}
-        >
-          Questions ({open})
-        </button>
-      </div>
-      {tab === 'cv' ? (
-        <>
-          {running ? (
-            <p className="update-loader" role="status" aria-live="polite">
-              {UPDATE_STEPS[generation.step ?? 'compose'] ??
-                UPDATE_STEPS.compose}
-            </p>
-          ) : failure ? (
-            <div role="alert" className="update-error">
-              <p>
-                We could not update your CV. {failure} Your answers are kept.
-              </p>
-              <button
-                type="button"
-                onClick={() => start.mutate()}
-                disabled={start.isPending}
-              >
-                Try again
-              </button>
-            </div>
-          ) : (
-            updated && (
-              <p className="update-done" role="status">
-                ✅ CV updated with your answers
-              </p>
-            )
-          )}
-          <ReviewBar
-            cvId={cvId}
-            content={content}
-            selected={reviewing}
-            onSelect={setReviewing}
-          />
-          <div className={running ? 'cv-updating' : undefined}>
-            <PagedCvPreview
-              content={content}
-              diff={wordDiff}
-              selected={reviewing}
-              onSelect={setReviewing}
-            />
-          </div>
-        </>
-      ) : tab === 'edit' ? (
-        <CvEditor
-          cvId={cvId}
-          content={content}
-          version={version}
-          questions={questions}
-          onReview={(itemId) => {
-            setReviewing(itemId);
-            setTab('cv');
-          }}
-        />
-      ) : (
-        <QuestionsInbox
-          cvId={cvId}
-          questions={questions}
-          content={content}
-          update={update}
-          onLocate={(anchor) => {
-            setLocated(anchor);
-            setTab('cv');
-          }}
-        />
-      )}
-    </>
-  );
-}
-
-/**
- * "✨ AI change n of N" over the preview: steps through the items Update CV
- * changed, each with Undo and Accept, plus Accept all.
- */
-function ReviewBar({
-  cvId,
-  content,
-  selected,
-  onSelect,
-}: {
-  cvId: string;
-  content: CvContent;
-  selected: string | null;
-  onSelect: (itemId: string | null) => void;
-}) {
-  const queryClient = useQueryClient();
-  const decide = useMutation({
-    ...reviewDecisionMutation(cvId),
-    onSuccess: (view) =>
-      queryClient.setQueryData<CvView>(queryKeys.cv(cvId), view),
-    // A stale rev (another device): show the CV as it is now.
-    onError: () =>
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.cv(cvId),
-        exact: true,
-      }),
-    onSettled: (_view, _error, { decision }) => {
-      if (decision === 'undo') {
-        void queryClient.invalidateQueries({
-          queryKey: queryKeys.questions(cvId),
-        });
-      }
-    },
-  });
-  const [acceptingAll, setAcceptingAll] = useState(false);
-  const items = reviewedItems(content);
-  const index = Math.max(
-    0,
-    items.findIndex(({ id }) => id === selected),
-  );
-  const current = items[index];
-
-  // The selected change is scrolled into view.
-  useEffect(() => {
-    if (!selected) return;
-    document
-      .querySelector(`[data-review-id="${CSS.escape(selected)}"]`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [selected]);
-
-  if (!current) return null;
-  const step = (by: number) =>
-    onSelect(items[(index + by + items.length) % items.length]!.id);
-
-  async function acceptAll() {
-    setAcceptingAll(true);
-    try {
-      // One by one: each is an item operation on its own rev.
-      for (const { id, rev } of items) {
-        await decide.mutateAsync({ itemId: id, rev, decision: 'accept' });
-      }
-    } catch {
-      // The failed one's refetch shows what is left to review.
-    } finally {
-      setAcceptingAll(false);
-    }
-  }
-
-  const busy = decide.isPending || acceptingAll;
-  return (
-    <div className="review-bar" role="region" aria-label="AI changes">
-      <p>
-        ✨ AI change {index + 1} of {items.length}:{' '}
-        <strong>{current.name}</strong>
-      </p>
-      <div className="review-actions">
-        <button
-          type="button"
-          aria-label="Previous change"
-          onClick={() => step(-1)}
-          disabled={items.length < 2}
-        >
-          ‹
-        </button>
-        <button
-          type="button"
-          aria-label="Next change"
-          onClick={() => step(1)}
-          disabled={items.length < 2}
-        >
-          ›
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() =>
-            decide.mutate({
-              itemId: current.id,
-              rev: current.rev,
-              decision: 'undo',
-            })
-          }
-        >
-          ↶ Undo
-        </button>
-        <button
-          type="button"
-          className="primary"
-          disabled={busy}
-          onClick={() =>
-            decide.mutate({
-              itemId: current.id,
-              rev: current.rev,
-              decision: 'accept',
-            })
-          }
-        >
-          ✓ Accept
-        </button>
-        {items.length > 1 && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void acceptAll()}
-          >
-            Accept all
-          </button>
-        )}
-      </div>
-      {decide.isError && (
-        <p role="alert" className="hint">
-          That did not go through; the CV is refreshed. Try again.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function DownloadPdfButton({
-  cvId,
-  pending,
-}: {
-  cvId: string;
-  /** Answers not applied yet: the PDF does not have them. */
-  pending: number;
-}) {
+function DownloadPdfButton({ cvId }: { cvId: string }) {
   const download = useMutation(downloadPdfMutation(cvId));
   return (
     <div className="stack">
@@ -485,12 +158,6 @@ function DownloadPdfButton({
       >
         {download.isPending ? 'Preparing…' : '⬇ PDF'}
       </button>
-      {pending > 0 && (
-        <p className="hint">
-          You have {pending} {pending === 1 ? 'answer' : 'answers'} not applied
-          yet.
-        </p>
-      )}
       {download.isError && (
         <p role="alert" className="hint">
           Could not make the PDF. Try again.
@@ -500,12 +167,32 @@ function DownloadPdfButton({
   );
 }
 
-function GenerationProgress({ generation }: { generation: Generation }) {
+function GenerationProgress({
+  generation,
+  targetRole,
+}: {
+  generation: Generation;
+  targetRole?: string;
+}) {
   const current = STEPS.findIndex(({ step }) => step === generation.step);
+  // A thin bar: some progress from the start, one third more per finished step.
+  const progress = Math.round(
+    ((Math.max(current, 0) + 0.25) / STEPS.length) * 100,
+  );
   return (
-    <section aria-live="polite">
-      <h1>Generating your CV…</h1>
-      <ol className="steps">
+    <section aria-live="polite" className="gen-card">
+      <h1>Creating your CV</h1>
+      {targetRole && <p className="muted">{targetRole}</p>}
+      <div
+        className="gen-progress"
+        role="progressbar"
+        aria-valuenow={progress}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <i style={{ width: `${progress}%` }} />
+      </div>
+      <ol className="gen-steps">
         {STEPS.map(({ step, label }, index) => {
           const state =
             current === -1 || index > current
@@ -514,9 +201,11 @@ function GenerationProgress({ generation }: { generation: Generation }) {
                 ? 'doing'
                 : 'done';
           return (
-            <li key={step} className={`step step-${state}`}>
+            <li key={step} data-state={state}>
+              <span className="gen-icon" aria-hidden="true">
+                {state === 'done' && '✓'}
+              </span>
               {label}
-              {state === 'doing' && '…'}
             </li>
           );
         })}

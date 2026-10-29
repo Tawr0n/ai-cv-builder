@@ -143,7 +143,7 @@ export function CvEditor({
   );
 }
 
-const cardId = (itemId: string) => `card-${itemId}`;
+export const cardId = (itemId: string) => `card-${itemId}`;
 
 function ContactCard({
   cvId,
@@ -157,6 +157,7 @@ function ContactCard({
     saver.save({ [name]: next });
   return (
     <Card
+      id={cardId('contact')}
       title="Contact"
       itemId="contact"
       edited={contact.edited}
@@ -203,6 +204,7 @@ function SummaryCard({
   const saver = useItemSaver(cvId, 'summary');
   return (
     <Card
+      id={cardId('summary')}
       title="Summary"
       itemId="summary"
       edited={summary.edited}
@@ -468,7 +470,7 @@ function SkillsCard({ content, edits }: { content: CvContent; edits: Edits }) {
   }
 
   return (
-    <section className="card">
+    <section className="card" id={cardId('skills')}>
       <header className="card-head">
         <h2>Skills</h2>
       </header>

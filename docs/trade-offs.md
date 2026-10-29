@@ -35,6 +35,19 @@ Deliberate compromises made to fit the task's scope. Each one names what we gave
 
 **What would remove it:** Keeping the last few revisions of each item (the `rev` already numbers them) and a "Restore previous version" action on the item's card.
 
+## Questions are asked once
+
+**What:** Right after the first Generation the User walks through the Questions once: each is answered or skipped, and a skipped Question is gone for good. One Update CV then applies every Answer. The editor that follows has no Questions: the follow-up Questions Update CV may return (and the ones an Undo reopens) are stored but never shown, and a Question the User skipped cannot be brought back from the interface.
+
+**Why we accept it:** A second round of Questions after every Update CV is a loop the User never finishes, and Questions beside the editor compete with it on a small screen. Asking once, before anything is edited, also means the AI never meets a hand-edited item when it applies an Answer (see "AI never touches an item the user edited by hand").
+
+**What limits the damage:**
+
+- Everything a Question asked about is still editable by hand: the fields stay empty or vague in the CV and the editor shows them.
+- What Update CV changed is reviewed on the paper (before / after, Accept or Undo), so no Answer lands silently.
+
+**What would remove it:** Showing the Questions that are still open (the stored ones, skipped or follow-up) in a "Questions" panel of the editor that can be opened on demand, with Update CV applying the Answers given there.
+
 ## The interface is English only
 
 **What:** All interface text is in English, and there is no language switch.

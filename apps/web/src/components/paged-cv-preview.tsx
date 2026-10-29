@@ -11,6 +11,14 @@ import { useEffect, useRef, useState } from 'react';
  */
 const PAGE_CONTENT_PX = ((297 - 14 - 16) * 96) / 25.4;
 
+const MM_PX = 96 / 25.4;
+/** The sheet is laid out at a real A4 size and scaled to fit the pane. */
+const PAGE_WIDTH_PX = 210 * MM_PX;
+const PAGE_HEIGHT_PX = 297 * MM_PX;
+const PAGE_TOP_PX = 14 * MM_PX;
+/** Grey space between two sheets. */
+const PAGE_GAP_PX = 24;
+
 /**
  * The indexes of the rows that start a new page (page 2, 3, …) if the CV is
  * printed: rows are laid out one under another and, like Chromium does, a row
@@ -32,8 +40,10 @@ export function pageStartRows(
 }
 
 /**
- * The on-screen preview with a labelled rule before each row that is expected
- * to start a new page of the PDF. The estimate comes from laying the same
+ * The on-screen preview drawn as whole A4 sheets: a short CV still fills one
+ * full page, and a longer one is split by a grey gap labelled with the next
+ * page number, before each row that is expected to start a new page of the
+ * PDF (that row moves to the top of its sheet). The estimate comes from laying the same
  * template out off-screen in `pdf` mode at the printed width (180 mm); the PDF
  * stays authoritative. Re-measured after every change, resize and font load.
  * Items under review show `diff`; tapping one selects it.
@@ -51,7 +61,22 @@ export function PagedCvPreview({
 }) {
   const previewRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const [marks, setMarks] = useState<{ top: number; page: number }[]>([]);
+  const [scale, setScale] = useState(1);
+  const [height, setHeight] = useState(PAGE_HEIGHT_PX);
+
+  // Fit the A4 width to the pane (never enlarged past real size).
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const fit = () =>
+      setScale(Math.min(1, frame.clientWidth / PAGE_WIDTH_PX) || 1);
+    fit();
+    const resize = new ResizeObserver(fit);
+    resize.observe(frame);
+    return () => resize.disconnect();
+  }, []);
 
   useEffect(() => {
     const preview = previewRef.current;
@@ -71,10 +96,33 @@ export function PagedCvPreview({
           height: row.offsetHeight,
         })),
       );
+      // Lay the sheets out: each page start moves to the top of its own sheet.
+      for (const row of shown) row.style.marginTop = '';
+      const pages = starts.length + 1;
+      const sheet = preview.querySelector<HTMLElement>(':scope > .cv');
+      if (sheet) {
+        sheet.style.boxSizing = 'border-box';
+        sheet.style.minHeight = `${
+          pages * PAGE_HEIGHT_PX + (pages - 1) * PAGE_GAP_PX
+        }px`;
+      }
       const next = starts.flatMap((index, page) => {
         const row = shown[index];
-        return row ? [{ top: row.offsetTop - 6, page: page + 2 }] : [];
+        if (!row) return [];
+        const target =
+          (page + 1) * (PAGE_HEIGHT_PX + PAGE_GAP_PX) + PAGE_TOP_PX;
+        const base = parseFloat(getComputedStyle(row).marginTop) || 0;
+        row.style.marginTop = `${Math.max(base, base + target - row.offsetTop)}px`;
+        return [
+          {
+            top: (page + 1) * (PAGE_HEIGHT_PX + PAGE_GAP_PX) - PAGE_GAP_PX,
+            page: page + 2,
+          },
+        ];
       });
+      setHeight((current) =>
+        current === preview.offsetHeight ? current : preview.offsetHeight,
+      );
       setMarks((current) =>
         current.length === next.length &&
         current.every((mark, i) => mark.top === next[i]?.top)
@@ -106,29 +154,32 @@ export function PagedCvPreview({
   }, [content, selected]);
 
   return (
-    <div
-      ref={previewRef}
-      className="cv-paged"
-      onClick={(event) => {
-        const reviewed = (event.target as HTMLElement).closest<HTMLElement>(
-          '[data-review-id]',
-        );
-        if (reviewed?.dataset.reviewId) onSelect?.(reviewed.dataset.reviewId);
-      }}
-    >
-      <CvTemplate content={content} mode="preview" diff={diff} />
-      {marks.map(({ top, page }) => (
-        <div
-          key={page}
-          className="cv-page-break"
-          style={{ top }}
-          aria-hidden="true"
-        >
-          <span>Page {page}</span>
+    <div ref={frameRef} className="cv-frame" style={{ height: height * scale }}>
+      <div
+        ref={previewRef}
+        className="cv-paged"
+        style={{ width: PAGE_WIDTH_PX, transform: `scale(${scale})` }}
+        onClick={(event) => {
+          const reviewed = (event.target as HTMLElement).closest<HTMLElement>(
+            '[data-review-id]',
+          );
+          if (reviewed?.dataset.reviewId) onSelect?.(reviewed.dataset.reviewId);
+        }}
+      >
+        <CvTemplate content={content} mode="preview" diff={diff} />
+        {marks.map(({ top, page }) => (
+          <div
+            key={page}
+            className="cv-page-break"
+            style={{ top, height: PAGE_GAP_PX }}
+            aria-hidden="true"
+          >
+            <span>Page {page}</span>
+          </div>
+        ))}
+        <div ref={measureRef} className="cv-measure" aria-hidden="true" inert>
+          <CvTemplate content={content} mode="pdf" />
         </div>
-      ))}
-      <div ref={measureRef} className="cv-measure" aria-hidden="true" inert>
-        <CvTemplate content={content} mode="pdf" />
       </div>
     </div>
   );

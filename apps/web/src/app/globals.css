@@ -1,12 +1,46 @@
+/*
+ * Design tokens. Light and dark follow the system; the CV sheet stays white
+ * (see cv-template/cv.css). Layout variants A/B/C of the desktop workspace
+ * only re-tint --accent and the panes (see "Desktop workspace" below).
+ */
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
+  color-scheme: light;
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --ink: #1a1d24;
+  --muted: #667085;
+  --line: #e4e7ec;
+  --field: #ffffff;
+  --accent: #3b6cf4;
+  --accent-soft: #eaf0ff;
+  --accent-ink: #ffffff;
+  --warn-bg: #fff7e0;
+  --warn-line: #f3d27a;
+  --warn-ink: #7a5b00;
+  --err-bg: #fdecec;
+  --err-ink: #b42318;
+  --ok-bg: #e3f6ea;
+  --ok-ink: #17663a;
+  --shadow: 0 1px 3px rgb(16 24 40 / 0.08), 0 4px 16px rgb(16 24 40 / 0.06);
+  --paper-bg: #e9ecf1;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
   line-height: 1.5;
 }
 
 body {
   margin: 0;
   padding: 24px 16px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body:has(main.workspace) {
+  padding: 0;
 }
 
 main {
@@ -14,10 +48,44 @@ main {
   margin: 0 auto;
 }
 
+a {
+  color: var(--accent);
+}
+
 .stack {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Auth form: every message has a reserved line, so showing or clearing one never shifts the layout. */
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-message {
+  margin: 0;
+  min-height: 1.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  color: var(--muted);
+}
+
+.field-message-error,
+.form-error {
+  color: var(--err-ink);
+}
+
+.form-error {
+  margin: 0;
+  min-height: 1.5rem;
+  font-size: 0.875rem;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--err-ink);
 }
 
 .bar {
@@ -34,8 +102,48 @@ button {
   padding: 0 12px;
 }
 
+input,
+textarea {
+  color: var(--ink);
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+input[type='radio'],
+input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 button {
   cursor: pointer;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 main.wide {
@@ -44,6 +152,8 @@ main.wide {
 
 h1 {
   margin: 0.5em 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
 }
 
 textarea {
@@ -54,37 +164,63 @@ textarea {
 .hint {
   margin: 0;
   font-size: 0.875rem;
-  opacity: 0.75;
+  color: var(--muted);
 }
 
 .button {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid currentColor;
-  border-radius: 4px;
+  padding: 0 16px;
+  border-radius: 10px;
   text-decoration: none;
-  color: inherit;
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: var(--accent);
 }
 
 .segmented {
   display: flex;
-  gap: 16px;
+  gap: 8px;
   border: 0;
   padding: 0;
   margin: 8px 0 0;
 }
 
+.segmented legend {
+  padding: 0;
+  margin-bottom: 6px;
+}
+
 .segmented label {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.segmented label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .segmented input {
   min-height: 0;
+}
+
+/* Forms and the CV list live in a centred column with a card around them. */
+main:not(.workspace):has(> form) {
+  margin-top: 4vh;
+  padding: 24px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
 }
 
 /* CV list */
@@ -92,6 +228,9 @@ textarea {
 .cv-list {
   list-style: none;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .cv-list li {
@@ -99,24 +238,45 @@ textarea {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  min-height: 44px;
-  border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  min-height: 56px;
+  padding: 0 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.cv-list a {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
 }
 
 .badge {
   font-size: 0.75rem;
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 999px;
   white-space: nowrap;
-  background: color-mix(in srgb, currentColor 10%, transparent);
+  color: var(--muted);
+  background: color-mix(in srgb, currentColor 12%, transparent);
 }
 
 .badge-ready {
-  background: color-mix(in srgb, #16a34a 25%, transparent);
+  color: var(--ok-ink);
+  background: var(--ok-bg);
 }
 
 .badge-failed {
-  background: color-mix(in srgb, #dc2626 25%, transparent);
+  color: var(--err-ink);
+  background: var(--err-bg);
+}
+
+.badge-generating {
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 /* Generation progress */
@@ -158,14 +318,16 @@ textarea {
 .editor-alert {
   padding: 8px 12px;
   border-radius: 4px;
-  background: color-mix(in srgb, #dc2626 20%, transparent);
+  color: var(--err-ink);
+  background: var(--err-bg);
 }
 
 .card {
   margin: 8px 0;
   padding: 12px;
-  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-  border-radius: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
 }
 
 .card-head {
@@ -258,7 +420,7 @@ textarea {
   gap: 4px;
   padding-left: 12px;
   border-radius: 999px;
-  background: color-mix(in srgb, currentColor 10%, transparent);
+  background: var(--accent-soft);
 }
 
 .chips button {
@@ -278,7 +440,7 @@ button.link {
   padding: 0;
   border: 0;
   background: none;
-  color: inherit;
+  color: var(--accent);
   text-decoration: underline;
 }
 
@@ -295,7 +457,7 @@ button.link {
   display: flex;
   gap: 4px;
   margin: 12px 0;
-  border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-bottom: 1px solid var(--line);
 }
 
 .tabs button {
@@ -306,7 +468,8 @@ button.link {
 }
 
 .tabs button[aria-selected='true'] {
-  border-bottom-color: currentColor;
+  border-bottom-color: var(--accent);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -327,37 +490,42 @@ button.link {
   padding: 0;
   border: 0;
   background: none;
-  color: inherit;
+  color: var(--accent);
   text-decoration: underline;
   text-align: left;
 }
 
 /* The CV template's own styles live in @ai-cv-builder/cv-template/cv.css. */
 
-.cv-paged {
-  position: relative;
+.cv-frame {
+  width: 100%;
 }
 
-/* Estimated page breaks of the PDF: a labelled rule above the first row of each page. */
+.cv-paged {
+  position: relative;
+  transform-origin: top left;
+}
+
+/* The grey gap between two A4 sheets, labelled with the page that follows. */
 .cv-page-break {
   position: absolute;
   left: 0;
   right: 0;
-  height: 0;
-  border-top: 1px dashed #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-bg);
+  box-shadow:
+    inset 0 6px 6px -6px rgb(0 0 0 / 0.25),
+    inset 0 -6px 6px -6px rgb(0 0 0 / 0.25);
   pointer-events: none;
 }
 
 .cv-page-break span {
-  position: absolute;
-  right: 8px;
-  top: -0.8em;
-  padding: 0 6px;
   font:
-    600 11px/1.6 system-ui,
+    600 11px/1 system-ui,
     sans-serif;
-  color: #475569;
-  background: #fff;
+  color: var(--muted);
 }
 
 /* The off-screen pdf-mode layout the breaks are measured on: the printed content width. */
@@ -419,7 +587,7 @@ button.link {
   gap: 8px;
   margin-top: 16px;
   padding: 12px 0;
-  background: Canvas;
+  background: var(--card);
 }
 
 .primary {
@@ -430,7 +598,8 @@ button.link {
   margin: 0 0 12px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: color-mix(in srgb, #dc2626 15%, transparent);
+  color: var(--err-ink);
+  background: var(--err-bg);
 }
 
 .update-error p {
@@ -445,8 +614,9 @@ button.link {
   margin: 0 0 12px;
   padding: 12px;
   border-radius: 8px;
-  background: Canvas;
-  box-shadow: 0 1px 6px rgb(0 0 0 / 0.25);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
   font-weight: 600;
 }
 
@@ -464,8 +634,9 @@ button.link {
   margin-bottom: 12px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: Canvas;
-  box-shadow: 0 1px 6px rgb(0 0 0 / 0.25);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
 
 .review-bar p {
@@ -482,7 +653,8 @@ button.link {
   min-height: 32px;
   border: 0;
   color: inherit;
-  background: color-mix(in srgb, #16a34a 25%, transparent);
+  color: var(--ok-ink);
+  background: var(--ok-bg);
 }
 
 .answer-note {
@@ -490,7 +662,7 @@ button.link {
 }
 
 .cv [data-review-id] {
-  box-shadow: -4px 0 0 #16a34a;
+  box-shadow: -4px 0 0 #2fa865;
   cursor: pointer;
 }
 
@@ -507,4 +679,793 @@ button.link {
 .cv .diff-removed {
   color: #991b1b;
   background: #fee2e2;
+}
+
+/* Questions as yellow notes: the AI did not guess these. */
+
+.questions {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  border-radius: 12px;
+}
+
+.question + .question {
+  margin-top: 0;
+}
+
+.question-text {
+  font-weight: 600;
+}
+
+.question-text::before {
+  content: '❓ ';
+}
+
+.question textarea {
+  margin-top: 0;
+}
+
+.link-button {
+  min-height: 32px;
+  font-size: 0.8125rem;
+}
+
+.inbox > .hint {
+  margin-bottom: 12px;
+}
+
+.update-bar {
+  border-top: 1px solid var(--line);
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  vertical-align: -3px;
+  border: 3px solid var(--accent-soft);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 3s;
+  }
+}
+
+.review-bar {
+  border: 1px solid var(--line);
+}
+
+.review-bar strong {
+  font-weight: 600;
+}
+
+.cv-updating {
+  opacity: 0.55;
+}
+
+.cv .cv-review-selected {
+  background: #e7f6ed;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ===== The ready CV: header, phone tabs, desktop workspace ===== */
+
+main.workspace {
+  max-width: none;
+  margin: 0;
+}
+
+.ws-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+.ws-head h1 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-head h1 small {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.ws-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.ws-head .stack {
+  align-items: flex-end;
+}
+
+.ws-head .stack .hint {
+  max-width: 14rem;
+  text-align: right;
+  font-size: 0.75rem;
+}
+
+/* Phone: the CV, Edit and Questions are one thumb away at the bottom. */
+main.workspace > :not(.ws-head):not(.tabs):not(.dw):not(.variant-switcher) {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+main.workspace > .cv-sheet {
+  margin-top: 12px;
+}
+
+main.workspace > .editor,
+main.workspace > .inbox {
+  padding-top: 12px;
+}
+
+main.workspace {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  margin: 0;
+  gap: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+.tabs button {
+  flex: 1;
+  min-height: 56px;
+  border-radius: 0;
+  font-size: 0.8125rem;
+}
+
+.tabs button:hover:not(:disabled) {
+  border-color: transparent;
+}
+
+.tabs button[aria-selected='true'] {
+  border-bottom-color: transparent;
+}
+
+.update-bar {
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+}
+
+.review-bar,
+.update-loader,
+.update-done {
+  top: 64px;
+}
+
+.review-bar .review-actions button {
+  min-height: 40px;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor > h2 {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field label,
+.links legend {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.card-head h2 {
+  font-size: 1rem;
+}
+
+.save-status {
+  color: var(--muted);
+}
+
+/* Desktop */
+
+.pane-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 0;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+.pane-tabs button {
+  min-height: 40px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 8px 8px 0 0;
+  background: none;
+  color: var(--muted);
+}
+
+.pane-tabs button[aria-selected='true'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.count {
+  display: inline-block;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--warn-ink);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+}
+
+@media (min-width: 900px) {
+  /* The panes scroll on their own; the page itself must not, or it ends in empty space. */
+  html:has(main.workspace),
+  body:has(main.workspace) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  main.workspace {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    padding-bottom: 0;
+  }
+
+  main.workspace > .dw {
+    margin: 0;
+  }
+
+  .ws-head {
+    padding: 10px 20px;
+  }
+
+  .update-bar {
+    bottom: 0;
+  }
+
+  .review-bar,
+  .update-loader,
+  .update-done {
+    top: 8px;
+  }
+
+  .dw {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(420px, 520px) 1fr;
+  }
+
+  .dw-pane {
+    min-height: 0;
+    overflow: auto;
+    padding-bottom: 72px;
+  }
+
+  .dw-pane > .editor,
+  .dw-pane > .inbox {
+    padding: 12px 16px 0;
+  }
+
+  .dw-paper {
+    padding: 20px 24px 72px;
+    background: var(--paper-bg);
+  }
+
+  .dw-paper > * {
+    max-width: 210mm;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .dw-paper .cv {
+    cursor: pointer;
+  }
+
+  .dw-paper .cv a {
+    cursor: pointer;
+  }
+
+  .dw-paper .cv-item:hover,
+  .dw-paper .cv-header:hover,
+  .dw-paper .cv-summary:hover {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+
+  /* A: split editor */
+  .dw-form {
+    background: var(--bg);
+    border-right: 1px solid var(--line);
+  }
+}
+
+/* Generation: one calm card with a checklist. */
+.gen-card {
+  max-width: 28rem;
+  margin: 6vh auto 0;
+  padding: 28px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.gen-card h1 {
+  margin: 0;
+  font-size: 1.375rem;
+}
+
+.gen-card .muted {
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+
+.gen-progress {
+  height: 4px;
+  margin: 18px 0;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: 4px;
+}
+
+.gen-progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.gen-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.gen-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+}
+
+.gen-steps li[data-state='doing'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.gen-steps li[data-state='done'] {
+  color: var(--ink);
+}
+
+.gen-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+
+[data-state='doing'] > .gen-icon {
+  border-top-color: var(--accent);
+  animation: gen-spin 0.8s linear infinite;
+}
+
+[data-state='done'] > .gen-icon {
+  color: var(--ok-ink);
+  background: var(--ok-bg);
+  border-color: transparent;
+}
+
+@keyframes gen-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gen-progress i {
+    transition: none;
+  }
+}
+
+/* Before / after of an AI change: red is what went, green is what came. */
+.changes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.changes > div {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.changes p {
+  margin: 0 0 4px;
+}
+
+.changes small {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.6875rem;
+}
+
+.changes-was {
+  color: #7f1d1d;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.changes-now {
+  color: #14532d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.changes .diff-removed {
+  color: #991b1b;
+  background: #fecaca;
+}
+
+.changes .diff-added {
+  color: #166534;
+  background: #bbf7d0;
+  text-decoration: none;
+}
+
+.changes p.diff-removed,
+.changes p.diff-added {
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+@media (max-width: 520px) {
+  .changes {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* New CV: PDF drop zone, source switch, field counters. */
+.field-message {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field-count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.source-switch {
+  display: flex;
+  padding: 3px;
+  gap: 3px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.source-switch button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 9px;
+}
+
+.source-switch button[aria-selected='true'] {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 150px;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1.5px dashed var(--line);
+  border-radius: 14px;
+}
+
+.dropzone:hover:not(:disabled),
+.dropzone[data-dragging='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dropzone[data-invalid='true'] {
+  border-color: var(--err-ink);
+}
+
+.dropzone small {
+  color: var(--muted);
+}
+
+.dropzone-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 4px;
+  font-size: 1.125rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 50%;
+}
+
+.file-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.file-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--err-ink);
+  background: var(--err-bg);
+  border-radius: 8px;
+}
+
+.file-meta {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.file-meta b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-meta small {
+  color: var(--muted);
+}
+
+/* The before / after panel is tall: it scrolls with the page instead of covering the paper. */
+.review-bar {
+  position: static;
+}
+
+.review-title {
+  font-weight: 500;
+}
+
+/* The one-time Questions step. */
+.qs {
+  margin-top: 4vh;
+  padding: 24px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.qs h1 {
+  margin: 0;
+  font-size: 1.375rem;
+}
+
+.qs .muted {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.qs-progress {
+  height: 4px;
+  margin: 16px 0 6px;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: 4px;
+}
+
+.qs-progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.qs-count {
+  margin: 0 0 12px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.qs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.qs-row {
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.qs-row[data-open='true'] {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.qs-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  height: auto;
+  padding: 12px;
+  text-align: left;
+  background: none;
+  border: 0;
+}
+
+.qs-check {
+  display: grid;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  font-size: 12px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+
+.qs-row[data-done='true'] .qs-check {
+  color: var(--ok-ink);
+  background: var(--ok-bg);
+  border-color: transparent;
+}
+
+.qs-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qs-text small {
+  color: var(--muted);
+}
+
+.qs-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 12px 46px;
+}
+
+.qs-body textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 12px;
+  font: inherit;
+}
+
+.qs-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qs-apply {
+  width: 100%;
+}
+
+.qs-note {
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
