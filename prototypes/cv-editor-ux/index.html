@@ -395,7 +395,19 @@ function cardFoot(it) {
   return `<div class="row" style="margin-top:8px">${qs.length ? `<button class="link" style="padding:0" onclick="S.ui.cTab='questions';render()"><span class="chip warn">❓ ${qs.length} question${qs.length > 1 ? 's' : ''}</span></button>` : ''}${it.review ? `<button class="link" style="padding:0" onclick="S.ui.cTab='preview';rSelect('${it.id}')"><span class="chip ok">✨ AI change, review</span></button>` : ''}${it.edited ? '<span class="edited">✎ edited by you</span>' : ''}<span class="grow"></span>${saveLabel(it.id)}</div>`;
 }
 function card(it, body, head = '') { return `<div class="card ${inScope(it.id) ? 'shimmer' : ''}" id="edit-${it.id}">${head}${body}${cardFoot(it)}</div>`; }
-function removeHead(sec, it, n) { return `<div class="chead"><b>${sec === 'experience' ? 'Experience' : 'Education'} ${n}</b><button class="link" style="color:var(--err-ink)" onclick="removeItem('${sec}','${it.id}')">Remove</button></div>`; }
+function removeHead(sec, it, n) {
+  const last = S.cv[sec].length;
+  return `<div class="chead"><b>${sec === 'experience' ? 'Experience' : 'Education'} ${n}</b>
+    <button class="x" aria-label="Move up" ${n === 1 ? 'disabled' : ''} onclick="moveItem('${sec}','${it.id}',-1)">↑</button><button class="x" aria-label="Move down" ${n === last ? 'disabled' : ''} onclick="moveItem('${sec}','${it.id}',1)">↓</button>
+    <button class="link" style="color:var(--err-ink)" onclick="removeItem('${sec}','${it.id}')">Remove</button></div>`;
+}
+function moveItem(sec, id, d) { // one "move" operation on the section's order; the card stays in view
+  const arr = S.cv[sec], k = arr.findIndex(x => x.id === id), j = k + d;
+  if (j < 0 || j >= arr.length) return;
+  const before = document.getElementById('edit-' + id).getBoundingClientRect().top;
+  [arr[k], arr[j]] = [arr[j], arr[k]]; render();
+  window.scrollBy(0, document.getElementById('edit-' + id).getBoundingClientRect().top - before);
+}
 function cEditTab() {
   const c = S.cv, ct = c.contact;
   const exp = c.experience.map((e, k) => card(e,
