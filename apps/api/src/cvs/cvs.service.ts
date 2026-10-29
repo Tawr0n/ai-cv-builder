@@ -113,6 +113,7 @@ export class CvsService {
       id: cv.id,
       targetRole: cv.targetRole,
       status: cv.status,
+      version: cv.version,
       // Parsed on every read, too: the database does not know the document's shape.
       content: cv.content === null ? null : cvContentSchema.parse(cv.content),
       latestGeneration: toGenerationView(latest),

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Cv" ADD COLUMN "version" INTEGER NOT NULL DEFAULT 1;

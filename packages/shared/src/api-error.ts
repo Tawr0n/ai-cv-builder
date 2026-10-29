@@ -18,6 +18,11 @@ export const apiErrorSchema = z
       code: z.string(),
       message: z.string(),
       issues: z.array(validationIssueSchema).optional(),
+      /** `item_conflict`: the item as it is stored now, so the UI can show "changed on another device". */
+      current: z.unknown().optional(),
+      /** `version_conflict`: the ids of the section in their current order, and the CV's current `version`. */
+      order: z.array(z.uuid()).optional(),
+      version: z.int().optional(),
     }),
   })
   .meta({ id: 'ApiError' });

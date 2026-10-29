@@ -11,6 +11,7 @@ import type {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { CvEditor } from '@/components/cv-editor';
 import { PagedCvPreview } from '@/components/paged-cv-preview';
 import { QuestionsInbox } from '@/components/questions-inbox';
 import { anchorElementIds } from '@/lib/anchors';
@@ -44,7 +45,7 @@ const FAILURE_MESSAGES: Record<GenerationErrorCode, string> = {
 
 /**
  * One CV: the step-driven loader while it generates, the failure with Try
- * again, then the read-only preview. Everything comes from the server, so a
+ * again, then the preview, the editor and the Questions. Everything comes from the server, so a
  * reload or another device picks up exactly where the Generation is.
  */
 export function CvPage({ cvId }: { cvId: string }) {
@@ -126,18 +127,27 @@ export function CvPage({ cvId }: { cvId: string }) {
         <DownloadPdfButton cvId={cvId} />
       </div>
       {title && <p className="hint">CV for {title}</p>}
-      <CvTabs content={cv.data.content} questions={questions.data.items} />
+      <CvTabs
+        cvId={cvId}
+        version={cv.data.version}
+        content={cv.data.content}
+        questions={questions.data.items}
+      />
     </main>
   );
 }
 
-type Tab = 'cv' | 'questions';
+type Tab = 'cv' | 'edit' | 'questions';
 
 /** The ready CV: the preview, and the Questions whose 📍 links lead back into it. */
 function CvTabs({
+  cvId,
+  version,
   content,
   questions,
 }: {
+  cvId: string;
+  version: number;
   content: CvContent;
   questions: Question[];
 }) {
@@ -178,6 +188,14 @@ function CvTabs({
         <button
           type="button"
           role="tab"
+          aria-selected={tab === 'edit'}
+          onClick={() => setTab('edit')}
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={tab === 'questions'}
           onClick={() => setTab('questions')}
         >
@@ -186,6 +204,8 @@ function CvTabs({
       </div>
       {tab === 'cv' ? (
         <PagedCvPreview content={content} />
+      ) : tab === 'edit' ? (
+        <CvEditor cvId={cvId} content={content} version={version} />
       ) : (
         <QuestionsInbox
           questions={questions}

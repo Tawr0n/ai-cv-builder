@@ -28,7 +28,25 @@ export function CvTemplate({
   const sectionId = (section: Section) =>
     preview ? sectionElementId(section) : undefined;
   const itemId = (id: string) => (preview ? itemElementId(id) : undefined);
-  const { contact, summary, experience, education, skills } = content;
+  const { contact, summary, skills } = content;
+  // A card the User just added is empty until they fill it in: it prints nothing.
+  const experience = content.experience.filter(
+    (item) =>
+      item.title ||
+      item.organization ||
+      item.location ||
+      item.startDate ||
+      item.endDate ||
+      item.bullets.length > 0,
+  );
+  const education = content.education.filter(
+    (item) =>
+      item.degree ||
+      item.field ||
+      item.institution ||
+      item.startDate ||
+      item.endDate,
+  );
   const contactParts: ReactNode[] = [
     contact.email,
     contact.phone,

@@ -181,6 +181,24 @@ describe('/api/cvs/:cvId routes', () => {
       'GET /api/cvs/:cvId/pdf': {},
       'GET /api/cvs/:cvId/questions': {},
       'POST /api/cvs/:cvId/generations': { body: { kind: 'initial' } },
+      'PATCH /api/cvs/:cvId/items/:itemId': {
+        body: { rev: 1, text: 'Not yours.' },
+      },
+      'DELETE /api/cvs/:cvId/items/:itemId': {},
+      'POST /api/cvs/:cvId/items/:itemId/move': {
+        body: { direction: 'up', version: 1 },
+      },
+      'POST /api/cvs/:cvId/items/:experienceId/bullets': {
+        body: { text: 'Not yours.' },
+      },
+      'POST /api/cvs/:cvId/sections/:section/items': { body: {} },
+    };
+
+    /** Concrete values for the other path parameters: well-formed, so only ownership can answer 404. */
+    const PATH_PARAMS: Record<string, string> = {
+      ':itemId': 'summary',
+      ':experienceId': '00000000-0000-4000-8000-000000000000',
+      ':section': 'experience',
     };
 
     it('covers every registered route under /api/cvs/:cvId', () => {
@@ -197,10 +215,18 @@ describe('/api/cvs/:cvId routes', () => {
         const { cvId } = await givenFailedCv();
         const stranger = await givenUser(testApp);
         const [method, path] = route.split(' ') as [string, string];
+        const url = path
+          .replace(':cvId', cvId)
+          .replace(
+            /:(itemId|experienceId|section)/g,
+            (param) => PATH_PARAMS[param]!,
+          );
 
         const response = await stranger.agent[
-          method.toLowerCase() as 'get' | 'post'
-        ](path.replace(':cvId', cvId)).send(body);
+          method.toLowerCase() as 'get' | 'post' | 'patch' | 'delete'
+        ](url)
+          .query(method === 'DELETE' ? { rev: 1 } : {})
+          .send(body);
 
         expect(response.status).toBe(404);
         expect(apiErrorSchema.parse(response.body).error.code).toBe(

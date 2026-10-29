@@ -4,6 +4,8 @@ import { ENV, type Env } from '../env/env.js';
 import { GenerationModule } from '../generation/generation.module.js';
 import { PdfModule } from '../pdf/pdf.module.js';
 import { SourceModule } from '../source/source.module.js';
+import { CvItemsController } from './cv-items.controller.js';
+import { CvItemsService } from './cv-items.service.js';
 import { CvsController } from './cvs.controller.js';
 import { CvsService } from './cvs.service.js';
 
@@ -20,7 +22,7 @@ import { CvsService } from './cvs.service.js';
       }),
     }),
   ],
-  controllers: [CvsController],
-  providers: [CvsService],
+  controllers: [CvsController, CvItemsController],
+  providers: [CvsService, CvItemsService],
 })
 export class CvsModule {}

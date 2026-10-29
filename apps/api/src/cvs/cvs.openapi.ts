@@ -1,11 +1,20 @@
 import {
+  addBulletSchema,
+  addEmptyItemSchema,
+  addSkillSchema,
   createCvFieldsSchema,
   createCvResponseSchema,
   createGenerationSchema,
+  cvItemSchema,
   cvListSchema,
+  itemSectionSchema,
   cvViewSchema,
   generationSchema,
   idempotencyKeySchema,
+  itemIdSchema,
+  moveItemSchema,
+  patchItemSchema,
+  removeItemQuerySchema,
   questionListSchema,
 } from '@ai-cv-builder/shared';
 import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
@@ -121,6 +130,116 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
       200: { description: 'The latest Generation', ...json(generationSchema) },
       401: errorResponse('`unauthenticated`'),
       404: errorResponse('`not_found`: missing or another User’s'),
+    },
+  });
+
+  const itemParams = cvIdParams.extend({ itemId: itemIdSchema });
+  const notFound = errorResponse('`not_found`: missing or another User’s');
+  const notReady = errorResponse('`cv_not_ready`: no content generated yet');
+
+  registry.registerPath({
+    method: 'patch',
+    path: '/api/cvs/{cvId}/items/{itemId}',
+    tags: ['cvs'],
+    summary: 'Edit fields of one item (autosave, one call per field blur)',
+    description:
+      'Send the item’s current `rev` and only the fields that changed. `itemId` is an item’s UUID or the reserved `contact` / `summary`. The item becomes an Edited item and its `rev` goes up; the AI never rewrites an Edited item.',
+    request: { params: itemParams, body: json(patchItemSchema) },
+    responses: {
+      200: {
+        description: 'The item with its new `rev`',
+        ...json(cvItemSchema),
+      },
+      400: errorResponse('`validation_failed`'),
+      401: errorResponse('`unauthenticated`'),
+      403: errorResponse('`forbidden_origin`'),
+      404: notFound,
+      409: errorResponse(
+        '`item_conflict`: stale `rev`, `error.current` is the item as stored | `cv_not_ready`',
+      ),
+    },
+  });
+
+  registry.registerPath({
+    method: 'delete',
+    path: '/api/cvs/{cvId}/items/{itemId}',
+    tags: ['cvs'],
+    summary: 'Remove an experience, education entry, skill or bullet',
+    description:
+      'Pass the removed item’s own `rev` as a query parameter. Items after it shift up, so the CV `version` goes up. `contact` and `summary` cannot be removed.',
+    request: { params: itemParams, query: removeItemQuerySchema },
+    responses: {
+      200: { description: 'The CV after the removal', ...json(cvViewSchema) },
+      400: errorResponse('`validation_failed`: also for `contact` / `summary`'),
+      401: errorResponse('`unauthenticated`'),
+      403: errorResponse('`forbidden_origin`'),
+      404: notFound,
+      409: errorResponse('`item_conflict`: stale `rev` | `cv_not_ready`'),
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: '/api/cvs/{cvId}/items/{itemId}/move',
+    tags: ['cvs'],
+    summary: 'Move an experience or education entry one place up or down',
+    description:
+      'Send the CV `version` you loaded: the order is shared by the whole section. At either end nothing changes.',
+    request: { params: itemParams, body: json(moveItemSchema) },
+    responses: {
+      200: { description: 'The CV with the new order', ...json(cvViewSchema) },
+      400: errorResponse(
+        '`validation_failed`: only experience and education move',
+      ),
+      401: errorResponse('`unauthenticated`'),
+      403: errorResponse('`forbidden_origin`'),
+      404: notFound,
+      409: errorResponse(
+        '`version_conflict`: `error.order` and `error.version` are current | `cv_not_ready`',
+      ),
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: '/api/cvs/{cvId}/sections/{section}/items',
+    tags: ['cvs'],
+    summary: 'Add an item at the end of a section',
+    description:
+      'Experience and education are added empty (send `{}`); a skill needs its `name`. No `rev` is needed: appending does not conflict with other edits.',
+    request: {
+      params: cvIdParams.extend({ section: itemSectionSchema }),
+      body: json(z.union([addEmptyItemSchema, addSkillSchema])),
+    },
+    responses: {
+      201: { description: 'The CV with the new item', ...json(cvViewSchema) },
+      400: errorResponse('`validation_failed`'),
+      401: errorResponse('`unauthenticated`'),
+      403: errorResponse('`forbidden_origin`'),
+      404: notFound,
+      409: notReady,
+      422: errorResponse('`limit_reached`: the section is full'),
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: '/api/cvs/{cvId}/items/{experienceId}/bullets',
+    tags: ['cvs'],
+    summary: 'Add a bullet to an experience',
+    description: 'The experience’s own `rev` does not change.',
+    request: {
+      params: cvIdParams.extend({ experienceId: z.uuid() }),
+      body: json(addBulletSchema),
+    },
+    responses: {
+      201: { description: 'The CV with the new bullet', ...json(cvViewSchema) },
+      400: errorResponse('`validation_failed`'),
+      401: errorResponse('`unauthenticated`'),
+      403: errorResponse('`forbidden_origin`'),
+      404: notFound,
+      409: notReady,
+      422: errorResponse('`limit_reached`: the experience is full'),
     },
   });
 
