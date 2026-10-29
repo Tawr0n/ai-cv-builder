@@ -14,13 +14,16 @@ import {
   InvalidAiOutputError,
   judgeOutputSchema,
   repairOutputSchema,
+  updateOutputSchema,
 } from './cv-ai.js';
+import type { CvContent } from '@ai-cv-builder/shared';
 import type { Source } from '../source/source-storage.js';
 import {
   COMPOSE_SYSTEM,
   EXTRACT_SYSTEM,
   JUDGE_SYSTEM,
   REPAIR_SYSTEM,
+  UPDATE_SYSTEM,
 } from './prompts.js';
 
 /** Output ceiling per call (thinking included): with the timeouts, the cost ceiling of a Generation. */
@@ -75,6 +78,36 @@ export class AnthropicCvAi extends CvAi {
         },
       ],
       composeOutputSchema,
+      signal,
+    );
+  }
+
+  update({
+    facts,
+    answers,
+    targetRole,
+    content,
+    scope,
+    signal,
+  }: CvAiInput<'update'>) {
+    return this.call(
+      'update',
+      this.env.ANTHROPIC_MODEL_COMPOSE,
+      UPDATE_SYSTEM,
+      [
+        {
+          type: 'text',
+          text: [
+            `<target_role>${targetRole}</target_role>`,
+            `<facts>${JSON.stringify(factLines(facts))}</facts>`,
+            `<answers>${JSON.stringify(factLines(answers))}</answers>`,
+            `<cv>${JSON.stringify(cvLines(content))}</cv>`,
+            `<scope>${JSON.stringify(scope)}</scope>`,
+            'Rewrite the items in scope using these facts and answers only.',
+          ].join('\n'),
+        },
+      ],
+      updateOutputSchema,
       signal,
     );
   }
@@ -204,4 +237,29 @@ function assertionLine({
   sourceFactIds,
 }: Assertion) {
   return { itemId, section, field, value, sourceFactIds };
+}
+
+/** The CV as update sees it: ids, fields, `edited` and citations; no `rev` or review state. */
+function cvLines(content: CvContent) {
+  const strip = <Item extends object>(item: Item) => {
+    const {
+      rev: _rev,
+      review: _review,
+      ...rest
+    } = item as Item & {
+      rev: number;
+      review?: unknown;
+    };
+    return rest;
+  };
+  return {
+    contact: strip(content.contact),
+    summary: strip(content.summary),
+    experience: content.experience.map((item) => ({
+      ...strip(item),
+      bullets: item.bullets.map(strip),
+    })),
+    education: content.education.map(strip),
+    skills: content.skills.map(strip),
+  };
 }

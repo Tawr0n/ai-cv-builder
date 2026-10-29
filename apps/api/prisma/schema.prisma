@@ -10,10 +10,10 @@ datasource db {
 
 /// A person who signs up with an email and password and owns CVs.
 model User {
-  id           String    @id @default(uuid(7)) @db.Uuid
-  email        String    @unique
+  id           String       @id @default(uuid(7)) @db.Uuid
+  email        String       @unique
   passwordHash String
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime     @default(now())
   sessions     Session[]
   cvs          Cv[]
   generations  Generation[]
@@ -81,6 +81,8 @@ model Source {
 
 enum GenerationKind {
   initial
+  /// Update CV: applies the CV's pending Answers.
+  answer
 }
 
 enum GenerationStatus {
@@ -121,6 +123,8 @@ model Generation {
   createdAt  DateTime             @default(now())
   startedAt  DateTime?
   finishedAt DateTime?
+  /// For an `answer` Generation: the Questions whose pending Answers it applies.
+  questions  Question[]
 
   @@index([cvId, createdAt])
   @@index([userId, status])
@@ -135,16 +139,23 @@ enum QuestionStatus {
 
 /// A request to the User about something missing or vague in the CV content.
 model Question {
-  id        String         @id @default(uuid(7)) @db.Uuid
-  cvId      String         @db.Uuid
-  cv        Cv             @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  id           String         @id @default(uuid(7)) @db.Uuid
+  cvId         String         @db.Uuid
+  cv           Cv             @relation(fields: [cvId], references: [id], onDelete: Cascade)
   /// Where in the CV content it belongs (zod `Anchor`).
-  anchor    Json
-  text      String
-  status    QuestionStatus @default(open)
+  anchor       Json
+  text         String
+  status       QuestionStatus @default(open)
+  /// The User's Answer: pending (editable) while `appliedAt` is NULL, then a Fact and immutable.
+  answer       String?
+  appliedAt    DateTime?
+  /// The answer Generation that last took this Answer; locks it while that Generation is active.
+  generationId String?        @db.Uuid
+  generation   Generation?    @relation(fields: [generationId], references: [id], onDelete: SetNull)
   /// Most important first, within the CV.
-  position  Int
-  createdAt DateTime       @default(now())
+  position     Int
+  createdAt    DateTime       @default(now())
 
   @@index([cvId, status])
+  @@index([generationId])
 }

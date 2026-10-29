@@ -5,9 +5,10 @@ import {
   type Generation,
   generationSchema,
   questionListSchema,
+  questionSchema,
 } from '@ai-cv-builder/shared';
 import { mutationOptions, queryOptions } from '@tanstack/react-query';
-import { apiDownload, apiGet, apiPost, apiPostForm } from './api';
+import { apiDownload, apiGet, apiPost, apiPostForm, apiPut } from './api';
 import { queryKeys } from './query-keys';
 
 /** How often a page polls while something generates (the API suggests 1–2 s). */
@@ -101,5 +102,69 @@ export const retryGenerationMutation = (cvId: string) =>
         `/api/cvs/${cvId}/generations`,
         { kind: 'initial' },
         generationSchema,
+      ),
+  });
+
+/** Update CV: one answer Generation applies every pending Answer; also its Try again. */
+export const updateCvMutation = (cvId: string) =>
+  mutationOptions({
+    mutationFn: () =>
+      apiPost(
+        `/api/cvs/${cvId}/generations`,
+        { kind: 'answer' },
+        generationSchema,
+      ),
+  });
+
+/** Saves a pending Answer, or changes one. */
+export const answerQuestionMutation = (cvId: string) =>
+  mutationOptions({
+    mutationFn: ({
+      questionId,
+      answer,
+    }: {
+      questionId: string;
+      answer: string;
+    }) =>
+      apiPut(
+        `/api/cvs/${cvId}/questions/${questionId}/answer`,
+        { answer },
+        questionSchema,
+      ),
+  });
+
+/** "Not relevant", and its undo. */
+export const questionStatusMutation = (cvId: string) =>
+  mutationOptions({
+    mutationFn: ({
+      questionId,
+      action,
+    }: {
+      questionId: string;
+      action: 'dismiss' | 'reopen';
+    }) =>
+      apiPost(
+        `/api/cvs/${cvId}/questions/${questionId}/${action}`,
+        undefined,
+        questionSchema,
+      ),
+  });
+
+/** Accept or Undo an AI change under review, with the item's `rev`. */
+export const reviewDecisionMutation = (cvId: string) =>
+  mutationOptions({
+    mutationFn: ({
+      itemId,
+      rev,
+      decision,
+    }: {
+      itemId: string;
+      rev: number;
+      decision: 'accept' | 'undo';
+    }) =>
+      apiPost(
+        `/api/cvs/${cvId}/items/${itemId}/${decision}`,
+        { rev },
+        cvViewSchema,
       ),
   });

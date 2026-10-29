@@ -15,7 +15,10 @@ import {
   moveItemSchema,
   patchItemSchema,
   removeItemQuerySchema,
+  reviewDecisionSchema,
+  answerQuestionSchema,
   questionListSchema,
+  questionSchema,
 } from '@ai-cv-builder/shared';
 import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
@@ -178,6 +181,38 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
     },
   });
 
+  for (const [decision, summary, description] of [
+    [
+      'accept',
+      'Accept an AI change under review',
+      'Update CV left the item changed and under review (`review` holds its previous version); Accept keeps the change. Editing the item by hand accepts it too.',
+    ],
+    [
+      'undo',
+      'Undo an AI change under review',
+      'The item goes back to `review.prev` (an item Update CV added is removed), and the Questions whose Answers caused the change are pending again, with their Answers kept.',
+    ],
+  ] as const) {
+    registry.registerPath({
+      method: 'post',
+      path: `/api/cvs/{cvId}/items/{itemId}/${decision}`,
+      tags: ['cvs'],
+      summary,
+      description: `${description} Send the item's own \`rev\`.`,
+      request: { params: itemParams, body: json(reviewDecisionSchema) },
+      responses: {
+        200: { description: 'The CV view', ...json(cvViewSchema) },
+        400: errorResponse('`validation_failed`'),
+        401: errorResponse('`unauthenticated`'),
+        403: errorResponse('`forbidden_origin`'),
+        404: notFound,
+        409: errorResponse(
+          '`item_conflict`: `error.current` is the item now | `not_in_review` | `cv_not_ready`',
+        ),
+      },
+    });
+  }
+
   registry.registerPath({
     method: 'post',
     path: '/api/cvs/{cvId}/items/{itemId}/move',
@@ -259,13 +294,57 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
     },
   });
 
+  const questionParams = cvIdParams.extend({ questionId: z.uuid() });
+  const questionChange = {
+    200: { description: 'The Question as it is now', ...json(questionSchema) },
+    401: errorResponse('`unauthenticated`'),
+    403: errorResponse('`forbidden_origin`'),
+    404: errorResponse('`not_found`: missing or another User’s'),
+    409: errorResponse(
+      '`question_locked`: a running Update CV is applying its Answer | `question_closed`: not in a state that allows this',
+    ),
+  };
+
+  registry.registerPath({
+    method: 'put',
+    path: '/api/cvs/{cvId}/questions/{questionId}/answer',
+    tags: ['cvs'],
+    summary: 'Save a pending Answer, or change one',
+    description:
+      'The Question becomes `answered` with `appliedAt` null: the Answer stays editable until Update CV (`POST …/generations` with `kind: answer`) turns it into a Fact. An open Question or a pending Answer can be (re)answered.',
+    request: { params: questionParams, body: json(answerQuestionSchema) },
+    responses: {
+      ...questionChange,
+      400: errorResponse('`validation_failed`'),
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: '/api/cvs/{cvId}/questions/{questionId}/dismiss',
+    tags: ['cvs'],
+    summary: '“Not relevant”: dismiss an open Question or a pending Answer',
+    description: 'A pending Answer is dropped. Undo with `…/reopen`.',
+    request: { params: questionParams },
+    responses: questionChange,
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: '/api/cvs/{cvId}/questions/{questionId}/reopen',
+    tags: ['cvs'],
+    summary: 'Undo a dismissal: the Question is open again',
+    request: { params: questionParams },
+    responses: questionChange,
+  });
+
   registry.registerPath({
     method: 'post',
     path: '/api/cvs/{cvId}/generations',
     tags: ['cvs'],
-    summary: 'Try again after a failed Generation',
+    summary: 'Try again after a failed first Generation, or Update CV',
     description:
-      'A new Generation with the same Source and Target role; Facts from the failed one are reused.',
+      '`kind: initial` is Try again: a new Generation with the same Source and Target role, reusing the Facts of the failed one. `kind: answer` is Update CV: one Generation applies every pending Answer (each becomes a Fact), rewrites only the anchored items or sections (never an Edited item), and leaves every changed item under review. The CV stays `ready` while it runs and if it fails; its Answers then stay pending.',
     request: {
       params: cvIdParams,
       body: json(createGenerationSchema),
@@ -279,7 +358,9 @@ export function registerCvsDocs(registry: OpenAPIRegistry) {
       401: errorResponse('`unauthenticated`'),
       403: errorResponse('`forbidden_origin`'),
       404: errorResponse('`not_found`: missing or another User’s'),
-      409: errorResponse('`generation_not_failed` | `generation_active`'),
+      409: errorResponse(
+        '`generation_not_failed` | `generation_active` | `cv_not_ready` | `no_pending_answers`',
+      ),
       429: errorResponse('`too_many_active_generations`'),
     },
   });

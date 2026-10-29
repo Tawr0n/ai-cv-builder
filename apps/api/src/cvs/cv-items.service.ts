@@ -16,6 +16,7 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { ApiException } from '../http/api.exception.js';
 import { ZodValidationPipe } from '../http/zod-validation.pipe.js';
 import {
+  acceptReview,
   type AddResult,
   addBullet,
   addEducation,
@@ -26,6 +27,8 @@ import {
   moveWithin,
   patchItem,
   removeItem,
+  reviewed,
+  undoReview,
 } from './cv-document.js';
 import { CvsService } from './cvs.service.js';
 
@@ -165,6 +168,59 @@ export class CvItemsService {
       await tx.cv.update({
         where: { id: cvId },
         data: { content, version: { increment: 1 } },
+      });
+    });
+    return this.cvs.view(userId, cvId);
+  }
+
+  /**
+   * Accept or Undo an AI change under review; `rev` must be the item's
+   * current one. Undo puts the item back as it was (an item the AI added
+   * goes) and reopens the Questions whose Answers caused the change, as
+   * pending with the Answer kept; their Facts stay. Returns the CV view.
+   */
+  async decide(
+    userId: string,
+    cvId: string,
+    itemId: string,
+    decision: 'accept' | 'undo',
+    rev: number,
+  ): Promise<CvView> {
+    await this.prisma.$transaction(async (tx) => {
+      const { content } = await lockContent(tx, userId, cvId);
+      const ref = findItem(content, itemId);
+      if (!ref) throw itemNotFound();
+      if (ref.item.rev !== rev) throw itemConflict(ref.item);
+      const review = reviewed(ref);
+      if (!review) {
+        throw new ApiException(
+          HttpStatus.CONFLICT,
+          'not_in_review',
+          'This item has no AI change to review',
+        );
+      }
+
+      if (decision === 'accept') {
+        acceptReview(ref);
+        await tx.cv.update({ where: { id: cvId }, data: { content } });
+        return;
+      }
+      const questionIds = undoReview(content, ref);
+      // An item the AI added goes, so the following ones move up a place.
+      const shiftsOrder =
+        review.prev === null && movableSection(ref, content) !== undefined;
+      await tx.cv.update({
+        where: { id: cvId },
+        data: { content, ...(shiftsOrder && { version: { increment: 1 } }) },
+      });
+      await tx.question.updateMany({
+        where: {
+          id: { in: questionIds },
+          cvId,
+          status: 'answered',
+          appliedAt: { not: null },
+        },
+        data: { appliedAt: null },
       });
     });
     return this.cvs.view(userId, cvId);

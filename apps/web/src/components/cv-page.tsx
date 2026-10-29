@@ -1,20 +1,22 @@
 'use client';
 
-import type {
-  Anchor,
-  CvContent,
-  Generation,
-  GenerationErrorCode,
-  GenerationStep,
-  Question,
+import {
+  type Anchor,
+  type CvContent,
+  type CvView,
+  type Generation,
+  type GenerationErrorCode,
+  type GenerationStep,
+  isPendingAnswer,
+  type Question,
 } from '@ai-cv-builder/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { CvEditor } from '@/components/cv-editor';
 import { PagedCvPreview } from '@/components/paged-cv-preview';
-import { QuestionsInbox } from '@/components/questions-inbox';
-import { anchorElementIds } from '@/lib/anchors';
+import { QuestionsInbox, type UpdateCv } from '@/components/questions-inbox';
+import { anchorElementIds, reviewedItems } from '@/lib/anchors';
 import {
   cvQuery,
   downloadPdfMutation,
@@ -22,9 +24,12 @@ import {
   isFinished,
   questionsQuery,
   retryGenerationMutation,
+  reviewDecisionMutation,
+  updateCvMutation,
 } from '@/lib/cvs-query';
 import { queryKeys } from '@/lib/query-keys';
 import { useSignedOutRedirect } from '@/lib/use-signed-out-redirect';
+import { wordDiff } from '@/lib/word-diff';
 
 const STEPS: { step: GenerationStep; label: string }[] = [
   { step: 'extract', label: 'Reading your background' },
@@ -43,6 +48,12 @@ const FAILURE_MESSAGES: Record<GenerationErrorCode, string> = {
   internal: 'Something went wrong on our side.',
 };
 
+/** What the Update CV loader says on each step of an answer Generation. */
+const UPDATE_STEPS: Partial<Record<GenerationStep, string>> = {
+  compose: 'Working our magic on your CV…',
+  judge: 'Double-checking every line against your answers…',
+};
+
 /**
  * One CV: the step-driven loader while it generates, the failure with Try
  * again, then the preview, the editor and the Questions. Everything comes from the server, so a
@@ -51,11 +62,14 @@ const FAILURE_MESSAGES: Record<GenerationErrorCode, string> = {
 export function CvPage({ cvId }: { cvId: string }) {
   const queryClient = useQueryClient();
   const generation = useQuery(generationQuery(cvId));
-  const succeeded = generation.data?.status === 'succeeded';
-  const cv = useQuery({ ...cvQuery(cvId), enabled: succeeded });
+  // An Update CV (answer Generation) runs over a CV that already has content.
+  const hasContent =
+    generation.data?.status === 'succeeded' ||
+    generation.data?.kind === 'answer';
+  const cv = useQuery({ ...cvQuery(cvId), enabled: hasContent });
   const questions = useQuery({
     ...questionsQuery(cvId),
-    enabled: succeeded,
+    enabled: hasContent,
   });
   const signedOut = useSignedOutRedirect(
     generation.error ?? cv.error ?? questions.error,
@@ -100,7 +114,7 @@ export function CvPage({ cvId }: { cvId: string }) {
   }
   if (!generation.data) return <p role="status">Loading…</p>;
 
-  if (generation.data.status === 'failed') {
+  if (generation.data.status === 'failed' && !hasContent) {
     return (
       <main>
         {back}
@@ -108,7 +122,7 @@ export function CvPage({ cvId }: { cvId: string }) {
       </main>
     );
   }
-  if (!succeeded) {
+  if (!hasContent) {
     return (
       <main>
         {back}
@@ -120,11 +134,12 @@ export function CvPage({ cvId }: { cvId: string }) {
     return <p role="status">Loading…</p>;
   }
 
+  const pending = questions.data.items.filter(isPendingAnswer).length;
   return (
     <main className="wide">
       <div className="bar">
         {back}
-        <DownloadPdfButton cvId={cvId} />
+        <DownloadPdfButton cvId={cvId} pending={pending} />
       </div>
       {title && <p className="hint">CV for {title}</p>}
       <CvTabs
@@ -132,6 +147,7 @@ export function CvPage({ cvId }: { cvId: string }) {
         version={cv.data.version}
         content={cv.data.content}
         questions={questions.data.items}
+        generation={generation.data}
       />
     </main>
   );
@@ -139,21 +155,62 @@ export function CvPage({ cvId }: { cvId: string }) {
 
 type Tab = 'cv' | 'edit' | 'questions';
 
-/** The ready CV: the preview, and the Questions whose 📍 links lead back into it. */
+/**
+ * The ready CV: the preview (with the AI changes to review), the editor, and
+ * the Questions whose 📍 links lead back into it and whose Answers Update CV
+ * applies.
+ */
 function CvTabs({
   cvId,
   version,
   content,
   questions,
+  generation,
 }: {
   cvId: string;
   version: number;
   content: CvContent;
   questions: Question[];
+  generation: Generation;
 }) {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>('cv');
   const [located, setLocated] = useState<Anchor | null>(null);
-  const open = questions.filter((q) => q.status === 'open').length;
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  // Still to do: open Questions and Answers Update CV has not applied yet.
+  const open = questions.filter(
+    (q) => q.status === 'open' || isPendingAnswer(q),
+  ).length;
+
+  const isUpdate = generation.kind === 'answer';
+  const running = isUpdate && !isFinished(generation);
+  // "Updated" is said once, after an Update CV this page watched succeed.
+  const [watched, setWatched] = useState(running);
+  if (running && !watched) setWatched(true);
+  const updated = watched && isUpdate && generation.status === 'succeeded';
+  const failure =
+    isUpdate && generation.status === 'failed'
+      ? FAILURE_MESSAGES[generation.errorCode ?? 'internal']
+      : null;
+  const start = useMutation({
+    ...updateCvMutation(cvId),
+    onSuccess: (next) => {
+      queryClient.setQueryData(queryKeys.generation(cvId), next);
+      // Its Answers are locked now.
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.questions(cvId),
+      });
+      setTab('cv');
+    },
+  });
+  const update: UpdateCv = {
+    running,
+    failure: start.isError
+      ? 'Could not start the update. Check your connection.'
+      : failure,
+    start: () => start.mutate(),
+    starting: start.isPending,
+  };
 
   // Runs once the CV tab has rendered the preview the link points into.
   useEffect(() => {
@@ -203,13 +260,64 @@ function CvTabs({
         </button>
       </div>
       {tab === 'cv' ? (
-        <PagedCvPreview content={content} />
+        <>
+          {running ? (
+            <p className="update-loader" role="status" aria-live="polite">
+              {UPDATE_STEPS[generation.step ?? 'compose'] ??
+                UPDATE_STEPS.compose}
+            </p>
+          ) : failure ? (
+            <div role="alert" className="update-error">
+              <p>
+                We could not update your CV. {failure} Your answers are kept.
+              </p>
+              <button
+                type="button"
+                onClick={() => start.mutate()}
+                disabled={start.isPending}
+              >
+                Try again
+              </button>
+            </div>
+          ) : (
+            updated && (
+              <p className="update-done" role="status">
+                ✅ CV updated with your answers
+              </p>
+            )
+          )}
+          <ReviewBar
+            cvId={cvId}
+            content={content}
+            selected={reviewing}
+            onSelect={setReviewing}
+          />
+          <div className={running ? 'cv-updating' : undefined}>
+            <PagedCvPreview
+              content={content}
+              diff={wordDiff}
+              selected={reviewing}
+              onSelect={setReviewing}
+            />
+          </div>
+        </>
       ) : tab === 'edit' ? (
-        <CvEditor cvId={cvId} content={content} version={version} />
+        <CvEditor
+          cvId={cvId}
+          content={content}
+          version={version}
+          questions={questions}
+          onReview={(itemId) => {
+            setReviewing(itemId);
+            setTab('cv');
+          }}
+        />
       ) : (
         <QuestionsInbox
+          cvId={cvId}
           questions={questions}
           content={content}
+          update={update}
           onLocate={(anchor) => {
             setLocated(anchor);
             setTab('cv');
@@ -220,7 +328,152 @@ function CvTabs({
   );
 }
 
-function DownloadPdfButton({ cvId }: { cvId: string }) {
+/**
+ * "✨ AI change n of N" over the preview: steps through the items Update CV
+ * changed, each with Undo and Accept, plus Accept all.
+ */
+function ReviewBar({
+  cvId,
+  content,
+  selected,
+  onSelect,
+}: {
+  cvId: string;
+  content: CvContent;
+  selected: string | null;
+  onSelect: (itemId: string | null) => void;
+}) {
+  const queryClient = useQueryClient();
+  const decide = useMutation({
+    ...reviewDecisionMutation(cvId),
+    onSuccess: (view) =>
+      queryClient.setQueryData<CvView>(queryKeys.cv(cvId), view),
+    // A stale rev (another device): show the CV as it is now.
+    onError: () =>
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.cv(cvId),
+        exact: true,
+      }),
+    onSettled: (_view, _error, { decision }) => {
+      if (decision === 'undo') {
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.questions(cvId),
+        });
+      }
+    },
+  });
+  const [acceptingAll, setAcceptingAll] = useState(false);
+  const items = reviewedItems(content);
+  const index = Math.max(
+    0,
+    items.findIndex(({ id }) => id === selected),
+  );
+  const current = items[index];
+
+  // The selected change is scrolled into view.
+  useEffect(() => {
+    if (!selected) return;
+    document
+      .querySelector(`[data-review-id="${CSS.escape(selected)}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [selected]);
+
+  if (!current) return null;
+  const step = (by: number) =>
+    onSelect(items[(index + by + items.length) % items.length]!.id);
+
+  async function acceptAll() {
+    setAcceptingAll(true);
+    try {
+      // One by one: each is an item operation on its own rev.
+      for (const { id, rev } of items) {
+        await decide.mutateAsync({ itemId: id, rev, decision: 'accept' });
+      }
+    } catch {
+      // The failed one's refetch shows what is left to review.
+    } finally {
+      setAcceptingAll(false);
+    }
+  }
+
+  const busy = decide.isPending || acceptingAll;
+  return (
+    <div className="review-bar" role="region" aria-label="AI changes">
+      <p>
+        ✨ AI change {index + 1} of {items.length}:{' '}
+        <strong>{current.name}</strong>
+      </p>
+      <div className="review-actions">
+        <button
+          type="button"
+          aria-label="Previous change"
+          onClick={() => step(-1)}
+          disabled={items.length < 2}
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          aria-label="Next change"
+          onClick={() => step(1)}
+          disabled={items.length < 2}
+        >
+          ›
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() =>
+            decide.mutate({
+              itemId: current.id,
+              rev: current.rev,
+              decision: 'undo',
+            })
+          }
+        >
+          ↶ Undo
+        </button>
+        <button
+          type="button"
+          className="primary"
+          disabled={busy}
+          onClick={() =>
+            decide.mutate({
+              itemId: current.id,
+              rev: current.rev,
+              decision: 'accept',
+            })
+          }
+        >
+          ✓ Accept
+        </button>
+        {items.length > 1 && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void acceptAll()}
+          >
+            Accept all
+          </button>
+        )}
+      </div>
+      {decide.isError && (
+        <p role="alert" className="hint">
+          That did not go through; the CV is refreshed. Try again.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function DownloadPdfButton({
+  cvId,
+  pending,
+}: {
+  cvId: string;
+  /** Answers not applied yet: the PDF does not have them. */
+  pending: number;
+}) {
   const download = useMutation(downloadPdfMutation(cvId));
   return (
     <div className="stack">
@@ -232,6 +485,12 @@ function DownloadPdfButton({ cvId }: { cvId: string }) {
       >
         {download.isPending ? 'Preparing…' : '⬇ PDF'}
       </button>
+      {pending > 0 && (
+        <p className="hint">
+          You have {pending} {pending === 1 ? 'answer' : 'answers'} not applied
+          yet.
+        </p>
+      )}
       {download.isError && (
         <p role="alert" className="hint">
           Could not make the PDF. Try again.

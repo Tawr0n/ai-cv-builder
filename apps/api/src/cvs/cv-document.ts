@@ -4,6 +4,7 @@ import {
   contactFieldsSchema,
   CV_LIMITS,
   type CvContent,
+  type CvExperience,
   type CvItem,
   educationFieldsSchema,
   experienceFieldsSchema,
@@ -27,6 +28,8 @@ export type ItemKind = keyof typeof FIELDS_SCHEMA;
 export interface ItemRef {
   kind: ItemKind;
   item: CvItem;
+  /** A bullet's Experience: reviewed together with it. */
+  parent?: CvExperience;
 }
 
 /** The item with this id anywhere in the document, or `undefined`. Ids are unique across it. */
@@ -40,7 +43,7 @@ export function findItem(
     if (experience.id === itemId)
       return { kind: 'experience', item: experience };
     const bullet = experience.bullets.find(({ id }) => id === itemId);
-    if (bullet) return { kind: 'bullet', item: bullet };
+    if (bullet) return { kind: 'bullet', item: bullet, parent: experience };
   }
   const education = content.education.find(({ id }) => id === itemId);
   if (education) return { kind: 'education', item: education };
@@ -54,10 +57,11 @@ export type PatchResult =
 
 /**
  * A hand edit of one item, in place: the changed fields, `rev` + 1, and
- * `edited` (the AI leaves an Edited item alone). Mutates `content`.
+ * `edited` (the AI leaves an Edited item alone). It also accepts an AI change
+ * under review: of the item, or of a bullet's Experience. Mutates `content`.
  */
 export function patchItem(
-  { kind, item }: ItemRef,
+  { kind, item, parent }: ItemRef,
   fields: Record<string, unknown>,
 ): PatchResult {
   const parsed = FIELDS_SCHEMA[kind].safeParse(fields);
@@ -71,7 +75,44 @@ export function patchItem(
     };
   }
   Object.assign(item, parsed.data, { rev: item.rev + 1, edited: true });
+  endReview(parent ?? item);
   return { ok: true, item };
+}
+
+/** Clears an item's review: the AI change it held is now simply the item. */
+function endReview(item: object) {
+  delete (item as { review?: unknown }).review;
+}
+
+/** The item's review, or `undefined`; a bullet is reviewed with its Experience, never on its own. */
+export function reviewed({ item }: ItemRef) {
+  return 'review' in item ? item.review : undefined;
+}
+
+/** Accept: the AI change stays, its review ends, `rev` + 1. Mutates the item. */
+export function acceptReview({ item }: ItemRef) {
+  endReview(item);
+  item.rev += 1;
+}
+
+/**
+ * Undo: the item goes back to its snapshot (an item the AI added goes away),
+ * `rev` + 1. Returns the Questions to reopen. Mutates `content`.
+ */
+export function undoReview(content: CvContent, ref: ItemRef): string[] {
+  const review = reviewed(ref);
+  if (!review) return [];
+  const { item } = ref;
+  if (review.prev === null) {
+    removeItem(content, (item as { id: string }).id);
+  } else {
+    const rev = item.rev + 1;
+    for (const key of Object.keys(item)) {
+      delete (item as Record<string, unknown>)[key];
+    }
+    Object.assign(item, structuredClone(review.prev), { rev });
+  }
+  return review.questionIds;
 }
 
 /** Removes an experience, education entry, skill or bullet; `contact` and `summary` cannot go. */
@@ -83,7 +124,12 @@ export function removeItem(content: CvContent, itemId: string) {
   without(content.experience);
   without(content.education);
   without(content.skills);
-  for (const experience of content.experience) without(experience.bullets);
+  for (const experience of content.experience) {
+    const count = experience.bullets.length;
+    without(experience.bullets);
+    // Removing a bullet by hand accepts its Experience's AI change.
+    if (experience.bullets.length < count) endReview(experience);
+  }
 }
 
 export type Direction = 'up' | 'down';
@@ -161,5 +207,6 @@ export function addBullet(
   if (!experience) return undefined;
   if (experience.bullets.length >= CV_LIMITS.bulletsPerExperience) return FULL;
   experience.bullets.push({ id: randomUUID(), text, ...newItemMeta() });
+  endReview(experience);
   return OK;
 }

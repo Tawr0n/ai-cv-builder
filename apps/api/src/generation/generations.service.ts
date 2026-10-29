@@ -1,4 +1,7 @@
-import type { Generation as GenerationView } from '@ai-cv-builder/shared';
+import type {
+  GenerationKind,
+  Generation as GenerationView,
+} from '@ai-cv-builder/shared';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ENV, type Env } from '../env/env.js';
 import { isUniqueViolation } from '../database/prisma-errors.js';
@@ -24,7 +27,11 @@ export class GenerationsService {
    */
   async start(
     tx: Prisma.TransactionClient,
-    { userId, cvId }: { userId: string; cvId: string },
+    {
+      userId,
+      cvId,
+      kind = 'initial',
+    }: { userId: string; cvId: string; kind?: GenerationKind },
   ): Promise<Generation> {
     await lockUser(tx, userId);
     const active = await tx.generation.count({
@@ -41,7 +48,7 @@ export class GenerationsService {
     let generation: Generation;
     try {
       generation = await tx.generation.create({
-        data: { cvId, userId, kind: 'initial' },
+        data: { cvId, userId, kind },
       });
     } catch (error) {
       if (isUniqueViolation(error)) throw generationActive();

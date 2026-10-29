@@ -40,7 +40,17 @@ const itemMeta = {
   sourceFactIds,
 };
 
-export const cvContactSchema = z.object({
+/**
+ * An item Update CV changed, until the User accepts or undoes it: `prev` is the
+ * item as it was before the AI's first unreviewed change (`null` for an item
+ * the AI added), `questionIds` the Questions whose Answers caused it.
+ */
+const reviewOf = <Item extends z.ZodObject>(item: Item) =>
+  z
+    .object({ prev: item.nullable(), questionIds: z.array(z.uuid()) })
+    .optional();
+
+const cvContactBase = z.object({
   fullName: shortLine,
   /** Empty until known; otherwise a valid address. */
   email: shortLine.pipe(z.union([z.literal(''), z.email()])),
@@ -50,9 +60,16 @@ export const cvContactSchema = z.object({
   ...itemMeta,
 });
 
-export const cvSummarySchema = z.object({
+export const cvContactSchema = cvContactBase.extend({
+  review: reviewOf(cvContactBase),
+});
+
+const cvSummaryBase = z.object({
   text: textField(0, CV_LIMITS.summary),
   ...itemMeta,
+});
+export const cvSummarySchema = cvSummaryBase.extend({
+  review: reviewOf(cvSummaryBase),
 });
 
 export const cvBulletSchema = z.object({
@@ -61,7 +78,7 @@ export const cvBulletSchema = z.object({
   ...itemMeta,
 });
 
-export const cvExperienceSchema = z.object({
+const cvExperienceBase = z.object({
   id: z.uuid(),
   organization: unknownOrLine,
   title: unknownOrLine,
@@ -72,8 +89,12 @@ export const cvExperienceSchema = z.object({
   bullets: z.array(cvBulletSchema).max(CV_LIMITS.bulletsPerExperience),
   ...itemMeta,
 });
+/** Reviewed as one item together with its bullets. */
+export const cvExperienceSchema = cvExperienceBase.extend({
+  review: reviewOf(cvExperienceBase),
+});
 
-export const cvEducationSchema = z.object({
+const cvEducationBase = z.object({
   id: z.uuid(),
   institution: unknownOrLine,
   degree: unknownOrLine,
@@ -82,11 +103,17 @@ export const cvEducationSchema = z.object({
   endDate: cvDateSchema.nullable(),
   ...itemMeta,
 });
+export const cvEducationSchema = cvEducationBase.extend({
+  review: reviewOf(cvEducationBase),
+});
 
-export const cvSkillSchema = z.object({
+const cvSkillBase = z.object({
   id: z.uuid(),
   name: lineField(1, CV_LIMITS.shortField),
   ...itemMeta,
+});
+export const cvSkillSchema = cvSkillBase.extend({
+  review: reviewOf(cvSkillBase),
 });
 
 /**
@@ -106,3 +133,5 @@ export const cvContentSchema = z
 export type CvContent = z.infer<typeof cvContentSchema>;
 export type CvExperience = z.infer<typeof cvExperienceSchema>;
 export type CvEducation = z.infer<typeof cvEducationSchema>;
+export type CvSkill = z.infer<typeof cvSkillSchema>;
+export type CvBullet = z.infer<typeof cvBulletSchema>;

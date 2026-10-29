@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { textField } from './text.js';
 
 export const CV_SECTIONS = [
   'contact',
@@ -34,7 +35,7 @@ export const QUESTION_STATUSES = [
   'obsolete',
 ] as const;
 
-export const QUESTION_LIMITS = { text: 500 } as const;
+export const QUESTION_LIMITS = { text: 500, answer: 1000 } as const;
 
 export type CvSection = (typeof CV_SECTIONS)[number];
 export type CvField = (typeof CV_FIELDS)[number];
@@ -58,9 +59,20 @@ export const questionSchema = z
     anchor: anchorSchema,
     text: z.string(),
     status: z.enum(QUESTION_STATUSES),
+    /** The User's Answer; `null` until they answer. */
+    answer: z.string().nullable(),
+    /** When Update CV turned the Answer into a Fact; `null` while it is pending (and editable). */
+    appliedAt: z.iso.datetime().nullable(),
+    /** A running Update CV is applying this Answer: it cannot change until that ends. */
+    locked: z.boolean(),
     createdAt: z.iso.datetime(),
   })
   .meta({ id: 'Question' });
+
+/** `PUT /api/cvs/:cvId/questions/:questionId/answer`: saves a pending Answer, or changes it. */
+export const answerQuestionSchema = z
+  .strictObject({ answer: textField(1, QUESTION_LIMITS.answer) })
+  .meta({ id: 'AnswerQuestion' });
 
 /** `GET /api/cvs/:cvId/questions`: most important first. */
 export const questionListSchema = z
@@ -70,3 +82,8 @@ export const questionListSchema = z
 export type Anchor = z.infer<typeof anchorSchema>;
 export type Question = z.infer<typeof questionSchema>;
 export type QuestionList = z.infer<typeof questionListSchema>;
+export type AnswerQuestion = z.infer<typeof answerQuestionSchema>;
+
+/** Answered, but Update CV has not applied it yet. */
+export const isPendingAnswer = (question: Question) =>
+  question.status === 'answered' && question.appliedAt === null;

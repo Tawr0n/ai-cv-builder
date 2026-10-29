@@ -164,7 +164,7 @@ describe('/api/cvs/:cvId routes', () => {
 
       const response = await agent
         .post(`/api/cvs/${cvId}/generations`)
-        .send({ kind: 'answer' })
+        .send({ kind: 'extract' })
         .expect(400);
 
       expect(apiErrorSchema.parse(response.body).error.code).toBe(
@@ -188,10 +188,17 @@ describe('/api/cvs/:cvId routes', () => {
       'POST /api/cvs/:cvId/items/:itemId/move': {
         body: { direction: 'up', version: 1 },
       },
+      'POST /api/cvs/:cvId/items/:itemId/accept': { body: { rev: 1 } },
+      'POST /api/cvs/:cvId/items/:itemId/undo': { body: { rev: 1 } },
       'POST /api/cvs/:cvId/items/:experienceId/bullets': {
         body: { text: 'Not yours.' },
       },
       'POST /api/cvs/:cvId/sections/:section/items': { body: {} },
+      'PUT /api/cvs/:cvId/questions/:questionId/answer': {
+        body: { answer: 'Not yours.' },
+      },
+      'POST /api/cvs/:cvId/questions/:questionId/dismiss': {},
+      'POST /api/cvs/:cvId/questions/:questionId/reopen': {},
     };
 
     /** Concrete values for the other path parameters: well-formed, so only ownership can answer 404. */
@@ -199,6 +206,7 @@ describe('/api/cvs/:cvId routes', () => {
       ':itemId': 'summary',
       ':experienceId': '00000000-0000-4000-8000-000000000000',
       ':section': 'experience',
+      ':questionId': '00000000-0000-4000-8000-000000000000',
     };
 
     it('covers every registered route under /api/cvs/:cvId', () => {
@@ -218,12 +226,12 @@ describe('/api/cvs/:cvId routes', () => {
         const url = path
           .replace(':cvId', cvId)
           .replace(
-            /:(itemId|experienceId|section)/g,
+            /:(itemId|experienceId|section|questionId)/g,
             (param) => PATH_PARAMS[param]!,
           );
 
         const response = await stranger.agent[
-          method.toLowerCase() as 'get' | 'post' | 'patch' | 'delete'
+          method.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete'
         ](url)
           .query(method === 'DELETE' ? { rev: 1 } : {})
           .send(body);

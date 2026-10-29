@@ -21,6 +21,7 @@ export class ScriptedCvAi extends CvAi {
   readonly calls: PerStep<{ [S in CvAiStep]: CvAiInput<S>[] }> = {
     extract: [],
     compose: [],
+    update: [],
     judge: [],
     repair: [],
   };
@@ -28,6 +29,7 @@ export class ScriptedCvAi extends CvAi {
   private readonly scripts: PerStep<{ [S in CvAiStep]: Outcome<S>[] }> = {
     extract: [],
     compose: [],
+    update: [],
     judge: [],
     repair: [],
   };
@@ -79,6 +81,10 @@ export class ScriptedCvAi extends CvAi {
 
   compose(input: CvAiInput<'compose'>) {
     return this.next('compose', input);
+  }
+
+  update(input: CvAiInput<'update'>) {
+    return this.next('update', input);
   }
 
   judge(input: CvAiInput<'judge'>) {

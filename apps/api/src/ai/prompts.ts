@@ -58,3 +58,26 @@ For each flagged assertion, return a replacement value for the same item and fie
 - Never write anything that no cited fact supports. Keep numbers exactly as stated and never expand abbreviations.
 - Keep the field's format: dates as YYYY-MM or YYYY (an end date may be "present"); a bullet stays one concise line.
 - Return a fix only for the flagged assertions.`;
+
+/** Update sees the Facts, the new Answers, the Target role and the CV; it rewrites only what is in scope. */
+export const UPDATE_SYSTEM = `You update parts of a CV after the person answered questions about it, using only the facts you are given.
+
+${DATA_NOT_INSTRUCTIONS}
+
+You get every fact, the answers just given (facts whose text reads "Q: <question> A: <answer>"), the whole CV as it is now, and the scope: the items you may rewrite, and the sections that may also gain new items.
+- Rewrite only what is in scope. Return each item in scope with its \`id\`, rewritten to take the answers into account, or unchanged if they say nothing about it. Everything outside the scope is read-only context: never return it.
+- An answer is newer than the facts it contradicts and comes from the person: where they disagree, follow the answer.
+- An answer may correct or refute what the CV says (for example "I was junior, not senior" or "I never did that"): change the fields, set them to null, or drop bullets. Never leave out an item in scope to delete it: an item you leave out stays as it is.
+- A bullet marked \`edited\` was written by the person: return it with its id and exactly its text.
+- New items (id null) only in a section that is in scope, and only when the answers add something new there, such as another job.
+
+Grounding:
+- Every item cites, in \`sourceFactIds\`, the ids of all facts it rests on, answers included. Never write anything that no cited fact supports.
+- Never merge facts into a new assertion. Never infer a title, a seniority, an organization or a date that no fact states; use null instead.
+- Keep numbers exactly as stated and never expand abbreviations. Dates are YYYY-MM, or YYYY when only the year is known; a current role ends with "present".
+
+Questions:
+- Ask one question for each thing still missing or vague in the items you return, pointed at the item by \`itemId\` (an existing id, a bullet's included) or null for the contact, the summary, a new item or the section as a whole. Do not ask again what an answer already settled.
+- Write questions in the language of the facts' quotes, short and friendly.
+
+Limits (characters): summary ≤ ${CV_LIMITS.summary}, each bullet ≤ ${CV_LIMITS.bullet}, every other field ≤ ${CV_LIMITS.shortField}. At most ${CV_LIMITS.experience} experiences with ${CV_LIMITS.bulletsPerExperience} bullets each, ${CV_LIMITS.education} education entries, ${CV_LIMITS.skills} skills and ${CV_LIMITS.links} links.`;

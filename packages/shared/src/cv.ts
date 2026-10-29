@@ -8,7 +8,8 @@ export const SOURCE_TEXT_LIMITS = { min: 50, max: 20_000 } as const;
 export const PDF_LIMITS = { maxBytes: 5 * 1024 * 1024, maxPages: 5 } as const;
 
 export const CV_STATUSES = ['generating', 'ready', 'failed'] as const;
-export const GENERATION_KINDS = ['initial'] as const;
+/** `initial` writes the whole CV from the Source; `answer` (Update CV) applies the pending Answers. */
+export const GENERATION_KINDS = ['initial', 'answer'] as const;
 export const GENERATION_STATUSES = [
   'queued',
   'running',
@@ -59,9 +60,12 @@ export const generationSchema = z
   })
   .meta({ id: 'Generation' });
 
-/** `POST /api/cvs/:cvId/generations`: `initial` is Try again after a failed Generation. */
+/**
+ * `POST /api/cvs/:cvId/generations`: `initial` is Try again after a failed
+ * first Generation; `answer` is Update CV, which applies every pending Answer.
+ */
 export const createGenerationSchema = z
-  .strictObject({ kind: z.literal('initial') })
+  .strictObject({ kind: z.enum(GENERATION_KINDS) })
   .meta({ id: 'CreateGeneration' });
 
 export const cvListItemSchema = z
@@ -94,6 +98,7 @@ export type CvStatus = z.infer<typeof cvStatusSchema>;
 export type CreateCvFields = z.infer<typeof createCvFieldsSchema>;
 export type CreateCvResponse = z.infer<typeof createCvResponseSchema>;
 export type Generation = z.infer<typeof generationSchema>;
+export type GenerationKind = (typeof GENERATION_KINDS)[number];
 export type GenerationStep = (typeof GENERATION_STEPS)[number];
 export type GenerationErrorCode = (typeof GENERATION_ERROR_CODES)[number];
 export type CreateGeneration = z.infer<typeof createGenerationSchema>;

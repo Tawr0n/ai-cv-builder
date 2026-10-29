@@ -86,6 +86,11 @@ export const removeItemQuerySchema = z.strictObject({
   rev: z.coerce.number().int().positive(),
 });
 
+/** `POST /items/:itemId/accept` and `…/undo`: the reviewed item's own `rev`. */
+export const reviewDecisionSchema = z
+  .strictObject({ rev: z.int().positive() })
+  .meta({ id: 'ReviewDecision' });
+
 export const moveItemSchema = z
   .strictObject({
     direction: z.enum(['up', 'down']),
@@ -98,3 +103,4 @@ export type AddBullet = z.infer<typeof addBulletSchema>;
 export type ItemSection = z.infer<typeof itemSectionSchema>;
 export type PatchItem = z.infer<typeof patchItemSchema>;
 export type MoveItem = z.infer<typeof moveItemSchema>;
+export type ReviewDecision = z.infer<typeof reviewDecisionSchema>;
