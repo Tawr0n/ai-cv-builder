@@ -81,6 +81,36 @@ a {
   gap: 8px;
 }
 
+/* Auth form: every message has a reserved line, so showing or clearing one never shifts the layout. */
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-message {
+  margin: 0;
+  min-height: 1.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  color: var(--muted);
+}
+
+.field-message-error,
+.form-error {
+  color: var(--err-ink);
+}
+
+.form-error {
+  margin: 0;
+  min-height: 1.5rem;
+  font-size: 0.875rem;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--err-ink);
+}
+
 .bar {
   display: flex;
   align-items: center;
