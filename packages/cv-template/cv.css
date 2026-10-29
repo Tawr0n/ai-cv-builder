@@ -1,0 +1,145 @@
+/*
+ * CV template B: Inter sans, labels in a 30 mm gutter, one reading column.
+ * Always a white sheet, whatever the page's colour scheme. Shared by the
+ * on-screen preview and the PDF; the PDF adds only `@page` (see `renderCvHtml` in src/server.ts, which also sets the page margins the
+ * preview's page-break estimate in apps/web assumes: 14/15/16 mm, 180 mm wide).
+ */
+
+.cv {
+  --cv-accent: #1d4ed8;
+  background: #fff;
+  color: #111;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 10pt;
+  line-height: 1.45;
+  padding: 14mm 15mm 16mm;
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.2);
+}
+
+.cv-header {
+  border-bottom: 2pt solid #111;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.cv-name {
+  font-size: 24pt;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.cv-contact {
+  margin: 4px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0;
+}
+
+.cv-contact span + span::before {
+  content: '·';
+  padding: 0 0.5em;
+}
+
+.cv a {
+  color: var(--cv-accent);
+}
+
+.cv-section {
+  margin-top: 12px;
+}
+
+/* A row is one item; only the first carries the section label. It never splits across pages. */
+.cv-row {
+  display: grid;
+  grid-template-columns: 30mm 1fr;
+  gap: 0 4mm;
+  break-inside: avoid;
+}
+
+.cv-row + .cv-row {
+  margin-top: 10px;
+}
+
+.cv-label {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  margin: 2px 0 0;
+  font-size: 8pt;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cv-accent);
+}
+
+.cv-body {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.cv-summary {
+  margin: 0;
+}
+
+.cv-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cv-skills li {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+}
+
+.cv-title {
+  font-size: 10.5pt;
+  font-weight: 600;
+  margin: 0;
+}
+
+.cv-meta {
+  margin: 0;
+  color: #555;
+}
+
+.cv-bullets {
+  margin: 4px 0 0;
+  padding-left: 1.1em;
+}
+
+/* Phone: reflow instead of a scaled-down A4; the gutter becomes a heading. */
+@media (max-width: 600px) {
+  .cv {
+    padding: 20px 16px;
+  }
+
+  .cv-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cv-label {
+    margin-bottom: 4px;
+  }
+
+  .cv-body {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+/* Printing: the @page margins are the sheet's padding. */
+@media print {
+  .cv {
+    padding: 0;
+    box-shadow: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

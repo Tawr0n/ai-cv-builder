@@ -18,8 +18,14 @@ RUN pnpm install --offline --frozen-lockfile \
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# One shared, readable place for the browser, so the non-root user finds it.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 WORKDIR /app
 COPY --from=build --chown=node:node /out ./
+# Chromium's headless shell only (no full browser, Firefox or WebKit) plus the
+# system libraries and fonts it needs; the PDF endpoint prints with it.
+RUN ./node_modules/.bin/playwright install --with-deps --only-shell chromium \
+ && rm -rf /var/lib/apt/lists/*
 USER node
 EXPOSE 3001
 # Migrations run here, before the app starts (one api replica, no separate job).

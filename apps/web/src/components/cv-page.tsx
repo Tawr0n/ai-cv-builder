@@ -11,11 +11,12 @@ import type {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { CvTemplate } from '@/components/cv-template';
+import { PagedCvPreview } from '@/components/paged-cv-preview';
 import { QuestionsInbox } from '@/components/questions-inbox';
 import { anchorElementIds } from '@/lib/anchors';
 import {
   cvQuery,
+  downloadPdfMutation,
   generationQuery,
   isFinished,
   questionsQuery,
@@ -120,7 +121,10 @@ export function CvPage({ cvId }: { cvId: string }) {
 
   return (
     <main className="wide">
-      {back}
+      <div className="bar">
+        {back}
+        <DownloadPdfButton cvId={cvId} />
+      </div>
       {title && <p className="hint">CV for {title}</p>}
       <CvTabs content={cv.data.content} questions={questions.data.items} />
     </main>
@@ -181,7 +185,7 @@ function CvTabs({
         </button>
       </div>
       {tab === 'cv' ? (
-        <CvTemplate content={content} mode="preview" />
+        <PagedCvPreview content={content} />
       ) : (
         <QuestionsInbox
           questions={questions}
@@ -193,6 +197,27 @@ function CvTabs({
         />
       )}
     </>
+  );
+}
+
+function DownloadPdfButton({ cvId }: { cvId: string }) {
+  const download = useMutation(downloadPdfMutation(cvId));
+  return (
+    <div className="stack">
+      <button
+        type="button"
+        onClick={() => download.mutate()}
+        disabled={download.isPending}
+        aria-label="Download PDF"
+      >
+        {download.isPending ? 'Preparing…' : '⬇ PDF'}
+      </button>
+      {download.isError && (
+        <p role="alert" className="hint">
+          Could not make the PDF. Try again.
+        </p>
+      )}
+    </div>
   );
 }
 

@@ -5,21 +5,24 @@ import type {
   CvSection as Section,
 } from '@ai-cv-builder/shared';
 import type { ReactNode } from 'react';
-import { itemElementId, sectionElementId } from '@/lib/anchors';
+import { itemElementId, sectionElementId } from './element-ids.js';
+
+export type CvTemplateMode = 'preview' | 'pdf';
 
 /**
  * The CV as it prints: template B (sans, label gutter), sections in the order
  * Profile → Skills → Experience → Education. One component for the on-screen
  * preview and the PDF; only the preview emits element ids, which the 📍 links
- * of Questions scroll to. Unknown (`null`) fields are left out. Every value is
- * rendered as text by React, so nothing in the content can become markup.
+ * of Questions scroll to, so the PDF and its off-screen measuring copy carry
+ * none. Unknown (`null`) fields are left out. Every value is rendered as text
+ * by React, so nothing in the content can become markup.
  */
 export function CvTemplate({
   content,
   mode,
 }: {
   content: CvContent;
-  mode: 'preview' | 'pdf';
+  mode: CvTemplateMode;
 }) {
   const preview = mode === 'preview';
   const sectionId = (section: Section) =>
@@ -47,35 +50,43 @@ export function CvTemplate({
       </header>
 
       {summary.text && (
-        <CvSection label="Profile" id={sectionId('summary')}>
-          <p className="cv-summary">{summary.text}</p>
+        <CvSection id={sectionId('summary')}>
+          <CvRow label="Profile">
+            <p className="cv-summary">{summary.text}</p>
+          </CvRow>
         </CvSection>
       )}
 
       {skills.length > 0 && (
-        <CvSection label="Skills" id={sectionId('skills')}>
-          <ul className="cv-skills">
-            {skills.map((skill) => (
-              <li key={skill.id} id={itemId(skill.id)}>
-                {skill.name}
-              </li>
-            ))}
-          </ul>
+        <CvSection id={sectionId('skills')}>
+          <CvRow label="Skills">
+            <ul className="cv-skills">
+              {skills.map((skill) => (
+                <li key={skill.id} id={itemId(skill.id)}>
+                  {skill.name}
+                </li>
+              ))}
+            </ul>
+          </CvRow>
         </CvSection>
       )}
 
       {experience.length > 0 && (
-        <CvSection label="Experience" id={sectionId('experience')}>
-          {experience.map((item) => (
-            <ExperienceItem key={item.id} item={item} itemId={itemId} />
+        <CvSection id={sectionId('experience')}>
+          {experience.map((item, index) => (
+            <CvRow key={item.id} label={index === 0 ? 'Experience' : undefined}>
+              <ExperienceItem item={item} itemId={itemId} />
+            </CvRow>
           ))}
         </CvSection>
       )}
 
       {education.length > 0 && (
-        <CvSection label="Education" id={sectionId('education')}>
-          {education.map((item) => (
-            <EducationItem key={item.id} item={item} itemId={itemId} />
+        <CvSection id={sectionId('education')}>
+          {education.map((item, index) => (
+            <CvRow key={item.id} label={index === 0 ? 'Education' : undefined}>
+              <EducationItem item={item} itemId={itemId} />
+            </CvRow>
           ))}
         </CvSection>
       )}
@@ -86,19 +97,30 @@ export function CvTemplate({
 type ItemId = (id: string) => string | undefined;
 
 function CvSection({
-  label,
   id,
   children,
 }: {
-  label: string;
   id: string | undefined;
   children: ReactNode;
 }) {
   return (
     <section className="cv-section" id={id}>
-      <h2 className="cv-label">{label}</h2>
-      <div className="cv-body">{children}</div>
+      {children}
     </section>
+  );
+}
+
+/**
+ * One row per item; the first row of a section carries its label in the
+ * gutter. A row never splits across pages, so a heading always stays with its
+ * first item.
+ */
+function CvRow({ label, children }: { label?: string; children: ReactNode }) {
+  return (
+    <div className="cv-row">
+      {label && <h2 className="cv-label">{label}</h2>}
+      <div className="cv-body">{children}</div>
+    </div>
   );
 }
 

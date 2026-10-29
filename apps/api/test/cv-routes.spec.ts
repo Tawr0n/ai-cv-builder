@@ -178,6 +178,7 @@ describe('/api/cvs/:cvId routes', () => {
     const CV_ROUTES: Record<string, { body?: object }> = {
       'GET /api/cvs/:cvId': {},
       'GET /api/cvs/:cvId/generation': {},
+      'GET /api/cvs/:cvId/pdf': {},
       'GET /api/cvs/:cvId/questions': {},
       'POST /api/cvs/:cvId/generations': { body: { kind: 'initial' } },
     };

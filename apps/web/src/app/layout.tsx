@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
+import '@ai-cv-builder/cv-template/cv.css';
 import './globals.css';
 import { Providers } from './providers';
 

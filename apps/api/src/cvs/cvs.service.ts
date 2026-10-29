@@ -16,12 +16,19 @@ import {
   toGenerationView,
 } from '../generation/generations.service.js';
 import { ApiException } from '../http/api.exception.js';
+import { PdfRenderer } from '../pdf/pdf-renderer.js';
 import { type Source, SourceStorage } from '../source/source-storage.js';
 import { assertReadablePdf } from './pdf-check.js';
 
 export interface UploadedPdf {
   originalname: string;
   buffer: Buffer;
+}
+
+export interface CvPdf {
+  bytes: Buffer;
+  /** Human-readable, may be non-ASCII; the controller encodes it for the header. */
+  fileName: string;
 }
 
 export interface CreatedCv {
@@ -42,6 +49,7 @@ export class CvsService {
     private readonly prisma: PrismaService,
     private readonly generations: GenerationsService,
     private readonly sources: SourceStorage,
+    private readonly pdfs: PdfRenderer,
   ) {}
 
   async list(userId: string): Promise<CvList> {
@@ -108,6 +116,22 @@ export class CvsService {
       // Parsed on every read, too: the database does not know the document's shape.
       content: cv.content === null ? null : cvContentSchema.parse(cv.content),
       latestGeneration: toGenerationView(latest),
+    };
+  }
+
+  /** The CV printed as an A4 PDF, rendered on demand; only a `ready` CV has content to print. */
+  async pdf(userId: string, cvId: string): Promise<CvPdf> {
+    const { status, content, targetRole } = await this.view(userId, cvId);
+    if (status !== 'ready' || !content) {
+      throw new ApiException(
+        HttpStatus.CONFLICT,
+        'cv_not_ready',
+        'The CV has no content to print yet',
+      );
+    }
+    return {
+      bytes: await this.pdfs.render(content),
+      fileName: `${content.contact.fullName || targetRole} - CV.pdf`,
     };
   }
 

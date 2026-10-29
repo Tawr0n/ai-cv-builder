@@ -180,113 +180,47 @@ textarea {
   text-align: left;
 }
 
-/*
- * CV template B: Inter-style sans, labels in a 30 mm gutter, one reading
- * column. Always a white sheet, whatever the page's colour scheme.
- */
+/* The CV template's own styles live in @ai-cv-builder/cv-template/cv.css. */
 
-.cv {
-  --cv-accent: #1d4ed8;
+.cv-paged {
+  position: relative;
+}
+
+/* Estimated page breaks of the PDF: a labelled rule above the first row of each page. */
+.cv-page-break {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed #94a3b8;
+  pointer-events: none;
+}
+
+.cv-page-break span {
+  position: absolute;
+  right: 8px;
+  top: -0.8em;
+  padding: 0 6px;
+  font:
+    600 11px/1.6 system-ui,
+    sans-serif;
+  color: #475569;
   background: #fff;
-  color: #111;
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 10pt;
-  line-height: 1.45;
-  padding: 14mm 15mm 16mm;
-  box-shadow: 0 1px 6px rgb(0 0 0 / 0.2);
 }
 
-.cv-header {
-  border-bottom: 2pt solid #111;
-  padding-bottom: 8px;
-  margin-bottom: 12px;
+/* The off-screen pdf-mode layout the breaks are measured on: the printed content width. */
+.cv-measure {
+  position: absolute;
+  top: 0;
+  left: -100000px;
+  width: 180mm;
+  visibility: hidden;
+  pointer-events: none;
 }
 
-.cv-name {
-  font-size: 24pt;
-  font-weight: 700;
-  line-height: 1.1;
-  margin: 0;
-}
-
-.cv-contact {
-  margin: 4px 0 0;
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: 0;
-}
-
-.cv-contact span + span::before {
-  content: '·';
-  padding: 0 0.5em;
-}
-
-.cv a {
-  color: var(--cv-accent);
-}
-
-.cv-section {
-  display: grid;
-  grid-template-columns: 30mm 1fr;
-  gap: 0 4mm;
-  margin-top: 12px;
-}
-
-.cv-label {
-  align-self: start;
-  margin: 2px 0 0;
-  font-size: 8pt;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--cv-accent);
-}
-
-.cv-body > :first-child {
-  margin-top: 0;
-}
-
-.cv-summary {
-  margin: 0;
-}
-
-.cv-skills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  list-style: none;
-  margin: 0;
+.cv-measure .cv {
   padding: 0;
-}
-
-.cv-skills li {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: #eef2ff;
-}
-
-.cv-item {
-  break-inside: avoid;
-}
-
-.cv-item + .cv-item {
-  margin-top: 10px;
-}
-
-.cv-title {
-  font-size: 10.5pt;
-  font-weight: 600;
-  margin: 0;
-}
-
-.cv-meta {
-  margin: 0;
-  color: #555;
-}
-
-.cv-bullets {
-  margin: 4px 0 0;
-  padding-left: 1.1em;
+  box-shadow: none;
 }
 
 /* Where a 📍 link landed, for a moment. */
@@ -295,19 +229,4 @@ textarea {
   outline-offset: 3px;
   background: #fef9c3;
   transition: background 0.3s;
-}
-
-/* Phone: reflow instead of a scaled-down A4; the gutter becomes a heading. */
-@media (max-width: 600px) {
-  .cv {
-    padding: 20px 16px;
-  }
-
-  .cv-section {
-    grid-template-columns: 1fr;
-  }
-
-  .cv-label {
-    margin-bottom: 4px;
-  }
 }
