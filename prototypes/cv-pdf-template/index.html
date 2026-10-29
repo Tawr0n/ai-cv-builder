@@ -1,0 +1,265 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway. Answers wayfinder ticket "CV PDF template design" (#21):
+  what does the single CV template look like so it prints as a clean A4 PDF and reads
+  well as the on-screen preview at ~375 px?
+  Three structurally different templates (A classic serif, B label gutter, C sidebar),
+  switchable with the bottom bar or ← →. The top panel switches view (phone reflow,
+  phone scaled A4, A4 sheet), data set (normal, long, Cyrillic, nulls) and overlays
+  (Question markers, review diff, 📍 highlight). "Print" opens the browser's print dialog
+  with @page A4 — the same path Playwright takes — so "Save as PDF" shows real pagination.
+  Fonts come from Google Fonts here; the real template bundles them. Never merge into main.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV Template Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- prototype chrome (not part of the design) ---------- */
+  body { margin: 0; background: #cfcfcc; font: 14px/1.4 -apple-system, system-ui, sans-serif; }
+  #ctl { position: sticky; top: 0; z-index: 20; background: #111; color: #eee; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 12px; }
+  #ctl label { display: inline-flex; gap: 4px; align-items: center; }
+  #ctl select, #ctl button { font: inherit; background: #333; color: #fff; border: 0; border-radius: 6px; padding: 4px 8px; }
+  #stage { padding: 20px 0 90px; display: flex; justify-content: center; }
+  .frame-phone { width: 375px; background: #f6f6f4; min-height: 600px; box-shadow: 0 0 0 1px #aaa; }
+  .frame-phone .paper { margin: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.12); }
+  .frame-phone.scaled .scaler { width: 351px; overflow: hidden; margin: 12px; }
+  .frame-phone.scaled .paper { width: 210mm; margin: 0; transform-origin: 0 0; }
+  .frame-a4 .paper { width: 210mm; min-height: 297mm; box-shadow: 0 2px 10px rgba(0,0,0,.2);
+    /* dashed guide at every A4 page boundary (print output is the source of truth) */
+    background-image: repeating-linear-gradient(to bottom, transparent 0 calc(297mm - 1px), #e66 calc(297mm - 1px) 297mm); }
+  #bar { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 30; background: #111; color: #fff; border-radius: 99px; padding: 6px 8px; display: flex; gap: 8px; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,.35); font-size: 13px; }
+  #bar button { background: #333; color: #fff; border: 0; border-radius: 99px; width: 34px; height: 34px; font-size: 16px; cursor: pointer; }
+  #bar span { min-width: 200px; text-align: center; }
+  @media print { #ctl, #bar { display: none !important; } body { background: #fff; } #stage { padding: 0; display: block; }
+    .frame-phone, .frame-a4 { width: auto !important; box-shadow: none !important; background: none !important; }
+    .scaler { width: auto !important; margin: 0 !important; } .paper { transform: none !important; width: auto !important; margin: 0 !important; box-shadow: none !important; background-image: none !important; min-height: 0 !important; } }
+
+  /* ---------- shared template base (what every variant gets) ---------- */
+  @page { size: A4; margin: 14mm 15mm 16mm; }
+  /* C bleeds its sidebar to the sheet edge, so it takes a margin-less named page */
+  @page sidebar { margin: 0; }
+  @media print { .tA, .tB { padding: 0 !important; } .tC { page: sidebar; } }
+  .paper { background: #fff; color: #1b1b1b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .paper * { box-sizing: border-box; }
+  .paper a { color: inherit; text-decoration: none; border-bottom: 1px solid #bbb; overflow-wrap: anywhere; }
+  .paper ul { margin: 0; padding-left: 1.1em; }
+  .paper li { margin: .15em 0; }
+  .paper .item, .paper h2 + .item { break-inside: avoid; }
+  .paper h2 { break-after: avoid; }
+  .paper .missing { color: #9a9a9a; font-style: italic; }
+  /* editor hooks — never printed */
+  .qm { display: inline-block; font: 600 9px/1.5 Inter, sans-serif; color: #6b5200; background: #fff6dc; border: 1px solid #f0c94a; border-radius: 99px; padding: 0 5px; margin-left: 4px; vertical-align: 1px; }
+  .rev { border-left: 3px solid #2fa865; padding-left: 6px; margin-left: -9px; }
+  del.dd { background: #fde8e8; color: #9b1c1c; } ins.di { background: #d9f2e3; color: #1d5e36; text-decoration: none; }
+  .hl { background: #fff1b8; outline: 2px solid #f0c94a; border-radius: 2px; }
+  @media print { .qm { display: none; } .rev { border: 0; padding: 0; margin: 0; } del.dd { display: none; } ins.di, .hl { background: none; outline: 0; color: inherit; } .missing { display: none; } }
+
+  /* ---------- A: Classic serif, single column ---------- */
+  .tA { font: 10.5pt/1.42 "Source Serif 4", Georgia, serif; padding: 14mm 15mm; }
+  .tA header { text-align: center; margin-bottom: 4mm; }
+  .tA h1 { font-size: 22pt; font-weight: 600; margin: 0 0 1mm; letter-spacing: .01em; }
+  .tA .contact { font-size: 9.5pt; color: #444; }
+  .tA .contact > span { display: inline-block; }
+  .tA .contact > span:not(:last-child)::after { content: "·"; margin: 0 .45em; color: #999; }
+  .tA h2 { font: 600 9pt/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #333; border-bottom: .6pt solid #999; padding-bottom: 1.5mm; margin: 5mm 0 2.5mm; }
+  .tA .item { margin-bottom: 3mm; }
+  .tA .ih { display: flex; justify-content: space-between; gap: 4mm; align-items: baseline; }
+  .tA .ih b { font-weight: 600; }
+  .tA .ih .d { font-size: 9.5pt; color: #555; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tA .org { font-style: italic; }
+  .tA .skills { margin: 0; }
+
+  /* ---------- B: Sans, label gutter ---------- */
+  .tB { font: 9.6pt/1.45 Inter, sans-serif; padding: 14mm 15mm; }
+  .tB header { margin-bottom: 6mm; border-bottom: 2pt solid #1b1b1b; padding-bottom: 4mm; }
+  .tB h1 { font-size: 24pt; font-weight: 700; margin: 0; letter-spacing: -.02em; line-height: 1.05; }
+  .tB .contact { display: flex; flex-wrap: wrap; gap: 1mm 5mm; margin-top: 2mm; font-size: 8.8pt; color: #444; }
+  .tB section { display: grid; grid-template-columns: 30mm 1fr; gap: 0 5mm; margin-bottom: 5mm; }
+  .tB h2 { font-size: 8pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #2f5bea; margin: .4mm 0 0; }
+  .tB .body > .item + .item { margin-top: 3.5mm; }
+  .tB .ih b { font-weight: 600; }
+  .tB .meta { color: #666; font-size: 8.8pt; }
+  .tB .skills { display: flex; flex-wrap: wrap; gap: 1.2mm 1.2mm; }
+  .tB .skills span { background: #eef1f6; border-radius: 1mm; padding: .3mm 1.8mm; font-size: 8.6pt; }
+  .frame-phone:not(.scaled) .tB { padding: 18px 16px; font-size: 13px; }
+  .frame-phone:not(.scaled) .tB section { grid-template-columns: 1fr; }
+  .frame-phone:not(.scaled) .tB h2 { margin-bottom: 6px; }
+
+  /* ---------- C: Sidebar ---------- */
+  .tC { font: 9.6pt/1.45 "IBM Plex Sans", sans-serif; display: grid; grid-template-columns: 62mm 1fr; }
+  .tC aside { background: #f1f3f6; padding: 14mm 6mm 14mm 10mm; }
+  .tC main { padding: 14mm 12mm 14mm 8mm; }
+  .tC h1 { font-size: 20pt; font-weight: 700; line-height: 1.1; margin: 0 0 4mm; }
+  .tC .contact div { margin: 1mm 0; font-size: 8.6pt; overflow-wrap: anywhere; }
+  .tC h2 { font-size: 8.4pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #2f5bea; margin: 6mm 0 2mm; }
+  .tC main h2:first-child { margin-top: 0; }
+  .tC .item { margin-bottom: 3.5mm; }
+  .tC .ih b { font-weight: 600; }
+  .tC .meta { color: #666; font-size: 8.6pt; }
+  .tC .skills { list-style: none; padding: 0; }
+  .frame-phone:not(.scaled) .tC { grid-template-columns: 1fr; font-size: 13px; }
+  .frame-phone:not(.scaled) .tC aside { padding: 18px 16px; }
+  .frame-phone:not(.scaled) .tC main { padding: 18px 16px; }
+
+  /* phone reflow for A */
+  .frame-phone:not(.scaled) .tA { padding: 18px 16px; font-size: 14px; }
+  .frame-phone:not(.scaled) .tA .ih { flex-direction: column; gap: 0; }
+</style>
+</head>
+<body>
+<div id="ctl"></div>
+<div id="stage"></div>
+<div id="bar"><button id="prev">←</button><span id="vlabel"></span><button id="next">→</button></div>
+<script>
+const VARIANTS = { A: 'Classic serif, one column', B: 'Sans, label gutter', C: 'Two-column sidebar' };
+const params = new URLSearchParams(location.search);
+const S = {
+  variant: params.get('variant') || 'A',
+  view: params.get('view') || 'phone',        // phone | scaled | a4
+  data: params.get('data') || 'normal',       // normal | long | uk | nulls
+  mode: params.get('mode') || 'preview',     // preview | pdf — pdf drops every editor hook from the markup
+  qm: true, review: false, hl: false,
+};
+const pdf = () => S.mode === 'pdf';
+
+// ---------- sample CVs (shape follows the CV document model) ----------
+const base = () => ({
+  contact: { name: 'Olena Kovalenko', email: 'olena.k@example.com', phone: '+380 67 123 4567', location: 'Lviv, Ukraine', links: ['https://github.com/olenak', 'https://linkedin.com/in/olena-kovalenko-backend'] },
+  summary: 'Backend engineer with 6 years of Node.js and PostgreSQL experience, focused on payment systems and high-load APIs. Targeting a Senior Backend Engineer role.',
+  experience: [
+    { id: 'e1', title: 'Backend Engineer', org: 'PayFlow', dates: '2021 – present', bullets: ['Built the payment authorisation service in NestJS and PostgreSQL', 'Cut p95 latency of the checkout API from 800 ms to 250 ms by moving reads to a replica', 'Mentored two junior engineers'] },
+    { id: 'e2', title: 'Freelance Node.js developer', org: null, dates: null, bullets: ['Delivered REST APIs for small e-commerce clients'] },
+    { id: 'e3', title: 'Junior Developer', org: 'SoftServe', dates: '2018 – 2020', bullets: ['Maintained internal reporting tools in Express'] },
+  ],
+  education: [{ id: 'ed1', degree: 'BSc Computer Science', school: 'Lviv Polytechnic', dates: null }],
+  skills: ['Node.js', 'TypeScript', 'NestJS', 'PostgreSQL', 'Redis', 'Docker', 'AWS', 'Kafka'],
+});
+const DATA = {
+  normal: base,
+  nulls: () => { const c = base(); c.contact.phone = null; c.contact.links = []; c.experience[0].dates = null; c.experience[2].org = null; c.experience[2].title = null; c.summary = null; return c; },
+  uk: () => { const c = base(); c.contact.name = 'Олена Коваленко-Шевчук'; c.contact.location = 'Львів, Україна'; c.experience[0].bullets[2] = 'Менторила двох молодших інженерів (текст з української анкети, залишено як є)'; c.education[0].school = 'Національний університет «Львівська політехніка»'; return c; },
+  long: () => {
+    const c = base();
+    const extra = ['Designed an idempotent webhook ingestion pipeline handling 2M events per day', 'Introduced contract tests between 6 services, removing a class of release regressions', 'Led the migration from callbacks to async/await across a 120k-line codebase', 'Ran weekly incident reviews and owned the on-call runbook'];
+    c.experience[0].bullets.push(...extra);
+    for (let i = 0; i < 5; i++) c.experience.push({ id: 'x' + i, title: ['Software Engineer', 'Full-stack Developer', 'Backend Developer', 'Intern', 'Technical Support Engineer'][i], org: ['Grammarly', 'EPAM Systems', 'Ajax Systems', 'Lohika', 'Kyivstar'][i], dates: `${2017 - i} – ${2018 - i}`, bullets: extra.slice(0, 2 + (i % 3)).map(b => b.replace(/\d+/, n => n * (i + 2))) });
+    c.education.push({ id: 'ed2', degree: 'MSc Software Engineering, thesis on distributed consensus in partially synchronous networks', school: 'Ukrainian Catholic University', dates: '2020 – 2022' });
+    c.skills.push('GraphQL', 'gRPC', 'Terraform', 'Kubernetes', 'RabbitMQ', 'Prometheus', 'Grafana', 'OpenTelemetry', 'Jest', 'Vitest', 'Playwright', 'Elasticsearch');
+    return c;
+  },
+};
+const QUESTIONS = { e1: 1, e2: 2, ed1: 1, skills: 1 }; // open Question count per anchor
+const REVIEW = { e1: { i: 1, prev: 'Cut p95 latency of the checkout API by moving reads to a replica' } };
+
+// ---------- helpers ----------
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeHref = u => /^https?:\/\//i.test(u) ? esc(u) : null;
+const linkText = u => esc(u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''));
+const qm = id => !pdf() && S.qm && QUESTIONS[id] ? `<span class="qm">?${QUESTIONS[id]}</span>` : '';
+const miss = (v, label) => v ? esc(v) : pdf() ? '' : `<span class="missing">${label}</span>`;
+const hlCls = id => !pdf() && S.hl && id === 'e2' ? ' hl' : '';
+function wordDiff(a, b) {
+  const A = a.split(' '), B = b.split(' '); let i = 0; while (A[i] === B[i]) i++;
+  let j = 0; while (j < A.length - i && A[A.length - 1 - j] === B[B.length - 1 - j]) j++;
+  const head = B.slice(0, i).join(' '), tail = B.slice(B.length - j).join(' ');
+  return `${esc(head)} <del class="dd">${esc(A.slice(i, A.length - j).join(' '))}</del> <ins class="di">${esc(B.slice(i, B.length - j).join(' '))}</ins> ${esc(tail)}`;
+}
+const bullets = e => `<ul>${e.bullets.map((b, i) => {
+  const r = !pdf() && S.review && REVIEW[e.id]?.i === i;
+  return `<li${r ? ' class="rev"' : ''}>${r ? wordDiff(REVIEW[e.id].prev, b) : esc(b)}</li>`;
+}).join('')}</ul>`;
+const contactParts = c => [c.email && `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`, c.phone && esc(c.phone), c.location && esc(c.location),
+  ...c.links.map(l => safeHref(l) ? `<a href="${safeHref(l)}">${linkText(l)}</a>` : esc(l))].filter(Boolean);
+const dates = d => miss(d, 'dates?');
+const metaLine = (org, d) => [miss(org, 'organisation?'), dates(d)].filter(Boolean).join(' · ');
+
+// ---------- the three templates ----------
+const T = {
+  A: c => `<div class="tA">
+    <header><h1>${esc(c.contact.name)}</h1><div class="contact">${contactParts(c.contact).map(p => `<span>${p}</span>`).join('')}</div></header>
+    ${c.summary ? `<h2>Summary</h2><p style="margin:0">${esc(c.summary)}</p>` : ''}
+    <h2>Experience</h2>
+    ${c.experience.map(e => `<div class="item${hlCls(e.id)}">
+      <div class="ih"><span><b>${miss(e.title, 'title?')}</b>${e.org ? `, <span class="org">${esc(e.org)}</span>` : ' ' + miss(null, 'organisation?')}${qm(e.id)}</span><span class="d">${dates(e.dates)}</span></div>
+      ${bullets(e)}</div>`).join('')}
+    <h2>Education</h2>
+    ${c.education.map(e => `<div class="item"><div class="ih"><span><b>${esc(e.degree)}</b>, <span class="org">${esc(e.school)}</span>${qm(e.id)}</span><span class="d">${dates(e.dates)}</span></div></div>`).join('')}
+    <h2>Skills${qm('skills')}</h2><p class="skills">${c.skills.map(esc).join(' · ')}</p>
+  </div>`,
+
+  B: c => `<div class="tB">
+    <header><h1>${esc(c.contact.name)}</h1><div class="contact">${contactParts(c.contact).map(p => `<span>${p}</span>`).join('')}</div></header>
+    ${c.summary ? `<section><h2>Profile</h2><div class="body">${esc(c.summary)}</div></section>` : ''}
+    <section><h2>Experience</h2><div class="body">
+      ${c.experience.map(e => `<div class="item${hlCls(e.id)}"><div class="ih"><b>${miss(e.title, 'title?')}</b>${qm(e.id)}</div><div class="meta">${metaLine(e.org, e.dates)}</div>${bullets(e)}</div>`).join('')}
+    </div></section>
+    <section><h2>Education</h2><div class="body">
+      ${c.education.map(e => `<div class="item"><div class="ih"><b>${esc(e.degree)}</b>${qm(e.id)}</div><div class="meta">${metaLine(e.school, e.dates)}</div></div>`).join('')}
+    </div></section>
+    <section><h2>Skills${qm('skills')}</h2><div class="body skills">${c.skills.map(s => `<span>${esc(s)}</span>`).join('')}</div></section>
+  </div>`,
+
+  C: c => `<div class="tC">
+    <aside>
+      <h1>${esc(c.contact.name)}</h1>
+      <div class="contact">${contactParts(c.contact).map(p => `<div>${p}</div>`).join('')}</div>
+      <h2>Skills${qm('skills')}</h2><ul class="skills">${c.skills.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
+      <h2>Education</h2>
+      ${c.education.map(e => `<div class="item"><b>${esc(e.degree)}</b>${qm(e.id)}<div class="meta">${metaLine(e.school, e.dates)}</div></div>`).join('')}
+    </aside>
+    <main>
+      ${c.summary ? `<h2>Profile</h2><p style="margin:0 0 2mm">${esc(c.summary)}</p>` : ''}
+      <h2>Experience</h2>
+      ${c.experience.map(e => `<div class="item${hlCls(e.id)}"><div class="ih"><b>${miss(e.title, 'title?')}</b>${qm(e.id)}</div><div class="meta">${metaLine(e.org, e.dates)}</div>${bullets(e)}</div>`).join('')}
+    </main>
+  </div>`,
+};
+
+// ---------- render ----------
+function render() {
+  const cv = DATA[S.data]();
+  const paper = `<div class="paper">${T[S.variant](cv)}</div>`;
+  const stage = document.getElementById('stage');
+  if (S.view === 'a4') stage.innerHTML = `<div class="frame-a4">${paper}</div>`;
+  else if (S.view === 'scaled') stage.innerHTML = `<div class="frame-phone scaled"><div class="scaler">${paper}</div></div>`;
+  else stage.innerHTML = `<div class="frame-phone">${paper}</div>`;
+  if (S.view === 'scaled') { // shrink an A4-wide sheet to the phone width, keep the layout
+    const p = stage.querySelector('.paper'), w = stage.querySelector('.scaler').clientWidth, k = w / p.offsetWidth;
+    p.style.transform = `scale(${k})`; stage.querySelector('.scaler').style.height = p.offsetHeight * k + 'px';
+  }
+  document.getElementById('vlabel').textContent = `${S.variant} (${VARIANTS[S.variant]})`;
+  const u = new URL(location); for (const k of ['variant', 'view', 'data']) u.searchParams.set(k, S[k]); history.replaceState(null, '', u);
+  renderCtl();
+}
+function renderCtl() {
+  const sel = (k, opts) => `<select data-k="${k}">${Object.entries(opts).map(([v, l]) => `<option value="${v}"${S[k] === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+  const chk = (k, l) => `<label><input type="checkbox" data-c="${k}"${S[k] ? ' checked' : ''}>${l}</label>`;
+  document.getElementById('ctl').innerHTML = `
+    <label>View ${sel('view', { phone: 'Phone 375 · reflow', scaled: 'Phone 375 · scaled A4', a4: 'A4 sheet' })}</label>
+    <label>Data ${sel('data', { normal: 'Normal (1 page)', long: 'Long (2 pages)', uk: 'Cyrillic', nulls: 'Nulls / unknowns' })}</label>
+    ${chk('qm', '?n markers')} ${chk('review', 'Review diff')} ${chk('hl', '📍 highlight')}
+    <button id="print">Print → PDF</button>`;
+  document.querySelectorAll('#ctl select').forEach(s => s.onchange = () => { S[s.dataset.k] = s.value; render(); });
+  document.querySelectorAll('#ctl input').forEach(i => i.onchange = () => { S[i.dataset.c] = i.checked; render(); });
+  document.getElementById('print').onclick = () => window.print();
+}
+// the button prints the pdf-mode markup, like the server does
+addEventListener('beforeprint', () => { S.prev = S.mode; S.mode = 'pdf'; render(); });
+addEventListener('afterprint', () => { S.mode = S.prev; render(); });
+function _noop() {
+}
+const keys = Object.keys(VARIANTS);
+const step = d => { S.variant = keys[(keys.indexOf(S.variant) + d + keys.length) % keys.length]; render(); };
+document.getElementById('prev').onclick = () => step(-1);
+document.getElementById('next').onclick = () => step(1);
+addEventListener('keydown', e => { if (e.target.closest('input,select,textarea,[contenteditable]')) return; if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1); });
+document.fonts.ready.then(render);
+render();
+</script>
+</body>
+</html>
