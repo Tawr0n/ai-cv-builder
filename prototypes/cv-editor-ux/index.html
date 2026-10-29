@@ -79,6 +79,12 @@
   .paper .pen { font: 12px -apple-system, system-ui, sans-serif; letter-spacing: 0; text-transform: none; color: var(--accent); border: 0; background: none; padding: 0 4px; min-height: 0; }
   .hl { background: #fff1b8; outline: 2px solid var(--warn-line); border-radius: 3px; }
   .qmark { display: inline-block; font: 600 10px -apple-system, system-ui, sans-serif; color: var(--warn-ink); background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 99px; padding: 0 5px; margin-left: 4px; cursor: pointer; }
+  .loader { position: sticky; top: 70px; z-index: 3; margin: 12px; background: var(--card); border: 1px solid #b9cbff; border-radius: 12px; padding: 14px; display: flex; gap: 12px; align-items: center; box-shadow: 0 4px 14px rgba(47,91,234,.15); }
+  .spin { width: 26px; height: 26px; border: 3px solid var(--pending-bg); border-top-color: var(--accent); border-radius: 50%; animation: spin .9s linear infinite; flex: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .paper.busy { opacity: .6; }
+  .flash { animation: flash 2.5s ease-out; }
+  @keyframes flash { 0%, 40% { background: #d9f2e3; } 100% { background: transparent; } }
   .bnav { position: fixed; bottom: 64px; left: 50%; transform: translateX(-50%); width: min(420px,100%); background: var(--card); border-top: 1px solid var(--line); display: flex; z-index: 6; }
   .bnav button { flex: 1; border: 0; border-radius: 0; padding: 10px 0; font-size: 13px; }
   .bnav button.on { color: var(--accent); font-weight: 600; }
@@ -169,6 +175,7 @@ function startAnswerRun() {
   const pend = S.questions.filter(q => q.status === 'pending');
   const scope = [...new Set(pend.map(q => q.anchor.item || q.anchor.section))].filter(id => !itemById(id)?.edited);
   S.generation = { kind: 'answer', status: 'running', step: 'compose', scope };
+  if (variant === 'C') { S.ui.cTab = 'preview'; S.ui.hl = null; window.scrollTo(0, 0); } // show the CV being updated
   render();
   setTimeout(() => { if (S.generation) { S.generation.step = 'judge'; render(); } }, 1500);
   setTimeout(() => {
@@ -357,9 +364,10 @@ function variantB() {
 // ---------- Variant C: paper preview + questions inbox ----------
 function cMark(id) { const qs = qFor(id); return qs.length ? `<span class="qmark" onclick="S.ui.cTab='questions';render()">?${qs.length}</span>` : ''; }
 function cPaper() {
-  const c = S.cv, hl = S.ui.hl, h = id => (hl === id ? 'hl' : '') + (inScope(id) ? ' shimmer' : '');
+  const c = S.cv, hl = S.ui.hl, flash = S.generation?.status === 'succeeded' ? S.generation.scope : [];
+  const h = id => (hl === id ? 'hl' : '') + (inScope(id) ? ' shimmer' : '') + (flash.includes(id) ? ' flash' : '');
   const pen = sec => `<button class="pen" onclick="cGoEdit('${sec}')">✎ Edit</button>`;
-  return `<div class="paper">
+  return `${cLoader()}<div class="paper ${running() && S.generation.kind === 'answer' ? 'busy' : ''}">
     <div class="${h('contact')}"><div class="row"><div class="grow" style="font-size:20px;font-weight:600">${esc(c.contact.name)}</div>${pen('contact')}</div><div style="font-size:11px">${esc(c.contact.email)} · ${esc(c.contact.phone)} · ${esc(c.contact.location)} · ${esc(c.contact.links)}</div></div>
     <h3>Summary ${pen('summary')}</h3><div class="${h('summary')}">${esc(c.summary.text)}</div>
     <h3>Experience ${pen('experience')}</h3>${c.experience.map(e => `<div class="${h(e.id)}" style="margin-bottom:8px"><b>${esc(e.title)}</b>${e.org ? ', ' + esc(e.org) : ''} ${cMark(e.id)}<div style="font-size:11px;color:#666">${esc(e.dates || '')}</div><ul class="b">${e.bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}
@@ -367,6 +375,13 @@ function cPaper() {
     <h3>Skills ${pen('skills')}</h3><div class="${h('skills')}">${esc(c.skills.list)} ${cMark('skills')}</div>
     <p style="font:11px -apple-system,sans-serif;color:#999;margin-top:14px">This is exactly what the PDF will look like.</p>
   </div>`;
+}
+// Loader over the preview while an answer Generation runs; text follows the real step.
+function cLoader() {
+  const g = S.generation;
+  if (!g || g.kind !== 'answer' || !running()) return '';
+  const text = g.step === 'judge' ? 'Double-checking every line against your answers…' : 'Working our magic on your CV…';
+  return `<div class="loader"><div class="spin"></div><div><b>${text}</b><div class="muted">Updating ${g.scope.length} part${g.scope.length === 1 ? '' : 's'}. Safe to leave or reload; you can keep editing other parts.</div></div></div>`;
 }
 function cEdit(sec) { S.ui.cEdit = sec; const items = sec === 'experience' || sec === 'education' ? S.cv[sec] : [S.cv[sec]]; S.ui.cDraft = JSON.parse(JSON.stringify(items)); render(); }
 function cEditScreen() {
@@ -418,7 +433,7 @@ function cGoEdit(sec) { S.ui.cTab = 'edit'; render(); document.getElementById('e
 function variantC() {
   const t = S.ui.cTab, n = openCount();
   const tab = (key, label) => `<button class="${t === key ? 'on' : ''}" onclick="S.ui.cTab='${key}';S.ui.hl=null;window.scrollTo(0,0);render()">${label}</button>`;
-  return `${topBar('Senior Backend Engineer', 'Ready', downloadBtn())}${runBanner()}
+  return `${topBar('Senior Backend Engineer', 'Ready', downloadBtn())}${t === 'preview' && running() ? '' : runBanner()}
   ${t === 'preview' ? cPaper() : t === 'edit' ? cEditTab() : cInbox()}
   <nav class="bnav">${tab('preview', '📄 CV')}${tab('edit', '✎ Edit')}${tab('questions', `❓ Questions${n ? ` (${n})` : ''}`)}</nav>`;
 }
