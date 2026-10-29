@@ -369,6 +369,36 @@ describe('Generation pipeline (job handler, scripted model)', () => {
       return questionListSchema.parse(response.body).items;
     }
 
+    it("reads a bullet Question that names the field 'bullets' as about that bullet's text", async () => {
+      const { agent, cvId, generationId } = await givenQueuedGeneration();
+      const output = composeOutput();
+      output.questions = [
+        {
+          section: 'experience',
+          itemIndex: 0,
+          bulletIndex: 0,
+          field: 'bullets',
+          text: 'How many customers did the billing service serve?',
+        },
+      ];
+      testApp.cvAi
+        .returns('extract', extractOutput())
+        .returns('compose', output)
+        .returns('judge', noFindings());
+
+      await run(generationId);
+
+      const content = cvViewSchema.parse(
+        (await agent.get(`/api/cvs/${cvId}`).expect(200)).body,
+      ).content!;
+      const bullet = content.experience[0]!.bullets[0]!;
+      expect(await questionsOf(agent, cvId)).toMatchObject([
+        {
+          anchor: { section: 'experience', itemId: bullet.id, field: 'text' },
+        },
+      ]);
+    });
+
     it("anchors compose's Questions to the items they are about, in its order", async () => {
       const { agent, cvId, generationId } = await givenQueuedGeneration();
       const output = composeOutput();

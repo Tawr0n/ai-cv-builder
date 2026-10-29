@@ -94,8 +94,16 @@ export function anchorComposeQuestions(
         (section === 'experience'
           ? content.experience[itemIndex]?.bullets[bulletIndex]
           : undefined) ?? fail('names a bullet that does not exist');
-      fieldOf(['text'], 'bullets');
-      return { anchor: { section, itemId: bullet.id, field }, text };
+      // A bullet has one field, its text. `bullets` (the Experience field it
+      // lives in) is what a model naturally writes next to a bulletIndex.
+      const bulletField = field === 'bullets' ? 'text' : field;
+      if (bulletField !== null && bulletField !== 'text') {
+        fail('names a field bullets do not have');
+      }
+      return {
+        anchor: { section, itemId: bullet.id, field: bulletField },
+        text,
+      };
     }
     fieldOf(ANCHOR_FIELDS[section], section);
     return { anchor: { section, itemId: item.id, field }, text };
