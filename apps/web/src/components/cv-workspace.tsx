@@ -20,7 +20,7 @@ import {
 import { cardId, CvEditor } from '@/components/cv-editor';
 import { PagedCvPreview } from '@/components/paged-cv-preview';
 import { QuestionsInbox, type UpdateCv } from '@/components/questions-inbox';
-import { anchorElementIds } from '@/lib/anchors';
+import { anchorElementIds, reviewedItems } from '@/lib/anchors';
 import {
   isFinished,
   reviewDecisionMutation,
