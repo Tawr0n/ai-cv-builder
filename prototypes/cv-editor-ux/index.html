@@ -358,7 +358,7 @@ function variantB() {
 function cMark(id) { const qs = qFor(id); return qs.length ? `<span class="qmark" onclick="S.ui.cTab='questions';render()">?${qs.length}</span>` : ''; }
 function cPaper() {
   const c = S.cv, hl = S.ui.hl, h = id => (hl === id ? 'hl' : '') + (inScope(id) ? ' shimmer' : '');
-  const pen = sec => `<button class="pen" onclick="cEdit('${sec}')">✎ Edit</button>`;
+  const pen = sec => `<button class="pen" onclick="cGoEdit('${sec}')">✎ Edit</button>`;
   return `<div class="paper">
     <div class="${h('contact')}"><div class="row"><div class="grow" style="font-size:20px;font-weight:600">${esc(c.contact.name)}</div>${pen('contact')}</div><div style="font-size:11px">${esc(c.contact.email)} · ${esc(c.contact.phone)} · ${esc(c.contact.location)} · ${esc(c.contact.links)}</div></div>
     <h3>Summary ${pen('summary')}</h3><div class="${h('summary')}">${esc(c.summary.text)}</div>
@@ -396,12 +396,31 @@ function cInbox() {
     <div style="margin-top:12px">${updateBtn()}</div>
   </div>`;
 }
+// Edit tab: every field of the CV as a form, autosaved per item (one item operation with its rev).
+function cEditItem(it, sec) {
+  const qs = qFor(it.id);
+  return `<div class="card ${inScope(it.id) ? 'shimmer' : ''}" id="edit-${it.id}">
+    ${fieldsFor(it, sec).map(f => inputFor(it, f, `aField('${it.id}','${f}',this.value)`)).join('')}
+    <div class="row" style="margin-top:8px">${qs.length ? `<button class="link" style="padding:0" onclick="S.ui.cTab='questions';render()"><span class="chip warn">❓ ${qs.length} question${qs.length > 1 ? 's' : ''}</span></button>` : ''}${it.edited ? '<span class="edited">✎ edited by you</span>' : ''}<span class="grow"></span>${saveLabel(it.id)}</div></div>`;
+}
+function cEditTab() {
+  const c = S.cv;
+  return `<div class="pad">
+    <p class="muted">Changes save automatically. Items you edit are never overwritten by the AI.</p>
+    <h2 class="sec" id="edit-sec-contact">Contact</h2>${cEditItem(c.contact, 'contact')}
+    <h2 class="sec" id="edit-sec-summary">Summary</h2>${cEditItem(c.summary, 'summary')}
+    <h2 class="sec" id="edit-sec-experience">Experience</h2>${c.experience.map(e => cEditItem(e, 'experience')).join('')}
+    <h2 class="sec" id="edit-sec-education">Education</h2>${c.education.map(e => cEditItem(e, 'education')).join('')}
+    <h2 class="sec" id="edit-sec-skills">Skills</h2>${cEditItem(c.skills, 'skills')}
+  </div>`;
+}
+function cGoEdit(sec) { S.ui.cTab = 'edit'; render(); document.getElementById('edit-sec-' + sec)?.scrollIntoView(); window.scrollBy(0, -70); }
 function variantC() {
-  if (S.ui.cEdit) return cEditScreen();
   const t = S.ui.cTab, n = openCount();
-  return `${topBar('Senior Backend Engineer', 'Ready')}${runBanner()}
-  ${t === 'preview' ? cPaper() : cInbox()}
-  <nav class="bnav"><button class="${t === 'preview' ? 'on' : ''}" onclick="S.ui.cTab='preview';S.ui.hl=null;render()">📄 CV</button><button class="${t === 'questions' ? 'on' : ''}" onclick="S.ui.cTab='questions';render()">❓ Questions${n ? ` (${n})` : ''}</button><button onclick="alert('GET /api/cvs/:id/pdf → A4 PDF download')">⬇ Download</button></nav>`;
+  const tab = (key, label) => `<button class="${t === key ? 'on' : ''}" onclick="S.ui.cTab='${key}';S.ui.hl=null;window.scrollTo(0,0);render()">${label}</button>`;
+  return `${topBar('Senior Backend Engineer', 'Ready', downloadBtn())}${runBanner()}
+  ${t === 'preview' ? cPaper() : t === 'edit' ? cEditTab() : cInbox()}
+  <nav class="bnav">${tab('preview', '📄 CV')}${tab('edit', '✎ Edit')}${tab('questions', `❓ Questions${n ? ` (${n})` : ''}`)}</nav>`;
 }
 
 // ---------- prototype chrome ----------
