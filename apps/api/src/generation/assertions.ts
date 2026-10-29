@@ -1,19 +1,19 @@
 import type { CvContent, CvField, CvSection } from '@ai-cv-builder/shared';
-import type { Claim } from '../ai/cv-ai.js';
+import type { Assertion } from '../ai/cv-ai.js';
 
-/** What a Claim's field holds before it is cut down to a string. */
+/** What an Assertion's field holds before it is cut down to a string. */
 type FieldValue = string | null | string[];
 
 const has = (value: FieldValue): value is string | string[] =>
   Array.isArray(value) ? value.length > 0 : value !== null && value !== '';
 
 /**
- * Every statement the CV content makes, one Claim per non-empty field, so the
+ * Every statement the CV content makes, one Assertion per non-empty field, so the
  * judge can check each against the Facts its item cites. Contact and summary
- * use their reserved ids; links are one Claim, joined.
+ * use their reserved ids; links are one Assertion, joined.
  */
-export function listClaims(content: CvContent): Claim[] {
-  const claims: Claim[] = [];
+export function listAssertions(content: CvContent): Assertion[] {
+  const assertions: Assertion[] = [];
   const add = (
     itemId: string,
     section: CvSection,
@@ -25,7 +25,7 @@ export function listClaims(content: CvContent): Claim[] {
       FieldValue,
     ][]) {
       if (!has(value)) continue;
-      claims.push({
+      assertions.push({
         itemId,
         section,
         field,
@@ -68,5 +68,5 @@ export function listClaims(content: CvContent): Claim[] {
   for (const skill of content.skills) {
     add(skill.id, 'skills', skill.sourceFactIds, { name: skill.name });
   }
-  return claims;
+  return assertions;
 }

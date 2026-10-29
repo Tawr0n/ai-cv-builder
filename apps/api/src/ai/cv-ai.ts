@@ -131,7 +131,7 @@ export type ComposeOutput = z.infer<typeof composeOutputSchema>;
  * One statement in CV content the judge checks: one field of one item, with
  * the Facts the item cites. `itemId` is the item's id, or `contact` / `summary`.
  */
-export interface Claim {
+export interface Assertion {
   itemId: string;
   section: CvSection;
   field: CvField;
@@ -139,7 +139,7 @@ export interface Claim {
   sourceFactIds: string[];
 }
 
-/** What the judge returns: only the Claims its cited Facts do not support. */
+/** What the judge returns: only the Assertions its cited Facts do not support. */
 export const judgeOutputSchema = z.object({
   findings: z.array(
     z.object({
@@ -147,12 +147,12 @@ export const judgeOutputSchema = z.object({
       field: z.enum(CV_FIELDS),
       problem: z
         .string()
-        .describe('What the claim says that its cited facts do not'),
+        .describe('What the assertion says that its cited facts do not'),
       softened: z
         .string()
         .nullable()
         .describe(
-          'The claim cut back to exactly what the cited facts state; null when nothing of it is supported',
+          'The assertion cut back to exactly what the cited facts state; null when nothing of it is supported',
         ),
       question: questionText.describe(
         'A question that would get the missing fact from the person, in the language of the quotes of the facts',
@@ -165,7 +165,7 @@ export type JudgeFinding = z.infer<
   typeof judgeOutputSchema
 >['findings'][number];
 
-/** What repair returns: a replacement for each flagged Claim. */
+/** What repair returns: a replacement for each flagged Assertion. */
 export const repairOutputSchema = z.object({
   fixes: z.array(
     z.object({
@@ -199,17 +199,17 @@ export interface CvAiSteps {
     input: { facts: Fact[]; targetRole: string } & Abortable;
     output: ComposeOutput;
   };
-  /** Judge audits each Claim against the Facts it cites. */
+  /** Judge audits each Assertion against the Facts it cites. */
   judge: {
-    input: { facts: Fact[]; claims: Claim[] } & Abortable;
+    input: { facts: Fact[]; assertions: Assertion[] } & Abortable;
     output: z.infer<typeof judgeOutputSchema>;
   };
-  /** Repair rewrites only the Claims the judge flagged. */
+  /** Repair rewrites only the Assertions the judge flagged. */
   repair: {
     input: {
       facts: Fact[];
       targetRole: string;
-      flagged: { claim: Claim; problem: string }[];
+      flagged: { assertion: Assertion; problem: string }[];
     } & Abortable;
     output: z.infer<typeof repairOutputSchema>;
   };

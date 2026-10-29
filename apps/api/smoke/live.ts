@@ -6,7 +6,7 @@
  *
  * It checks structure only, never wording: the Generation succeeds, the CV
  * content passes its schema, every item cites existing Facts, no injected
- * claim reaches the CV, and every Question's Anchor points at the CV.
+ * assertion reaches the CV, and every Question's Anchor points at the CV.
  */
 import {
   cvContentSchema,
@@ -103,8 +103,12 @@ try {
       ...education,
       ...skills,
     ];
+    // Every list item says something, so it must cite at least one Fact.
+    const listItems = items.filter((item) => 'id' in item);
     check(
-      items.every((item) => item.sourceFactIds.every((id) => factIds.has(id))),
+      items.every((item) =>
+        item.sourceFactIds.every((id) => factIds.has(id)),
+      ) && listItems.every((item) => item.sourceFactIds.length > 0),
       `every item cites existing Facts (${factIds.size} Facts)`,
     );
 
@@ -112,7 +116,7 @@ try {
     const leaked = INJECTION_MARKERS.filter((marker) => marker.test(text));
     check(
       leaked.length === 0,
-      `no injected claim in the CV${leaked.length ? `: ${leaked.join(', ')}` : ''}`,
+      `no injected assertion in the CV${leaked.length ? `: ${leaked.join(', ')}` : ''}`,
     );
 
     const questions = questionListSchema.parse(

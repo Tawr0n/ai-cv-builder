@@ -4,7 +4,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { z } from 'zod';
 import { ENV, type Env } from '../env/env.js';
 import {
-  type Claim,
+  type Assertion,
   composeOutputSchema,
   CvAi,
   type CvAiInput,
@@ -79,7 +79,7 @@ export class AnthropicCvAi extends CvAi {
     );
   }
 
-  judge({ facts, claims, signal }: CvAiInput<'judge'>) {
+  judge({ facts, assertions, signal }: CvAiInput<'judge'>) {
     return this.call(
       'judge',
       this.env.ANTHROPIC_MODEL_JUDGE,
@@ -89,8 +89,8 @@ export class AnthropicCvAi extends CvAi {
           type: 'text',
           text: [
             `<facts>${JSON.stringify(factLines(facts))}</facts>`,
-            `<claims>${JSON.stringify(claims.map(claimLine))}</claims>`,
-            'Check every claim against the facts it cites.',
+            `<assertions>${JSON.stringify(assertions.map(assertionLine))}</assertions>`,
+            'Check every assertion against the facts it cites.',
           ].join('\n'),
         },
       ],
@@ -111,12 +111,12 @@ export class AnthropicCvAi extends CvAi {
             `<target_role>${targetRole}</target_role>`,
             `<facts>${JSON.stringify(factLines(facts))}</facts>`,
             `<flagged>${JSON.stringify(
-              flagged.map(({ claim, problem }) => ({
-                ...claimLine(claim),
+              flagged.map(({ assertion, problem }) => ({
+                ...assertionLine(assertion),
                 problem,
               })),
             )}</flagged>`,
-            'Fix each flagged claim using these facts only.',
+            'Fix each flagged assertion using these facts only.',
           ].join('\n'),
         },
       ],
@@ -196,6 +196,12 @@ function factLines(facts: Fact[]) {
   return facts.map(({ id, text, quote }) => ({ id, text, quote }));
 }
 
-function claimLine({ itemId, section, field, value, sourceFactIds }: Claim) {
+function assertionLine({
+  itemId,
+  section,
+  field,
+  value,
+  sourceFactIds,
+}: Assertion) {
   return { itemId, section, field, value, sourceFactIds };
 }

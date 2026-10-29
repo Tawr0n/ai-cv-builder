@@ -6,7 +6,7 @@ import type {
 import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
-  type Claim,
+  type Assertion,
   CvAi,
   type Fact,
   factSchema,
@@ -16,19 +16,20 @@ import { PrismaService } from '../database/prisma.service.js';
 import { type GenerationStatus, Prisma } from '../generated/prisma/client.js';
 import { SourceStorage } from '../source/source-storage.js';
 import { classifyFailure, UnreadableSourceError } from './classify-failure.js';
-import { listClaims } from './claims.js';
-import {
-  anchorComposeQuestions,
-  checkComposeOutput,
-  missingInfoQuestions,
-  reanchor,
-} from './compose-check.js';
+import { listAssertions } from './assertions.js';
+import { checkComposeOutput } from './compose-check.js';
 import {
   applyRepair,
   checkJudgeOutput,
-  type DraftQuestion,
+  sameAssertion,
   soften,
 } from './judge-check.js';
+import {
+  anchorComposeQuestions,
+  type DraftQuestion,
+  missingInfoQuestions,
+  reanchor,
+} from './questions.js';
 import { ACTIVE_GENERATION_STATUSES } from './generations.service.js';
 
 const ACTIVE: readonly GenerationStatus[] = ACTIVE_GENERATION_STATUSES;
@@ -54,12 +55,12 @@ export class GenerationRunner {
    * rejects with a transient error so pg-boss retries the job.
    */
   async run(generationId: string, signal?: AbortSignal): Promise<void> {
-    const claimed = await this.claim(generationId);
-    if (!claimed) {
+    const assertioned = await this.assertion(generationId);
+    if (!assertioned) {
       this.logger.log({ msg: 'nothing to run', generationId });
       return;
     }
-    const { cv } = claimed;
+    const { cv } = assertioned;
 
     let step: GenerationStep = 'extract';
     try {
@@ -121,7 +122,7 @@ export class GenerationRunner {
   }
 
   /** Marks a queued or running Generation as running; `null` if it is finished or gone (CV deleted). */
-  private async claim(generationId: string) {
+  private async assertion(generationId: string) {
     const generation = await this.prisma.generation.findUnique({
       where: { id: generationId },
       include: { cv: true },
@@ -178,7 +179,7 @@ export class GenerationRunner {
   }
 
   /**
-   * The judge checks every Claim; one repair call rewrites the flagged ones;
+   * The judge checks every Assertion; one repair call rewrites the flagged ones;
    * the judge checks only those again, and whatever it still flags is softened
    * into a Question. Each call is retried once on a structural failure.
    */
@@ -188,15 +189,15 @@ export class GenerationRunner {
     content: CvContent,
     signal?: AbortSignal,
   ): Promise<{ content: CvContent; questions: DraftQuestion[] }> {
-    const judge = (claims: Claim[]) =>
+    const judge = (assertions: Assertion[]) =>
       retryOnceIfInvalid(async () =>
         checkJudgeOutput(
-          await this.cvAi.judge({ facts, claims, signal }),
-          claims,
+          await this.cvAi.judge({ facts, assertions, signal }),
+          assertions,
         ),
       );
 
-    const findings = await judge(listClaims(content));
+    const findings = await judge(listAssertions(content));
     if (findings.length === 0) return { content, questions: [] };
 
     const repaired = await retryOnceIfInvalid(async () =>
@@ -206,17 +207,18 @@ export class GenerationRunner {
         await this.cvAi.repair({
           facts,
           targetRole,
-          flagged: findings.map(({ claim, problem }) => ({ claim, problem })),
+          flagged: findings.map(({ assertion, problem }) => ({
+            assertion,
+            problem,
+          })),
           signal,
         }),
         facts,
       ),
     );
 
-    const flagged = listClaims(repaired).filter((claim) =>
-      findings.some(
-        (f) => f.claim.itemId === claim.itemId && f.claim.field === claim.field,
-      ),
+    const flagged = listAssertions(repaired).filter((assertion) =>
+      findings.some((finding) => sameAssertion(finding.assertion, assertion)),
     );
     const surviving = flagged.length > 0 ? await judge(flagged) : [];
     return soften(repaired, surviving);

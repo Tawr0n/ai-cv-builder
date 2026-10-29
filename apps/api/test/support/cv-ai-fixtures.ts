@@ -64,7 +64,7 @@ export function composeOutput(): ComposeOutput {
   };
 }
 
-/** A judge that finds every Claim supported. */
+/** A judge that finds every Assertion supported. */
 export function noFindings(): CvAiOutput<'judge'> {
   return { findings: [] };
 }

@@ -19,7 +19,7 @@ const fix = (value: string): CvAiOutput<'repair'> => ({
 });
 const judgeInput = (value: string): CvAiInput<'judge'> => ({
   facts: sampleFacts(),
-  claims: [
+  assertions: [
     {
       itemId: 'summary',
       section: 'summary',
@@ -65,7 +65,7 @@ describe('ScriptedCvAi', () => {
 
   it('runs a scripted function with the call input', async () => {
     const cvAi = new ScriptedCvAi().runs('judge', (input) =>
-      Promise.resolve(verdict(`judged ${input.claims[0]?.value}`)),
+      Promise.resolve(verdict(`judged ${input.assertions[0]?.value}`)),
     );
 
     await expect(cvAi.judge(judgeInput('draft'))).resolves.toEqual(

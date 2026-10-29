@@ -93,7 +93,7 @@ describe('Generation pipeline (job handler, scripted model)', () => {
     ]);
     const [judged] = testApp.cvAi.calls.judge;
     expect(judged?.facts).toEqual(sampleFacts());
-    expect(judged?.claims).toEqual(
+    expect(judged?.assertions).toEqual(
       expect.arrayContaining([
         {
           itemId: 'summary',
@@ -178,7 +178,7 @@ describe('Generation pipeline (job handler, scripted model)', () => {
       return questionListSchema.parse(response.body).items;
     }
 
-    it('repairs only the flagged Claims, in exactly one call, and keeps the fix', async () => {
+    it('repairs only the flagged Assertions, in exactly one call, and keeps the fix', async () => {
       const { agent, cvId, generationId } = await givenQueuedGeneration();
       testApp.cvAi
         .returns('extract', extractOutput())
@@ -202,13 +202,13 @@ describe('Generation pipeline (job handler, scripted model)', () => {
         targetRole: 'Senior Backend Engineer',
         flagged: [
           {
-            claim: { itemId: 'summary', field: 'text', value: INVENTED },
+            assertion: { itemId: 'summary', field: 'text', value: INVENTED },
             problem: 'No fact says the person led a team',
           },
         ],
       });
       // The second judge sees only what repair changed.
-      expect(testApp.cvAi.calls.judge[1]?.claims).toEqual([
+      expect(testApp.cvAi.calls.judge[1]?.assertions).toEqual([
         expect.objectContaining({ itemId: 'summary', value: SUPPORTED }),
       ]);
       const view = cvViewSchema.parse(
@@ -219,7 +219,7 @@ describe('Generation pipeline (job handler, scripted model)', () => {
       expect(await questionsOf(agent, cvId)).toEqual([]);
     });
 
-    it('softens a Claim still unsupported after repair and asks a Question about it', async () => {
+    it('softens an Assertion still unsupported after repair and asks a Question about it', async () => {
       const { agent, cvId, generationId } = await givenQueuedGeneration();
       testApp.cvAi
         .returns('extract', extractOutput())
@@ -268,22 +268,22 @@ describe('Generation pipeline (job handler, scripted model)', () => {
       testApp.cvAi
         .returns('extract', extractOutput())
         .returns('compose', composeOutput())
-        .runs('judge', async ({ claims }) => {
-          const bullet = claims.find((c) => c.value.startsWith('Built'))!;
+        .runs('judge', async ({ assertions }) => {
+          const bullet = assertions.find((c) => c.value.startsWith('Built'))!;
           return { findings: [bulletFinding(bullet.itemId)] };
         })
         .runs('repair', async ({ flagged }) => ({
           fixes: [
             {
-              itemId: flagged[0]!.claim.itemId,
+              itemId: flagged[0]!.assertion.itemId,
               field: 'text',
               value: 'Ran Kubernetes clusters.',
               sourceFactIds: ['f4'],
             },
           ],
         }))
-        .runs('judge', async ({ claims }) => ({
-          findings: [bulletFinding(claims[0]!.itemId)],
+        .runs('judge', async ({ assertions }) => ({
+          findings: [bulletFinding(assertions[0]!.itemId)],
         }));
 
       await run(generationId);
@@ -307,7 +307,7 @@ describe('Generation pipeline (job handler, scripted model)', () => {
 
     it.each<[string, CvAiOutput<'judge'>]>([
       [
-        'a Claim that does not exist',
+        'an Assertion that does not exist',
         { findings: [{ ...summaryFinding(), itemId: 'not-an-item' }] },
       ],
       [
@@ -453,6 +453,25 @@ describe('Generation pipeline (job handler, scripted model)', () => {
         { section: 'experience', itemId, field: 'endDate' },
       ]);
       expect(questions[0]?.text).toBe('What was your job title there?');
+    });
+
+    it('asks for a summary and for any background when the Facts give neither', async () => {
+      const { agent, cvId, generationId } = await givenQueuedGeneration();
+      const output = composeOutput();
+      output.summary = { text: '', sourceFactIds: [] };
+      output.experience = [];
+      output.education = [];
+      testApp.cvAi
+        .returns('extract', extractOutput())
+        .returns('compose', output)
+        .returns('judge', noFindings());
+
+      await run(generationId);
+
+      expect((await questionsOf(agent, cvId)).map((q) => q.anchor)).toEqual([
+        { section: 'summary', itemId: null, field: 'text' },
+        { section: 'experience', itemId: null, field: null },
+      ]);
     });
 
     it.each<[string, ComposeOutput['questions'][number]]>([
