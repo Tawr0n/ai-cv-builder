@@ -12,12 +12,13 @@ import {
   InvalidAiOutputError,
 } from '../ai/cv-ai.js';
 import { PrismaService } from '../database/prisma.service.js';
-import { Prisma } from '../generated/prisma/client.js';
+import { type GenerationStatus, Prisma } from '../generated/prisma/client.js';
 import { SourceStorage } from '../source/source-storage.js';
 import { classifyFailure, UnreadableSourceError } from './classify-failure.js';
 import { checkComposeOutput } from './compose-check.js';
+import { ACTIVE_GENERATION_STATUSES } from './generations.service.js';
 
-const ACTIVE = ['queued', 'running'] as const;
+const ACTIVE: readonly GenerationStatus[] = ACTIVE_GENERATION_STATUSES;
 
 /**
  * The Generation job handler: extract → compose, each step retried once on a
@@ -90,7 +91,7 @@ export class GenerationRunner {
       where: { id: generationId },
       include: { cv: true },
     });
-    if (!generation || !isActive(generation.status)) return null;
+    if (!generation || !ACTIVE.includes(generation.status)) return null;
 
     const { count } = await this.prisma.generation.updateMany({
       where: { id: generationId, status: { in: [...ACTIVE] } },
@@ -206,10 +207,6 @@ async function retryOnceIfInvalid<T>(attempt: () => Promise<T>): Promise<T> {
     if (!(error instanceof InvalidAiOutputError)) throw error;
     return attempt();
   }
-}
-
-function isActive(status: string): boolean {
-  return (ACTIVE as readonly string[]).includes(status);
 }
 
 /** For logs only: the error's kind and Anthropic request id, never Source or CV text. */

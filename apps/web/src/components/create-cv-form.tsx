@@ -16,8 +16,11 @@ import { queryKeys } from '@/lib/query-keys';
 
 const MAX_MB = PDF_LIMITS.maxBytes / (1024 * 1024);
 
+const FILE_TOO_LARGE = `That PDF is larger than ${MAX_MB} MB.`;
+
+/** By the API's stable error `code`. */
 const ERROR_MESSAGES: Record<string, string> = {
-  file_too_large: `That PDF is larger than ${MAX_MB} MB.`,
+  file_too_large: FILE_TOO_LARGE,
   not_a_pdf: 'That file is not a PDF.',
   pdf_unreadable: 'That PDF could not be read. Try exporting it again.',
   pdf_encrypted:
@@ -64,7 +67,7 @@ export function CreateCvForm() {
       return;
     }
     if (file.size > PDF_LIMITS.maxBytes) {
-      setFileError(ERROR_MESSAGES.file_too_large!);
+      setFileError(FILE_TOO_LARGE);
       return;
     }
     setFileError(null);

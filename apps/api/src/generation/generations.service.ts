@@ -6,6 +6,9 @@ import type { Generation, Prisma } from '../generated/prisma/client.js';
 import { ApiException } from '../http/api.exception.js';
 import { GenerationQueue } from './generation-queue.js';
 
+/** A Generation in one of these is active: it counts toward the per-User limit. */
+export const ACTIVE_GENERATION_STATUSES = ['queued', 'running'] as const;
+
 /** Starts Generations and shapes them for the API. */
 @Injectable()
 export class GenerationsService {
@@ -25,7 +28,7 @@ export class GenerationsService {
   ): Promise<Generation> {
     await lockUser(tx, userId);
     const active = await tx.generation.count({
-      where: { userId, status: { in: ['queued', 'running'] } },
+      where: { userId, status: { in: [...ACTIVE_GENERATION_STATUSES] } },
     });
     if (active >= this.env.MAX_ACTIVE_GENERATIONS) {
       throw new ApiException(
@@ -54,7 +57,7 @@ export async function lockUser(tx: Prisma.TransactionClient, userId: string) {
   await tx.$queryRaw`SELECT 1 FROM "User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
 }
 
-export function generationActive() {
+function generationActive() {
   return new ApiException(
     HttpStatus.CONFLICT,
     'generation_active',

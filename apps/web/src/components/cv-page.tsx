@@ -12,6 +12,7 @@ import { CvTemplate } from '@/components/cv-template';
 import {
   cvQuery,
   generationQuery,
+  isFinished,
   retryGenerationMutation,
 } from '@/lib/cvs-query';
 import { queryKeys } from '@/lib/query-keys';
@@ -25,7 +26,7 @@ const STEPS: { step: GenerationStep; label: string }[] = [
 const FAILURE_MESSAGES: Record<GenerationErrorCode, string> = {
   ai_unavailable: 'The AI service is not available right now.',
   invalid_ai_output:
-    'The AI wrote a draft that did not pass our checks, twice in a row.',
+    'The AI wrote a CV that did not pass our checks, twice in a row.',
   unreadable_source:
     'We could not find anything about you in that file or text.',
   timed_out: 'The AI took too long to answer.',
@@ -46,9 +47,9 @@ export function CvPage({ cvId }: { cvId: string }) {
   const signedOut = useSignedOutRedirect(generation.error ?? cv.error);
 
   // The CV view (and the list's badge) change once, when the Generation ends.
-  const status = generation.data?.status;
+  const finished = generation.data ? isFinished(generation.data) : false;
   useEffect(() => {
-    if (status === 'succeeded' || status === 'failed') {
+    if (finished) {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.cvs(),
         exact: true,
@@ -58,7 +59,7 @@ export function CvPage({ cvId }: { cvId: string }) {
         exact: true,
       });
     }
-  }, [status, cvId, queryClient]);
+  }, [finished, cvId, queryClient]);
 
   const title = cv.data?.targetRole;
   const back = (

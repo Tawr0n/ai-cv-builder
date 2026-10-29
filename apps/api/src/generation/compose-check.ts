@@ -21,7 +21,7 @@ export function checkComposeOutput(
   newId: () => string = randomUUID,
 ): CvContent {
   const { contact, summary, experience, education, skills } = output;
-  const draft = {
+  const candidate = {
     contact: { ...contact, ...NEW_ITEM },
     summary: { ...summary, ...NEW_ITEM },
     experience: experience.map(({ bullets, ...item }) => ({
@@ -38,7 +38,7 @@ export function checkComposeOutput(
     skills: skills.map((item) => ({ id: newId(), ...item, ...NEW_ITEM })),
   };
 
-  const parsed = cvContentSchema.safeParse(draft);
+  const parsed = cvContentSchema.safeParse(candidate);
   if (!parsed.success) {
     const where = parsed.error.issues.map((issue) => issue.path.join('.'));
     throw new InvalidAiOutputError(
